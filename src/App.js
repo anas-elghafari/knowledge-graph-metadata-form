@@ -1,4 +1,4 @@
-// src/App.js - With modal form integration
+// src/App.js - Updated for enhanced form
 import React, { useState, useEffect } from 'react';
 import ModalForm from './components/ModalForm';
 import DataTable from './components/DataTable';
@@ -30,13 +30,16 @@ function App() {
   // Handle form submission
   const handleSubmission = async (formData) => {
     try {
-      // Create submission with metadata (no IP address in this version)
+      // Create simplified submission object (with just essential fields for the table)
       const submission = {
-        name: formData.name,
+        name: formData.title, // Using title as the name for display
         description: formData.description,
-        type: formData.type,
-        fileName: formData.file ? formData.file.name : 'Unknown',
-        timestamp: new Date().toISOString()
+        type: formData.distributions && formData.distributions.length > 0 
+          ? formData.distributions[0].mediaType 
+          : 'Unknown',
+        date: new Date().toISOString(),
+        // Store the complete formData for future reference
+        formData: formData
       };
       
       // Add to submissions
