@@ -1,3 +1,4 @@
+// src/components/DataTable.js - Updated for offline usage
 import React from 'react';
 import Papa from 'papaparse';
 
@@ -22,17 +23,33 @@ function DataTable({ submissions }) {
     document.body.removeChild(link);
   };
 
+  const clearSubmissions = () => {
+    if (window.confirm('Are you sure you want to clear all submissions? This cannot be undone.')) {
+      localStorage.removeItem('kg-metadata-submissions');
+      window.location.reload(); // Reload to update the UI
+    }
+  };
+
   return (
     <div className="data-table-container">
       <div className="table-header">
         <h2>Submissions ({submissions.length})</h2>
-        <button 
-          onClick={downloadCSV}
-          disabled={submissions.length === 0}
-          className="download-button"
-        >
-          Download CSV
-        </button>
+        <div className="table-actions">
+          <button 
+            onClick={downloadCSV}
+            disabled={submissions.length === 0}
+            className="download-button"
+          >
+            Download CSV
+          </button>
+          <button 
+            onClick={clearSubmissions}
+            disabled={submissions.length === 0}
+            className="clear-button"
+          >
+            Clear All
+          </button>
+        </div>
       </div>
       
       {submissions.length > 0 ? (
@@ -44,7 +61,6 @@ function DataTable({ submissions }) {
                 <th>Title</th>
                 <th>ID</th>
                 <th>Timestamp</th>
-                <th>IP Address</th>
                 <th>Browser</th>
               </tr>
             </thead>
@@ -55,7 +71,6 @@ function DataTable({ submissions }) {
                   <td>{item.title}</td>
                   <td>{item.id}</td>
                   <td>{new Date(item.timestamp).toLocaleString()}</td>
-                  <td>{item.ipAddress}</td>
                   <td className="browser-info">{item.browser}</td>
                 </tr>
               ))}
