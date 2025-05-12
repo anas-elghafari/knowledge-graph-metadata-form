@@ -1,13 +1,14 @@
-//Offline version for GitHub Pages
+// src/App.js - With modal form integration
 import React, { useState, useEffect } from 'react';
-import Form from './components/Form';
+import ModalForm from './components/ModalForm';
 import DataTable from './components/DataTable';
 import './App.css';
 
 function App() {
   const [submissions, setSubmissions] = useState([]);
+  const [showModal, setShowModal] = useState(false);
   
-  // Load saved submissions from localStorage on component mount
+  // Load any saved submissions from localStorage on component mount
   useEffect(() => {
     const savedSubmissions = localStorage.getItem('kg-metadata-submissions');
     if (savedSubmissions) {
@@ -26,25 +27,28 @@ function App() {
     }
   }, [submissions]);
   
+  // Handle form submission
   const handleSubmission = async (formData) => {
     try {
-      // Create submission with metadata (no IP address)
+      // Create submission with metadata (no IP address in this version)
       const submission = {
-        ...formData,
-        timestamp: new Date().toISOString(),
-        browser: navigator.userAgent
+        name: formData.name,
+        description: formData.description,
+        type: formData.type,
+        fileName: formData.file ? formData.file.name : 'Unknown',
+        timestamp: new Date().toISOString()
       };
       
       // Add to submissions
       const newSubmissions = [...submissions, submission];
       setSubmissions(newSubmissions);
       
-      return { success: true, message: 'Form submitted successfully!' };
+      return { success: true, message: 'Mapping created successfully!' };
     } catch (error) {
       console.error('Error submitting form:', error);
       return { 
         success: false, 
-        message: 'Error submitting form. Please try again.' 
+        message: 'Error creating mapping. Please try again.' 
       };
     }
   };
@@ -52,14 +56,30 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>KG-Metadata-Form</h1>
+        <h1>Knowledge Graph Metadata Mappings</h1>
       </header>
       <main>
-        <Form onSubmit={handleSubmission} />
+        <div className="form-container">
+          <button 
+            className="submit-button" 
+            onClick={() => setShowModal(true)}
+            style={{ width: 'auto' }}
+          >
+            Add Mapping
+          </button>
+        </div>
         <DataTable submissions={submissions} />
+        
+        {showModal && (
+          <ModalForm 
+            onSubmit={handleSubmission} 
+            onClose={() => setShowModal(false)} 
+          />
+        )}
       </main>
     </div>
   );
 }
 
 export default App;
+}
