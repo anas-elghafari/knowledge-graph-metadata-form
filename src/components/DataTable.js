@@ -1,21 +1,31 @@
-// src/components/DataTable.js - Updated for offline usage
+// src/components/DataTable.js
 import React from 'react';
-import Papa from 'papaparse';
 
 function DataTable({ submissions }) {
-  const downloadCSV = () => {
+  const downloadJSON = () => {
     if (submissions.length === 0) {
       alert('No data to export');
       return;
     }
     
-    const csv = Papa.unparse(submissions);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    // Add browser type and ensure timestamp for all submissions
+    const enrichedData = submissions.map(submission => ({
+      ...submission,
+      browserType: navigator.userAgent,
+      timestamp: submission.timestamp || submission.date || new Date().toISOString(),
+      exportDate: new Date().toISOString()
+    }));
+    
+    // Convert to JSON string with proper formatting
+    const jsonData = JSON.stringify(enrichedData, null, 2);
+    
+    // Create download
+    const blob = new Blob([jsonData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     
     link.setAttribute('href', url);
-    link.setAttribute('download', `kg-metadata-submissions-${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute('download', `kg-metadata-${new Date().toISOString().slice(0,10)}.json`);
     link.style.visibility = 'hidden';
     
     document.body.appendChild(link);
@@ -24,7 +34,7 @@ function DataTable({ submissions }) {
   };
 
   const clearSubmissions = () => {
-    if (window.confirm('Are you sure you want to clear all submissions? This cannot be undone.')) {
+    if (window.confirm('Are you sure you want to clear all metadata? This cannot be undone.')) {
       localStorage.removeItem('kg-metadata-submissions');
       window.location.reload(); // Reload to update the UI
     }
@@ -33,14 +43,14 @@ function DataTable({ submissions }) {
   return (
     <div className="data-table-container">
       <div className="table-header">
-        <h2>Submissions ({submissions.length})</h2>
+        <h2>Metadata Submissions ({submissions.length})</h2>
         <div className="table-actions">
           <button 
-            onClick={downloadCSV}
+            onClick={downloadJSON}
             disabled={submissions.length === 0}
             className="download-button"
           >
-            Download CSV
+            Export JSON
           </button>
           <button 
             onClick={clearSubmissions}
@@ -57,28 +67,26 @@ function DataTable({ submissions }) {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
                 <th>Title</th>
-                <th>ID</th>
-                <th>Timestamp</th>
-                <th>Browser</th>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Date Submitted</th>
               </tr>
             </thead>
             <tbody>
               {submissions.map((item, index) => (
                 <tr key={index}>
                   <td>{item.name}</td>
-                  <td>{item.title}</td>
-                  <td>{item.id}</td>
-                  <td>{new Date(item.timestamp).toLocaleString()}</td>
-                  <td className="browser-info">{item.browser}</td>
+                  <td>{item.description}</td>
+                  <td>{item.type}</td>
+                  <td>{new Date(item.date).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       ) : (
-        <p className="no-data">No submissions yet</p>
+        <p className="no-data">No metadata submissions yet</p>
       )}
     </div>
   );

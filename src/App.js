@@ -1,4 +1,4 @@
-// src/App.js - Updated for enhanced form
+// src/App.js
 import React, { useState, useEffect } from 'react';
 import ModalForm from './components/ModalForm';
 import DataTable from './components/DataTable';
@@ -30,28 +30,35 @@ function App() {
   // Handle form submission
   const handleSubmission = async (formData) => {
     try {
-      // Create simplified submission object (with just essential fields for the table)
+      // Create submission with complete data and metadata
+      const timestamp = new Date().toISOString();
+      
       const submission = {
-        name: formData.title, // Using title as the name for display
+        // Display data for the table
+        name: formData.title,
         description: formData.description,
-        type: formData.distributions && formData.distributions.length > 0 
-          ? formData.distributions[0].mediaType 
-          : 'Unknown',
-        date: new Date().toISOString(),
-        // Store the complete formData for future reference
-        formData: formData
+        type: "KG-Metadata",
+        date: timestamp,
+        
+        // Complete form data
+        formData: {
+          ...formData,
+          timestamp: timestamp,
+          browserType: navigator.userAgent,
+          submissionId: `kg-meta-${Date.now()}`
+        }
       };
       
       // Add to submissions
       const newSubmissions = [...submissions, submission];
       setSubmissions(newSubmissions);
       
-      return { success: true, message: 'Mapping created successfully!' };
+      return { success: true, message: 'Metadata submitted successfully!' };
     } catch (error) {
       console.error('Error submitting form:', error);
       return { 
         success: false, 
-        message: 'Error creating mapping. Please try again.' 
+        message: 'Error submitting metadata. Please try again.' 
       };
     }
   };
@@ -59,7 +66,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Knowledge Graph Metadata Mappings</h1>
+        <h1>Knowledge Graph Metadata</h1>
       </header>
       <main>
         <div className="form-container">
@@ -68,7 +75,7 @@ function App() {
             onClick={() => setShowModal(true)}
             style={{ width: 'auto' }}
           >
-            Add Mapping
+            Submit Metadata Form
           </button>
         </div>
         <DataTable submissions={submissions} />
