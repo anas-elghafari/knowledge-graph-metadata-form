@@ -1,12 +1,17 @@
 // src/App.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ModalForm from './components/ModalForm';
 import DataTable from './components/DataTable';
+import SavedDrafts from './components/SavedDrafts';
 import './App.css';
 
 function App() {
   const [submissions, setSubmissions] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [draftToLoad, setDraftToLoad] = useState(null);
+  
+  // Create a ref for the SavedDrafts component
+  const savedDraftsRef = useRef(null);
   
   // Load any saved submissions from localStorage on component mount
   useEffect(() => {
@@ -26,6 +31,32 @@ function App() {
       localStorage.setItem('kg-metadata-submissions', JSON.stringify(submissions));
     }
   }, [submissions]);
+  
+  // Handle loading a draft
+  const handleLoadDraft = (formData) => {
+    setDraftToLoad(formData);
+    setShowModal(true);
+  };
+  
+  // Handle drafts being saved
+  const handleDraftSaved = () => {
+    // Refresh the saved drafts display
+    if (savedDraftsRef.current) {
+      savedDraftsRef.current.refreshDrafts();
+    }
+  };
+  
+  // Handle opening the modal with a new form
+  const handleOpenModal = () => {
+    setDraftToLoad(null); // Reset any loaded draft
+    setShowModal(true);
+  };
+  
+  // Handle closing the modal
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setDraftToLoad(null); // Reset the loaded draft when closing
+  };
   
   // Handle form submission
   const handleSubmission = async (formData) => {
@@ -72,7 +103,7 @@ function App() {
         <div className="form-container">
           <button 
             className="submit-button" 
-            onClick={() => setShowModal(true)}
+            onClick={handleOpenModal}
             style={{ width: 'auto' }}
           >
             Submit Metadata Form
@@ -80,10 +111,20 @@ function App() {
         </div>
         <DataTable submissions={submissions} />
         
+        {/* Add SavedDrafts component below DataTable */}
+        <div className="saved-drafts-section">
+          <SavedDrafts 
+            ref={savedDraftsRef}
+            onLoadDraft={handleLoadDraft} 
+          />
+        </div>
+        
         {showModal && (
           <ModalForm 
             onSubmit={handleSubmission} 
-            onClose={() => setShowModal(false)} 
+            onClose={handleCloseModal}
+            initialFormData={draftToLoad}
+            onDraftSaved={handleDraftSaved}
           />
         )}
       </main>

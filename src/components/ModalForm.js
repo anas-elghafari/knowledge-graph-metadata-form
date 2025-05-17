@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-function ModalForm({ onSubmit, onClose }) {
+function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null }) {
   // Initial form state
   const initialFormState = {
     identifier: [],
@@ -64,7 +64,7 @@ function ModalForm({ onSubmit, onClose }) {
     nameSpace: []
   };
 
-  const [formData, setFormData] = useState(initialFormState);
+  const [formData, setFormData] = useState(initialFormData || initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [identifierInput, setIdentifierInput] = useState('');
@@ -113,7 +113,16 @@ function ModalForm({ onSubmit, onClose }) {
     const [sparqlEndpointInput, setSparqlEndpointInput] = useState('');
     const [exampleQueriesInput, setExampleQueriesInput] = useState('');
 
-  // Disable body scrolling when modal is open
+
+
+
+  useEffect(() => {
+      if (initialFormData) {
+        setFormData(initialFormData);
+      }
+    }, [initialFormData]);
+
+    
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     
@@ -187,174 +196,197 @@ function ModalForm({ onSubmit, onClose }) {
   };
   
   const addPendingTagInputs = () => {
+    // Create a copy of the current form data that we'll update
+    let updatedFormData = {...formData};
+    
+    // Handle all tag input fields
     if (identifierInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        identifier: [...prev.identifier, identifierInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        identifier: [...updatedFormData.identifier, identifierInput.trim()]
+      };
     }
     
     if (typeInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        type: [...prev.type, typeInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        type: [...updatedFormData.type, typeInput.trim()]
+      };
     }
     
     if (alternativeTitleInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        alternativeTitle: [...prev.alternativeTitle, alternativeTitleInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        alternativeTitle: [...updatedFormData.alternativeTitle, alternativeTitleInput.trim()]
+      };
     }
     
     if (acronymInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        acronym: [...prev.acronym, acronymInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        acronym: [...updatedFormData.acronym, acronymInput.trim()]
+      };
     }
     
     if (homepageURLInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        homepageURL: [...prev.homepageURL, homepageURLInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        homepageURL: [...updatedFormData.homepageURL, homepageURLInput.trim()]
+      };
     }
     
     if (otherPagesInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        otherPages: [...prev.otherPages, otherPagesInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        otherPages: [...updatedFormData.otherPages, otherPagesInput.trim()]
+      };
     }
     
     if (modifiedDateInput) {
-      setFormData(prev => ({
-        ...prev,
-        modifiedDate: [...prev.modifiedDate, modifiedDateInput]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        modifiedDate: [...updatedFormData.modifiedDate, modifiedDateInput]
+      };
     }
     
     if (primaryReferenceDocInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        primaryReferenceDocument: [...prev.primaryReferenceDocument, primaryReferenceDocInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        primaryReferenceDocument: [...updatedFormData.primaryReferenceDocument, primaryReferenceDocInput.trim()]
+      };
     }
     
     if (statisticsInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        statistics: [...prev.statistics, statisticsInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        statistics: [...updatedFormData.statistics, statisticsInput.trim()]
+      };
     }
     
     if (keywordsInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        keywords: [...prev.keywords, keywordsInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        keywords: [...updatedFormData.keywords, keywordsInput.trim()]
+      };
     }
     
     if (categoryInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        category: [...prev.category, categoryInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        category: [...updatedFormData.category, categoryInput.trim()]
+      };
     }
     
     if (publicationReferencesInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        publicationReferences: [...prev.publicationReferences, publicationReferencesInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        publicationReferences: [...updatedFormData.publicationReferences, publicationReferencesInput.trim()]
+      };
     }
     
     if (languageInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        language: [...prev.language, languageInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        language: [...updatedFormData.language, languageInput.trim()]
+      };
     }
     
     if (iriTemplateInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        iriTemplate: [...prev.iriTemplate, iriTemplateInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        iriTemplate: [...updatedFormData.iriTemplate, iriTemplateInput.trim()]
+      };
     }
     
     if (linkedResourcesInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        linkedResources: [...prev.linkedResources, linkedResourcesInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        linkedResources: [...updatedFormData.linkedResources, linkedResourcesInput.trim()]
+      };
     }
     
     if (exampleResourceInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        exampleResource: [...prev.exampleResource, exampleResourceInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        exampleResource: [...updatedFormData.exampleResource, exampleResourceInput.trim()]
+      };
     }
     
     if (sourceInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        source: [...prev.source, sourceInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        source: [...updatedFormData.source, sourceInput.trim()]
+      };
     }
     
     if (nameSpaceInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        nameSpace: [...prev.nameSpace, nameSpaceInput.trim()]
-      }));
+      updatedFormData = {
+        ...updatedFormData,
+        nameSpace: [...updatedFormData.nameSpace, nameSpaceInput.trim()]
+      };
     }
-
-
+  
     if (vocabulariesUsedInput.trim()) {
-        setFormData(prev => ({
-          ...prev,
-          vocabulariesUsed: [...prev.vocabulariesUsed, vocabulariesUsedInput.trim()]
-        }));
+      updatedFormData = {
+        ...updatedFormData,
+        vocabulariesUsed: [...updatedFormData.vocabulariesUsed, vocabulariesUsedInput.trim()]
+      };
+    }
+    
+    if (metadataSchemaInput.trim()) {
+      updatedFormData = {
+        ...updatedFormData,
+        metadataSchema: [...updatedFormData.metadataSchema, metadataSchemaInput.trim()]
+      };
+    }
+    
+    if (kgSchemaInput.trim()) {
+      updatedFormData = {
+        ...updatedFormData,
+        kgSchema: [...updatedFormData.kgSchema, kgSchemaInput.trim()]
+      };
+    }
+    
+    if (restAPIInput.trim()) {
+      updatedFormData = {
+        ...updatedFormData,
+        restAPI: [...updatedFormData.restAPI, restAPIInput.trim()]
+      };
+    }
+    
+    if (sparqlEndpointInput.trim()) {
+      updatedFormData = {
+        ...updatedFormData,
+        sparqlEndpoint: [...updatedFormData.sparqlEndpoint, sparqlEndpointInput.trim()]
+      };
+    }
+    
+    if (exampleQueriesInput.trim()) {
+      updatedFormData = {
+        ...updatedFormData,
+        exampleQueries: [...updatedFormData.exampleQueries, exampleQueriesInput.trim()]
+      };
+    }
+    
+    // Check if current distribution is partially filled and valid
+    const currDist = currentDistribution;
+    if (currDist.title || currDist.description || currDist.mediaType || 
+        currDist.downloadURL || currDist.accessURL) {
+      // Only add the distribution if it has the required fields
+      if (currDist.title && currDist.description && currDist.mediaType && 
+          currDist.downloadURL && currDist.accessURL) {
+        updatedFormData = {
+          ...updatedFormData,
+          distributions: [...updatedFormData.distributions, {...currDist}]
+        };
       }
-      
-      if (metadataSchemaInput.trim()) {
-        setFormData(prev => ({
-          ...prev,
-          metadataSchema: [...prev.metadataSchema, metadataSchemaInput.trim()]
-        }));
-      }
-      
-      if (kgSchemaInput.trim()) {
-        setFormData(prev => ({
-          ...prev,
-          kgSchema: [...prev.kgSchema, kgSchemaInput.trim()]
-        }));
-      }
-      
-      if (restAPIInput.trim()) {
-        setFormData(prev => ({
-          ...prev,
-          restAPI: [...prev.restAPI, restAPIInput.trim()]
-        }));
-      }
-      
-      if (sparqlEndpointInput.trim()) {
-        setFormData(prev => ({
-          ...prev,
-          sparqlEndpoint: [...prev.sparqlEndpoint, sparqlEndpointInput.trim()]
-        }));
-      }
-      
-      if (exampleQueriesInput.trim()) {
-        setFormData(prev => ({
-          ...prev,
-          exampleQueries: [...prev.exampleQueries, exampleQueriesInput.trim()]
-        }));
-      }
+    }
+    
+    // Update the state with all changes
+    setFormData(updatedFormData);
+    
+    // Return the updated form data for immediate use
+    return updatedFormData;
   };
 
   const handleDistributionChange = (field, value) => {
@@ -414,54 +446,46 @@ function ModalForm({ onSubmit, onClose }) {
     });
   };
   
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // First add any pending tag inputs
-    addPendingTagInputs();
-    
-    // Then proceed with submission
     setIsSubmitting(true);
     setMessage('');
-    
-    // Use setTimeout to ensure state updates have happened
-    setTimeout(async () => {
-      try {
-        
-        if (!formData.title || !formData.description || 
-            formData.type.length === 0 || !formData.publishedDate ||
-            formData.distributions.length === 0 ||
-            formData.primaryReferenceDocument.length === 0 ||
-            formData.keywords.length === 0 ||
-            formData.language.length === 0 ||
-            !formData.accessStatement ||
-            formData.vocabulariesUsed.length === 0 ||
-            formData.metadataSchema.length === 0) {
-          setMessage('Please fill in all required fields');
-          setIsSubmitting(false);
-          return;
-        }
 
-        // Submit form data to parent component
-        const result = await onSubmit(formData);
-        
-        if (result.success) {
-          // Close modal on success
-          onClose();
-        } else {
-          setMessage(result.message);
-        }
-      } catch (error) {
-        console.error('Error in form submission:', error);
-        setMessage('An unexpected error occurred. Please try again.');
-      } finally {
+    const updatedForm = addPendingTagInputs();
+    
+    try {
+      if (!updatedForm.title || !updatedForm.description || 
+          updatedForm.type.length === 0 || !updatedForm.publishedDate ||
+          updatedForm.distributions.length === 0 ||
+          updatedForm.primaryReferenceDocument.length === 0 ||
+          updatedForm.keywords.length === 0 ||
+          updatedForm.language.length === 0 ||
+          !updatedForm.accessStatement ||
+          updatedForm.vocabulariesUsed.length === 0 ||
+          updatedForm.metadataSchema.length === 0) {
+        setMessage('Please fill in all required fields');
         setIsSubmitting(false);
+        return;
       }
-    }, 0);
+  
+      // Submit updated form data to parent component
+      const result = await onSubmit(updatedForm);
+      
+      if (result.success) {
+        onClose();
+      } else {
+        setMessage(result.message);
+      }
+    } catch (error) {
+      console.error('Error in form submission:', error);
+      setMessage('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // Handle key press in tag input fields
+  // handle key press in tag input fields
   const handleKeyPress = (e, fieldName, inputValue, setInputFunc) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -469,7 +493,7 @@ function ModalForm({ onSubmit, onClose }) {
     }
   };
 
-  // Format date for display
+  // Format date - display
   const formatDate = (dateString) => {
     if (!dateString) return '';
     try {
@@ -480,9 +504,74 @@ function ModalForm({ onSubmit, onClose }) {
     }
   };
 
+
+  const handleSaveDraft = () => {
+    // First add any pending tag inputs
+    const updatedForm = addPendingTagInputs();
+    
+    // Check if we're updating an existing draft or creating a new one
+    const existingDraftId = updatedForm.draftId || null;
+    const draftId = existingDraftId || `draft-${Date.now()}`;
+    
+    // Create the draft object
+    const draft = {
+      id: draftId,
+      name: updatedForm.title || 'Untitled Draft',
+      date: new Date().toISOString(),
+      formData: {
+        ...updatedForm,
+        draftId: draftId // Store the draft ID in the form data
+      }
+    };
+    
+    // Get existing drafts from localStorage
+    let savedDrafts = [];
+    try {
+      const draftsString = localStorage.getItem('kg-metadata-drafts');
+      if (draftsString) {
+        savedDrafts = JSON.parse(draftsString);
+      }
+    } catch (error) {
+      console.error('Error loading saved drafts:', error);
+    }
+    
+    // If updating an existing draft, remove the old version
+    if (existingDraftId) {
+      savedDrafts = savedDrafts.filter(d => d.id !== existingDraftId);
+    }
+    
+    // Add the new/updated draft
+    savedDrafts.push(draft);
+    
+    // Save back to localStorage
+    localStorage.setItem('kg-metadata-drafts', JSON.stringify(savedDrafts));
+    
+    // Show success message
+    setMessage('Draft saved successfully!');
+    setTimeout(() => setMessage(''), 2000);
+    
+    // Call the callback if provided
+    if (onDraftSaved) {
+      onDraftSaved();
+    }
+    setTimeout(() => {
+      onClose();
+    }, 2000); 
+  };
+
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal-content" onClick={e => e.stopPropagation()}>
+
+      {message && (
+        <div className="floating-message">
+          <div className={message.includes('success') ? 'success-message' : 'error-message'}>
+            {message}
+          </div>
+        </div>
+      )}
+
         <div className="modal-header">
           <h2>Knowledge Graph Metadata</h2>
           <button className="modal-close-button" onClick={onClose}>×</button>
@@ -2054,6 +2143,14 @@ function ModalForm({ onSubmit, onClose }) {
          >
            Cancel
          </button>
+
+         <button 
+          className="save-draft-button"
+        onClick={handleSaveDraft}
+        >
+          Save Draft
+        </button>
+
          <button 
            className="submit-button"
            onClick={handleSubmit}

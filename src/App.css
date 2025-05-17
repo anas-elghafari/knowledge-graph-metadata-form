@@ -232,7 +232,7 @@ main {
 }
 
 .clear-button:hover {
-  background-color: #c82333;
+  background-color: #5c2a30;
 }
 
 .clear-button:disabled {
@@ -1358,9 +1358,140 @@ label {
   margin-bottom: 16px;
 }
 
-/* Add visual indicator that this is a field group */
+/* visual indicator that this is a field group */
 .form-section h3.section-title + .field-indicator {
   display: inline-block;
   margin-top: -16px;
   margin-bottom: 16px;
+}
+
+
+.saved-drafts-section {
+  grid-column: 1 / -1;
+  margin-top: 40px;
+}
+
+/* Draft actions */
+.draft-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.load-button, 
+.delete-button,
+.save-draft-button {
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-weight: 500;
+}
+
+.load-button {
+  background-color: var(--primary-blue);
+  color: white;
+  border: none;
+}
+
+.load-button:hover {
+  background-color: var(--primary-blue-hover);
+}
+
+.delete-button {
+  background-color: var(--error-red);
+  color: white;
+  border: none;
+}
+
+.delete-button:hover {
+  background-color: #5c2a30;
+}
+
+.save-draft-button {
+  background-color: var(--dark-surface-lighter);
+  color: var(--dark-text);
+  border: 1px solid var(--dark-border);
+}
+
+.save-draft-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (min-width: 992px) {
+  main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+  
+  .form-container,
+  .data-table-container,
+  .saved-drafts-section {
+    width: 100%;
+  }
+  
+  .saved-drafts-section {
+    grid-column: 1 / -1;
+  }
+}
+
+
+.floating-message {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000; /* Higher than the modal */
+  min-width: 300px;
+  max-width: 500px;
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+.success-message, .error-message {
+  padding: 14px 20px;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-message {
+  background-color: rgba(40, 167, 69, 0.95);
+  color: white;
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.error-message {
+  background-color: rgba(220, 53, 69, 0.95);
+  color: white;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Make messages more responsive */
+@media (max-width: 768px) {
+  .floating-message {
+    min-width: 250px;
+    max-width: 90%;
+    bottom: 20px;
+  }
+  
+  .success-message, .error-message {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
 }
