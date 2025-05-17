@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/knowledge-graph-metadata-form/static/css/main.f8a62c5e.css",
-    "main.js": "/knowledge-graph-metadata-form/static/js/main.6cc443b9.js",
+    "main.css": "/knowledge-graph-metadata-form/static/css/main.1662651c.css",
+    "main.js": "/knowledge-graph-metadata-form/static/js/main.c5c72b85.js",
     "static/js/453.458a88d8.chunk.js": "/knowledge-graph-metadata-form/static/js/453.458a88d8.chunk.js",
     "index.html": "/knowledge-graph-metadata-form/index.html",
-    "main.f8a62c5e.css.map": "/knowledge-graph-metadata-form/static/css/main.f8a62c5e.css.map",
-    "main.6cc443b9.js.map": "/knowledge-graph-metadata-form/static/js/main.6cc443b9.js.map",
+    "main.1662651c.css.map": "/knowledge-graph-metadata-form/static/css/main.1662651c.css.map",
+    "main.c5c72b85.js.map": "/knowledge-graph-metadata-form/static/js/main.c5c72b85.js.map",
     "453.458a88d8.chunk.js.map": "/knowledge-graph-metadata-form/static/js/453.458a88d8.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.f8a62c5e.css",
-    "static/js/main.6cc443b9.js"
+    "static/css/main.1662651c.css",
+    "static/js/main.c5c72b85.js"
   ]
 }
