@@ -87,6 +87,14 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [nameSpaceInput, setNameSpaceInput] = useState('');
   const [imageFileName, setImageFileName] = useState('');
   const fileInputRef = useRef(null);
+
+  const [createdDateError, setCreatedDateError] = useState('');
+  const [publishedDateError, setPublishedDateError] = useState('');
+  const [modifiedDateError, setModifiedDateError] = useState('');
+  const [distReleaseDateError, setDistReleaseDateError] = useState('');
+  const [distModificationDateError, setDistModificationDateError] = useState('');
+
+
   
   // New state for distribution editing
   const [currentDistribution, setCurrentDistribution] = useState({
@@ -173,8 +181,181 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       setModifiedDateInput('');
     }
   };
+
+  const validateDateInput = (e) => {
+    const { name, value } = e.target;
+    let errorMessage = '';
+    
+    // Skip empty optional fields
+    if (!value && name !== 'publishedDate') {
+      e.target.setCustomValidity('');
+      
+      // Clear error for the specific field
+      if (name === 'createdDate') setCreatedDateError('');
+      else if (name === 'modifiedDate') setModifiedDateError('');
+      else if (name === 'distReleaseDate') setDistReleaseDateError('');
+      else if (name === 'distModificationDate') setDistModificationDateError('');
+      
+      return;
+    }
+    
+    // Check if the value matches YYYY/MM/DD pattern
+    const datePattern = /^\d{4}\/\d{2}\/\d{2}$/;
+    if (!datePattern.test(value)) {
+      errorMessage = 'Please use YYYY/MM/DD format';
+      e.target.setCustomValidity(errorMessage);
+      
+      // Set error for the specific field
+      if (name === 'createdDate') setCreatedDateError(errorMessage);
+      else if (name === 'publishedDate') setPublishedDateError(errorMessage);
+      else if (name === 'modifiedDate') setModifiedDateError(errorMessage);
+      else if (name === 'distReleaseDate') setDistReleaseDateError(errorMessage);
+      else if (name === 'distModificationDate') setDistModificationDateError(errorMessage);
+      
+      return;
+    }
+    
+    // Parse date parts
+    const parts = value.split('/');
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+    
+    // Check year range (reasonable range)
+    if (year < 1900 || year > 2100) {
+      errorMessage = 'Year should be between 1900 and 2100';
+      e.target.setCustomValidity(errorMessage);
+      
+      // Set error for the specific field
+      if (name === 'createdDate') setCreatedDateError(errorMessage);
+      else if (name === 'publishedDate') setPublishedDateError(errorMessage);
+      else if (name === 'modifiedDate') setModifiedDateError(errorMessage);
+      else if (name === 'distReleaseDate') setDistReleaseDateError(errorMessage);
+      else if (name === 'distModificationDate') setDistModificationDateError(errorMessage);
+      
+      return;
+    }
+    
+    // Check month range
+    if (month < 1 || month > 12) {
+      errorMessage = 'Month should be between 1 and 12';
+      e.target.setCustomValidity(errorMessage);
+      
+      // Set error for the specific field
+      if (name === 'createdDate') setCreatedDateError(errorMessage);
+      else if (name === 'publishedDate') setPublishedDateError(errorMessage);
+      else if (name === 'modifiedDate') setModifiedDateError(errorMessage);
+      else if (name === 'distReleaseDate') setDistReleaseDateError(errorMessage);
+      else if (name === 'distModificationDate') setDistModificationDateError(errorMessage);
+      
+      return;
+    }
+    
+    // Check day range based on month
+    const daysInMonth = [
+      31, // January
+      isLeapYear(year) ? 29 : 28, // February (leap year check)
+      31, // March
+      30, // April
+      31, // May
+      30, // June
+      31, // July
+      31, // August
+      30, // September
+      31, // October
+      30, // November
+      31  // December
+    ];
+    
+    if (day < 1 || day > daysInMonth[month - 1]) {
+      errorMessage = `Day should be between 1 and ${daysInMonth[month - 1]} for this month`;
+      e.target.setCustomValidity(errorMessage);
+      
+      // Set error for the specific field
+      if (name === 'createdDate') setCreatedDateError(errorMessage);
+      else if (name === 'publishedDate') setPublishedDateError(errorMessage);
+      else if (name === 'modifiedDate') setModifiedDateError(errorMessage);
+      else if (name === 'distReleaseDate') setDistReleaseDateError(errorMessage);
+      else if (name === 'distModificationDate') setDistModificationDateError(errorMessage);
+      
+      return;
+    }
+    
+    // Final check: Create date object and verify
+    const date = new Date(year, month - 1, day);
+    if (
+      isNaN(date.getTime()) || 
+      date.getFullYear() !== year || 
+      date.getMonth() !== month - 1 || 
+      date.getDate() !== day
+    ) {
+      errorMessage = 'Invalid date';
+      e.target.setCustomValidity(errorMessage);
+      
+      // Set error for the specific field
+      if (name === 'createdDate') setCreatedDateError(errorMessage);
+      else if (name === 'publishedDate') setPublishedDateError(errorMessage);
+      else if (name === 'modifiedDate') setModifiedDateError(errorMessage);
+      else if (name === 'distReleaseDate') setDistReleaseDateError(errorMessage);
+      else if (name === 'distModificationDate') setDistModificationDateError(errorMessage);
+      
+      return;
+    }
+    
+    // Reset validation if all checks pass
+    e.target.setCustomValidity('');
+    
+    // Clear error for the specific field
+    if (name === 'createdDate') setCreatedDateError('');
+    else if (name === 'publishedDate') setPublishedDateError('');
+    else if (name === 'modifiedDate') setModifiedDateError('');
+    else if (name === 'distReleaseDate') setDistReleaseDateError('');
+    else if (name === 'distModificationDate') setDistModificationDateError('');
+  };
   
-  // Handle removing a tag
+  
+
+  const isLeapYear = (year) => {
+    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+  };
+  
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    
+    if (/^\d{4}\/\d{2}\/\d{2}$/.test(dateString)) {
+      return dateString;
+    }
+    
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return dateString.replace(/-/g, '/');
+    }
+    
+    //try to parse and format
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      
+      return `${year}/${month}/${day}`;
+    } catch (e) {
+      return '';
+    }
+  };
+  
+  const convertToISODate = (dateString) => {
+    if (!dateString) return '';
+    
+    if (/^\d{4}\/\d{2}\/\d{2}$/.test(dateString)) {
+      return dateString.replace(/\//g, '-');
+    }
+    
+    return dateString;
+  };
+
+  
   const handleRemoveTag = (fieldName, index) => {
     const newTags = [...formData[fieldName]];
     newTags.splice(index, 1);
@@ -445,14 +626,194 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       distributions: newDistributions
     });
   };
+
+
+
+
+
+  const validateDateField = (fieldName, dateValue) => {
+    if (!dateValue) {
+      // For required fields, this would be caught later
+      return true;
+    }
+    
+    if (!isValidDate(dateValue)) {
+      // Create a synthetic event to pass to validateDateInput
+      const syntheticEvent = {
+        target: {
+          name: fieldName,
+          value: dateValue,
+          setCustomValidity: () => {} // Mock function
+        }
+      };
+      
+      validateDateInput(syntheticEvent);
+      return false;
+    }
+    
+    return true;
+  };
+  
+  // Helper function to check if a date string is valid
+  const isValidDate = (dateString) => {
+    // Skip empty values
+    if (!dateString) return true;
+    
+    // Check format
+    const datePattern = /^\d{4}\/\d{2}\/\d{2}$/;
+    if (!datePattern.test(dateString)) {
+      return false;
+    }
+    
+    // Parse date parts
+    const parts = dateString.split('/');
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+    
+    // Check ranges
+    if (year < 1990 || year > 2030) return false;
+    if (month < 1 || month > 12) return false;
+    
+    // Check days in month
+    const daysInMonth = [
+      31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+    ];
+    
+    if (day < 1 || day > daysInMonth[month - 1]) return false;
+    
+    return true;
+  };
+
+
+
+  const handleDatePickerChange = (e, targetFieldName) => {
+    const selectedDate = e.target.value; // This will be in YYYY-MM-DD format
+    
+    // Convert from YYYY-MM-DD to YYYY/MM/DD
+    const formattedDate = selectedDate.replace(/-/g, '/');
+    
+    // Set the value in the appropriate field based on targetFieldName
+    if (targetFieldName === 'createdDate') {
+      // For direct form fields
+      setFormData({
+        ...formData,
+        createdDate: formattedDate
+      });
+    } else if (targetFieldName === 'publishedDate') {
+      setFormData({
+        ...formData,
+        publishedDate: formattedDate
+      });
+    } else if (targetFieldName === 'modifiedDate') {
+      // For the modified date input
+      setModifiedDateInput(formattedDate);
+    } else if (targetFieldName === 'distReleaseDate') {
+      // For distribution date fields
+      setCurrentDistribution({
+        ...currentDistribution,
+        releaseDate: formattedDate
+      });
+    } else if (targetFieldName === 'distModificationDate') {
+      setCurrentDistribution({
+        ...currentDistribution,
+        modificationDate: formattedDate
+      });
+    }
+    
+    // Validate the date after setting it
+    setTimeout(() => {
+      const syntheticEvent = {
+        target: {
+          name: targetFieldName,
+          value: formattedDate,
+          setCustomValidity: () => {}
+        }
+      };
+      validateDateInput(syntheticEvent);
+    }, 0);
+  };
+
+
+  const formatDatesForSubmission = (formData) => {
+    const updatedForm = { ...formData };
+    
+    // Format single date fields
+    if (updatedForm.createdDate) {
+      updatedForm.createdDate = convertToISODate(updatedForm.createdDate);
+    }
+    
+    if (updatedForm.publishedDate) {
+      updatedForm.publishedDate = convertToISODate(updatedForm.publishedDate);
+    }
+    
+    // Format date arrays
+    if (updatedForm.modifiedDate && updatedForm.modifiedDate.length > 0) {
+      updatedForm.modifiedDate = updatedForm.modifiedDate.map(date => 
+        convertToISODate(date)
+      );
+    }
+    
+    // Format dates in distributions
+    if (updatedForm.distributions && updatedForm.distributions.length > 0) {
+      updatedForm.distributions = updatedForm.distributions.map(dist => {
+        const newDist = { ...dist };
+        if (newDist.releaseDate) {
+          newDist.releaseDate = convertToISODate(newDist.releaseDate);
+        }
+        if (newDist.modificationDate) {
+          newDist.modificationDate = convertToISODate(newDist.modificationDate);
+        }
+        return newDist;
+      });
+    }
+    
+    return updatedForm;
+  };
+  
+
+
+
+
   
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    const updatedForm = addPendingTagInputs();
+    
+    if (createdDateError || publishedDateError || modifiedDateError || 
+        distReleaseDateError || distModificationDateError) {
+      setMessage('Please fix the date errors before submitting');
+      return;
+    }
+    
+    // Also validate all date fields to catch any unvalidated dates
+    // For required date fields
+    if (!updatedForm.publishedDate) {
+      setPublishedDateError('Published Date is required');
+      setMessage('Please fill in all required fields');
+      return;
+    }
+    
+    // For optional date fields that have values
+    if (updatedForm.createdDate) {
+      const e = {
+        target: {
+          name: 'createdDate',
+          value: updatedForm.createdDate,
+          setCustomValidity: () => {}
+        }
+      };
+      validateDateInput(e);
+      if (createdDateError) {
+        setMessage('Please fix the date errors before submitting');
+        return;
+      }
+    }
+    
+    // Proceed with submission
     setIsSubmitting(true);
     setMessage('');
-
-    const updatedForm = addPendingTagInputs();
     
     try {
       if (!updatedForm.title || !updatedForm.description || 
@@ -469,10 +830,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         return;
       }
   
-      // Submit updated form data to parent component
+      // Submit form data to parent component
       const result = await onSubmit(updatedForm);
       
       if (result.success) {
+        // Close modal on success
         onClose();
       } else {
         setMessage(result.message);
@@ -484,6 +846,10 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       setIsSubmitting(false);
     }
   };
+  
+
+
+
 
   // handle key press in tag input fields
   const handleKeyPress = (e, fieldName, inputValue, setInputFunc) => {
@@ -492,13 +858,12 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       handleAddTag(fieldName, inputValue, setInputFunc);
     }
   };
-
-  // Format date - display
+  
   const formatDate = (dateString) => {
     if (!dateString) return '';
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString();
+      return date.toISOString().split('T')[0]; //YYYY-MM-DD
     } catch (e) {
       return dateString;
     }
@@ -739,16 +1104,28 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
               <label htmlFor="createdDate">
                 Created Date <span className="field-indicator optional-indicator">optional, 1 value only</span>
               </label>
-              <input
-                type="date"
-                id="createdDate"
-                name="createdDate"
-                value={formData.createdDate}
-                onChange={handleChange}
-                className="date-input"
-              />
+              <div className="date-input-container">
+                <input
+                  type="text"
+                  id="createdDate"
+                  name="createdDate"
+                  value={formData.createdDate}
+                  onChange={handleChange}
+                  onBlur={validateDateInput}
+                  placeholder="YYYY/MM/DD"
+                  className={`date-input ${createdDateError ? 'date-input-error' : ''}`}
+                />
+                <input
+                  type="date"
+                  className="date-picker-control"
+                  onChange={(e) => handleDatePickerChange(e, 'createdDate')}
+                  aria-label="Date picker for Created Date"
+                />
+              </div>
+              {createdDateError && <div className="date-error-message">{createdDateError}</div>}
             </div>
             
+
             <div className="form-group">
               <label htmlFor="modifiedDate">
                 Modified Date <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
@@ -756,25 +1133,35 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
               <div className="tag-input-container">
                 <div className="tag-input-row">
                   <input
-                    type="date"
+                    type="text"
                     id="modifiedDate"
+                    name="modifiedDate"
                     value={modifiedDateInput}
                     onChange={(e) => setModifiedDateInput(e.target.value)}
-                    className="date-input"
+                    onBlur={validateDateInput}
+                    placeholder="YYYY/MM/DD"
+                    className={`date-input ${modifiedDateError ? 'date-input-error' : ''}`}
+                  />
+                  <input
+                    type="date"
+                    className="date-picker-control"
+                    onChange={(e) => handleDatePickerChange(e, 'modifiedDate')}
+                    aria-label="Date picker for Modified Date"
                   />
                   <button 
                     type="button" 
                     className="tag-add-button"
                     onClick={handleAddDate}
-                    disabled={!modifiedDateInput}
+                    disabled={!modifiedDateInput || modifiedDateError}
                   >
                     +
                   </button>
                 </div>
+                {modifiedDateError && <div className="date-error-message">{modifiedDateError}</div>}
                 <div className="tag-list">
                   {formData.modifiedDate.map((date, index) => (
                     <div key={`modified-date-${index}`} className="tag-item">
-                      <span className="tag-text">{formatDate(date)}</span>
+                      <span className="tag-text date-tag">{date}</span>
                       <button 
                         type="button"
                         className="tag-remove"
@@ -785,26 +1172,36 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                   ))}
                 </div>
-                <div className="field-hint">Select a date and click + to add</div>
+                <div className="field-hint">Enter date in YYYY/MM/DD format or use the date picker</div>
               </div>
             </div>
-            
+
+                        
             <div className="form-group">
               <label htmlFor="publishedDate">
                 Published Date <span className="field-indicator required-indicator">required, 1 value only</span>
               </label>
-              <input
-                type="date"
-                id="publishedDate"
-                name="publishedDate"
-                value={formData.publishedDate}
-                onChange={handleChange}
-                required
-                className="date-input"
-              />
+              <div className="date-input-container">
+                <input
+                  type="text"
+                  id="publishedDate"
+                  name="publishedDate"
+                  value={formData.publishedDate}
+                  onChange={handleChange}
+                  onBlur={validateDateInput}
+                  placeholder="YYYY/MM/DD"
+                  required
+                  className={`date-input ${publishedDateError ? 'date-input-error' : ''}`}
+                />
+                <input
+                  type="date"
+                  className="date-picker-control"
+                  onChange={(e) => handleDatePickerChange(e, 'publishedDate')}
+                  aria-label="Date picker for Published Date"
+                />
+              </div>
+              {publishedDateError && <div className="date-error-message">{publishedDateError}</div>}
             </div>
-            
-
 
 
             <div className="form-group">
@@ -1591,31 +1988,45 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                  className="subfield-input"
                />
              </div>
-             <div className="form-group">
-               <label htmlFor="distReleaseDate">
-                 Release Date <span className="field-indicator optional-indicator">optional</span>
-               </label>
-               <input
-                 type="date"
-                 id="distReleaseDate"
-                 value={currentDistribution.releaseDate}
-                 onChange={(e) => handleDistributionChange('releaseDate', e.target.value)}
-                 className="date-input subfield-input"
-               />
-             </div>
+             
              
              <div className="form-group">
-               <label htmlFor="distModificationDate">
-                 Update/Modification Date <span className="field-indicator optional-indicator">optional</span>
-               </label>
-               <input
-                 type="date"
-                 id="distModificationDate"
-                 value={currentDistribution.modificationDate}
-                 onChange={(e) => handleDistributionChange('modificationDate', e.target.value)}
-                 className="date-input subfield-input"
-               />
-             </div>
+                <label htmlFor="distReleaseDate">
+                  Release Date <span className="field-indicator optional-indicator">optional</span>
+                </label>
+                <div className="date-input-container">
+                  <input
+                    type="text"
+                    id="distReleaseDate"
+                    name="distReleaseDate"
+                    value={currentDistribution.releaseDate}
+                    onChange={(e) => handleDistributionChange('releaseDate', e.target.value)}
+                    onBlur={validateDateInput}
+                    placeholder="YYYY/MM/DD"
+                    className={`date-input subfield-input ${distReleaseDateError ? 'date-input-error' : ''}`}
+                  />
+                </div>
+                {distReleaseDateError && <div className="date-error-message">{distReleaseDateError}</div>}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="distModificationDate">
+                  Update/Modification Date <span className="field-indicator optional-indicator">optional</span>
+                </label>
+                <div className="date-input-container">
+                  <input
+                    type="text"
+                    id="distModificationDate"
+                    name="distModificationDate"
+                    value={currentDistribution.modificationDate}
+                    onChange={(e) => handleDistributionChange('modificationDate', e.target.value)}
+                    onBlur={validateDateInput}
+                    placeholder="YYYY/MM/DD" 
+                    className={`date-input subfield-input ${distModificationDateError ? 'date-input-error' : ''}`}
+                  />
+                </div>
+                {distModificationDateError && <div className="date-error-message">{distModificationDateError}</div>}
+              </div>
              
              <div className="distribution-actions">
                <button 

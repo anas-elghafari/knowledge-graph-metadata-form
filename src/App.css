@@ -1495,3 +1495,334 @@ label {
     font-size: 14px;
   }
 }
+.date-input-container {
+  display: flex;
+  align-items: center;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.8); /* Makes the calendar icon light-colored for dark backgrounds */
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+.tag-item .date-tag {
+  font-family: monospace; /* Consistent width for digits */
+  letter-spacing: -0.5px; /* Tighten spacing */
+}
+
+@media (max-width: 768px) {
+  .date-input {
+    min-width: 140px;
+    max-width: 160px;
+    padding: 10px;
+    font-size: 14px;
+  }
+}
+
+.date-input {
+  width: auto;
+  min-width: 120px;
+  max-width: 140px;
+  padding: 12px;
+  background-color: var(--dark-surface-lighter);
+  color: var(--dark-text);
+  border: 1px solid var(--dark-border);
+  border-radius: 4px;
+  font-size: 16px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  font-family: monospace; /* Better for date formatting */
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25);
+}
+
+.date-input::placeholder {
+  color: var(--dark-text-secondary);
+  opacity: 0.7;
+}
+
+/* For date input containers */
+.date-input-container {
+  display: flex;
+  align-items: center;
+}
+
+/* Invalid state styling */
+.date-input:invalid {
+  border-color: var(--error-red);
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Tag items for dates */
+.tag-item .date-tag {
+  font-family: monospace;
+  letter-spacing: 0;
+}
+
+/* For mobile responsiveness */
+@media (max-width: 768px) {
+  .date-input {
+    min-width: 110px;
+    max-width: 130px;
+    padding: 10px;
+    font-size: 14px;
+  }
+}
+
+.date-error-message {
+  color: var(--error-red);
+  font-size: 0.85rem;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  font-weight: 500;
+  animation: fadeIn 0.2s ease-in;
+}
+
+/* Make sure error doesn't push other elements too much */
+.form-group {
+  position: relative;
+}
+
+/* Animation for error appearance */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Make the error message stand out a bit more */
+.date-error-message::before {
+  content: '⚠️ ';
+  font-size: 0.85em;
+}
+
+/* Adjust spacing in form group to accommodate error messages */
+.form-group + .form-group {
+  margin-top: 24px;
+}
+
+
+.date-input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+/* Styling for the date picker control */
+.date-picker-control {
+  width: 30px;
+  height: 38px;
+  padding: 4px;
+  background-color: var(--dark-surface-lighter);
+  border: 1px solid var(--dark-border);
+  border-radius: 4px;
+  color: transparent;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Create calendar icon appearance */
+.date-picker-control::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e0e0e0'%3E%3Cpath d='M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7v-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  pointer-events: none;
+}
+
+/* Hide the default date picker appearance but keep functionality */
+.date-picker-control::-webkit-calendar-picker-indicator {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Style for focus state */
+.date-picker-control:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25);
+}
+
+/* Hover effect */
+.date-picker-control:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Adjust main date input width to accommodate picker */
+.date-input {
+  width: auto !important;
+  min-width: 120px;
+  max-width: 140px;
+  flex: 1;
+}
+
+/* Make sure error messages are visible */
+.date-error-message {
+  margin-top: 4px;
+  color: var(--error-red);
+  font-size: 0.85rem;
+  animation: fadeIn 0.2s ease-in;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .date-input-container {
+    flex-wrap: nowrap;
+  }
+  
+  .date-picker-control {
+    width: 24px;
+    height: 36px;
+  }
+}
+
+/* Animation for error message appearance */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* Add to App.css - Complete overhaul of date picker styling */
+
+/* Reset and completely hide the date picker input */
+.date-picker-control {
+  /* Base size & appearance */
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  
+  /* Background & border */
+  background-color: var(--dark-surface-lighter) !important;
+  border: 1px solid var(--dark-border) !important;
+  border-radius: 4px !important;
+  
+  /* Text properties */
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px !important; /* Move text offscreen */
+  
+  /* Layout */
+  position: relative !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  
+  /* Other */
+  cursor: pointer !important;
+  opacity: 1 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+}
+
+/* Hide ALL possible text elements */
+.date-picker-control::-webkit-datetime-edit,
+.date-picker-control::-webkit-datetime-edit-fields-wrapper,
+.date-picker-control::-webkit-datetime-edit-text,
+.date-picker-control::-webkit-datetime-edit-month-field,
+.date-picker-control::-webkit-datetime-edit-day-field,
+.date-picker-control::-webkit-datetime-edit-year-field,
+.date-picker-control::-webkit-inner-spin-button,
+.date-picker-control::-webkit-clear-button {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: absolute !important;
+  pointer-events: none !important;
+}
+
+/* Create calendar icon appearance */
+.date-picker-control::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 16px !important;
+  height: 16px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e0e0e0'%3E%3Cpath d='M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7v-5z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+/* Show only the calendar picker indicator */
+.date-picker-control::-webkit-calendar-picker-indicator {
+  position: absolute !important;
+  width: 100% !important;
+  height: 100% !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  opacity: 0 !important; /* Make invisible but keeps functionality */
+  cursor: pointer !important;
+  z-index: 2 !important; /* Above the icon */
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Hover & focus states */
+.date-picker-control:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: var(--primary-blue) !important;
+}
+
+.date-picker-control:focus {
+  outline: none !important;
+  border-color: var(--primary-blue) !important;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25) !important;
+}
+
+/* Date input container - set proper spacing */
+.date-input-container {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .date-picker-control {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+  }
+  
+  .date-picker-control::before {
+    width: 14px !important;
+    height: 14px !important;
+  }
+}

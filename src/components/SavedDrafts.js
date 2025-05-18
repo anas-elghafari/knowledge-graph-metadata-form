@@ -63,12 +63,16 @@ const SavedDrafts = forwardRef(({ onLoadDraft }, ref) => {
     }
   };
 
-  // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return '';
     try {
       const date = new Date(dateString);
-      return date.toLocaleString();
+      const dateFormatted = date.toISOString().split('T')[0];
+      
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      
+      return `${dateFormatted} ${hours}:${minutes}`;
     } catch (e) {
       return dateString;
     }
