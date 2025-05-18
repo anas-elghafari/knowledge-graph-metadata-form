@@ -1988,46 +1988,62 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                  className="subfield-input"
                />
              </div>
-             
-             
-             <div className="form-group">
-                <label htmlFor="distReleaseDate">
-                  Release Date <span className="field-indicator optional-indicator">optional</span>
-                </label>
-                <div className="date-input-container">
-                  <input
-                    type="text"
-                    id="distReleaseDate"
-                    name="distReleaseDate"
-                    value={currentDistribution.releaseDate}
-                    onChange={(e) => handleDistributionChange('releaseDate', e.target.value)}
-                    onBlur={validateDateInput}
-                    placeholder="YYYY/MM/DD"
-                    className={`date-input subfield-input ${distReleaseDateError ? 'date-input-error' : ''}`}
-                  />
-                </div>
-                {distReleaseDateError && <div className="date-error-message">{distReleaseDateError}</div>}
+            <div className="form-group">
+              <label htmlFor="distReleaseDate">
+                Release Date <span className="field-indicator optional-indicator">optional</span>
+              </label>
+              <div className="date-input-container">
+                <input
+                  type="text"
+                  id="distReleaseDate"
+                  name="distReleaseDate"
+                  value={currentDistribution.releaseDate}
+                  onChange={(e) => handleDistributionChange('releaseDate', e.target.value)}
+                  onBlur={validateDateInput}
+                  placeholder="YYYY/MM/DD"
+                  className={`date-input subfield-input ${distReleaseDateError ? 'date-input-error' : ''}`}
+                />
+                <input
+                  type="date"
+                  className="date-picker-control"
+                  onChange={(e) => handleDatePickerChange(e, 'distReleaseDate')}
+                  aria-label="Date picker for Release Date"
+                  defaultValue=""
+                  tabIndex="-1"
+                />
               </div>
+              {distReleaseDateError && <div className="date-error-message">{distReleaseDateError}</div>}
+            </div>
 
-              <div className="form-group">
-                <label htmlFor="distModificationDate">
-                  Update/Modification Date <span className="field-indicator optional-indicator">optional</span>
-                </label>
-                <div className="date-input-container">
-                  <input
-                    type="text"
-                    id="distModificationDate"
-                    name="distModificationDate"
-                    value={currentDistribution.modificationDate}
-                    onChange={(e) => handleDistributionChange('modificationDate', e.target.value)}
-                    onBlur={validateDateInput}
-                    placeholder="YYYY/MM/DD" 
-                    className={`date-input subfield-input ${distModificationDateError ? 'date-input-error' : ''}`}
-                  />
-                </div>
-                {distModificationDateError && <div className="date-error-message">{distModificationDateError}</div>}
+            <div className="form-group">
+              <label htmlFor="distModificationDate">
+                Update/Modification Date <span className="field-indicator optional-indicator">optional</span>
+              </label>
+              <div className="date-input-container">
+                <input
+                  type="text"
+                  id="distModificationDate"
+                  name="distModificationDate"
+                  value={currentDistribution.modificationDate}
+                  onChange={(e) => handleDistributionChange('modificationDate', e.target.value)}
+                  onBlur={validateDateInput}
+                  placeholder="YYYY/MM/DD"
+                  className={`date-input subfield-input ${distModificationDateError ? 'date-input-error' : ''}`}
+                />
+                <input
+                  type="date"
+                  className="date-picker-control"
+                  onChange={(e) => handleDatePickerChange(e, 'distModificationDate')}
+                  aria-label="Date picker for Modification Date"
+                  defaultValue=""
+                  tabIndex="-1"
+                />
               </div>
+              {distModificationDateError && <div className="date-error-message">{distModificationDateError}</div>}
+            </div>
+ 
              
+            
              <div className="distribution-actions">
                <button 
                  type="button" 
