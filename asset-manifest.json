@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/knowledge-graph-metadata-form/static/css/main.29714b03.css",
-    "main.js": "/knowledge-graph-metadata-form/static/js/main.ee94b54e.js",
+    "main.css": "/knowledge-graph-metadata-form/static/css/main.d836e197.css",
+    "main.js": "/knowledge-graph-metadata-form/static/js/main.b29e97ee.js",
     "static/js/453.458a88d8.chunk.js": "/knowledge-graph-metadata-form/static/js/453.458a88d8.chunk.js",
     "index.html": "/knowledge-graph-metadata-form/index.html",
-    "main.29714b03.css.map": "/knowledge-graph-metadata-form/static/css/main.29714b03.css.map",
-    "main.ee94b54e.js.map": "/knowledge-graph-metadata-form/static/js/main.ee94b54e.js.map",
+    "main.d836e197.css.map": "/knowledge-graph-metadata-form/static/css/main.d836e197.css.map",
+    "main.b29e97ee.js.map": "/knowledge-graph-metadata-form/static/js/main.b29e97ee.js.map",
     "453.458a88d8.chunk.js.map": "/knowledge-graph-metadata-form/static/js/453.458a88d8.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.29714b03.css",
-    "static/js/main.ee94b54e.js"
+    "static/css/main.d836e197.css",
+    "static/js/main.b29e97ee.js"
   ]
 }
