@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import fieldInstructions from '../fieldInstructions';
 
 function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null }) {
   // Initial form state
@@ -140,6 +141,23 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     };
   }, []);
   
+  useEffect(() => {
+    const labels = document.querySelectorAll('.form-group label');
+    
+    // Loop through each label
+    labels.forEach(label => {
+      // Get the 'for' attribute which connects to the input ID
+      const fieldId = label.getAttribute('for');
+      
+      // If we have instructions for this field, add the tooltip
+      if (fieldId && fieldInstructions[fieldId]) {
+        label.setAttribute('data-tooltip', fieldInstructions[fieldId]);
+        label.setAttribute('tabindex', '0'); // Make focusable for accessibility
+      }
+    });
+  }, []);
+
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -874,11 +892,9 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     // First add any pending tag inputs
     const updatedForm = addPendingTagInputs();
     
-    // Check if we're updating an existing draft or creating a new one
+    
     const existingDraftId = updatedForm.draftId || null;
     const draftId = existingDraftId || `draft-${Date.now()}`;
-    
-    // Create the draft object
     const draft = {
       id: draftId,
       name: updatedForm.title || 'Untitled Draft',
@@ -900,22 +916,19 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       console.error('Error loading saved drafts:', error);
     }
     
-    // If updating an existing draft, remove the old version
+    
     if (existingDraftId) {
       savedDrafts = savedDrafts.filter(d => d.id !== existingDraftId);
     }
     
-    // Add the new/updated draft
-    savedDrafts.push(draft);
     
-    // Save back to localStorage
+    savedDrafts.push(draft);
     localStorage.setItem('kg-metadata-drafts', JSON.stringify(savedDrafts));
     
-    // Show success message
+    
     setMessage('Draft saved successfully!');
     setTimeout(() => setMessage(''), 2000);
-    
-    // Call the callback if provided
+
     if (onDraftSaved) {
       onDraftSaved();
     }

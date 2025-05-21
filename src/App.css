@@ -13,6 +13,12 @@
   --button-bg: #4169e1;
   --button-hover: #345bd3;
   --modal-bg: rgba(0, 0, 0, 0.75);
+  --tooltip-icon-bg: #3a6ea5; /* Soft blue background for icon */
+  --tooltip-icon-text: #ffffff; /* White text for icon */
+  --tooltip-content-bg: #2c3e50; /* Darker blue-gray for tooltip background */
+  --tooltip-content-border: #4a90e2; /* Blue highlight for border */
+  --tooltip-content-text: #e0e0e0; /* Light color for text */
+  --tooltip-shadow: rgba(73, 128, 192, 0.25); 
 }
 
 body {
@@ -1825,4 +1831,159 @@ label {
     width: 14px !important;
     height: 14px !important;
   }
+}
+
+
+/* Base styling for labels with tooltips */
+label[data-tooltip] {
+  position: relative;
+}
+
+/* Info icon after the label */
+label[data-tooltip]::after {
+  content: "i";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+  background-color: var(--dark-surface-lighter);
+  border-radius: 50%;
+  font-family: Georgia, serif;
+  font-size: 11px;
+  font-style: italic;
+  font-weight: bold;
+  color: var(--dark-text);
+  text-align: center;
+  line-height: 16px;
+  cursor: help;
+  vertical-align: middle;
+}
+
+/* Tooltip content shown on hover/focus */
+label[data-tooltip]:hover::before,
+label[data-tooltip]:focus::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 100;
+  bottom: 100%;
+  left: 0;
+  width: 220px;
+  background-color: var(--dark-surface);
+  color: var(--dark-text);
+  text-align: left;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 5px;
+  border: 1px solid var(--dark-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-size: 0.85rem;
+  font-weight: normal;
+  line-height: 1.4;
+  font-style: normal;
+  pointer-events: none;
+}
+
+/* Highlight effect on hover */
+label[data-tooltip]:hover::after,
+label[data-tooltip]:focus::after {
+  background-color: rgba(74, 144, 226, 0.3);
+}
+
+/* For right-edge tooltips so they don't go off-screen */
+@media (min-width: 768px) {
+  .form-group:nth-child(even) label[data-tooltip]::before {
+    left: auto;
+    right: 0;
+  }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 767px) {
+  label[data-tooltip]::before {
+    width: 180px;
+    max-width: calc(100vw - 40px);
+  }
+}
+
+.modal-body > form > .form-group:first-of-type {
+  margin-top: 24px; 
+  padding-top: 16px;
+}
+
+label[data-tooltip]::after {
+  content: "i";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+  background-color: var(--tooltip-icon-bg);
+  border-radius: 50%;
+  font-family: Georgia, serif;
+  font-size: 11px;
+  font-style: italic;
+  font-weight: bold;
+  color: var(--tooltip-icon-text);
+  text-align: center;
+  line-height: 16px;
+  cursor: help;
+  vertical-align: middle;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+/* Update tooltip content styling */
+label[data-tooltip]:hover::before,
+label[data-tooltip]:focus::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 100;
+  bottom: 100%;
+  left: 0;
+  width: 220px;
+  background-color: var(--tooltip-content-bg);
+  color: var(--tooltip-content-text);
+  text-align: left;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 5px;
+  border: 1px solid var(--tooltip-content-border);
+  box-shadow: 0 4px 12px var(--tooltip-shadow);
+  font-size: 0.85rem;
+  font-weight: normal;
+  line-height: 1.4;
+  font-style: normal;
+  pointer-events: none;
+}
+
+/* Enhanced hover effect */
+label[data-tooltip]:hover::after,
+label[data-tooltip]:focus::after {
+  background-color: #4a90e2; /* Brighter blue on hover */
+  transform: scale(1.1); /* Slight grow effect */
+}
+
+/* Add a subtle highlight to the border on hover */
+label[data-tooltip]:hover::before {
+  border-color: #5a9aea; /* Slightly brighter border on hover */
+}
+
+/* Add tooltip arrow */
+label[data-tooltip]:hover::before {
+  content: attr(data-tooltip);
+}
+
+label[data-tooltip]:hover::before {
+  position: absolute;
+  z-index: 101;
+}
+
+/* Add a subtle pulse animation on hover */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+label[data-tooltip]:hover::after {
+  animation: pulse 1.5s infinite;
 }
