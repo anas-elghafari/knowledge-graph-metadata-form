@@ -158,6 +158,17 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   }, []);
 
 
+  useEffect(() => {
+    let timeoutId;
+    if (message) {
+      timeoutId = setTimeout(() => {
+        setMessage(null);
+      }, 20000);
+    }
+    return () => timeoutId && clearTimeout(timeoutId);
+  }, [message]);
+
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -789,31 +800,37 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     return updatedForm;
   };
   
-
-
-
-
   
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     const updatedForm = addPendingTagInputs();
     
-    if (createdDateError || publishedDateError || modifiedDateError || 
-        distReleaseDateError || distModificationDateError) {
-      setMessage('Please fix the date errors before submitting');
-      return;
-    }
+    // Separate arrays for different types of errors
+    const missingFields = [];
+    const invalidDates = [];
     
-    // Also validate all date fields to catch any unvalidated dates
-    // For required date fields
-    if (!updatedForm.publishedDate) {
-      setPublishedDateError('Published Date is required');
-      setMessage('Please fill in all required fields');
-      return;
-    }
+    // Check for missing required fields (including dates)
+    if (!updatedForm.title) missingFields.push('Title');
+    if (!updatedForm.description) missingFields.push('Description'); 
+    if (updatedForm.type.length === 0) missingFields.push('Type');
+    if (!updatedForm.publishedDate) missingFields.push('Published Date');
+    if (updatedForm.distributions.length === 0) missingFields.push('Distribution');
+    if (updatedForm.primaryReferenceDocument.length === 0) missingFields.push('Primary Reference Document');
+    if (updatedForm.keywords.length === 0) missingFields.push('Keywords');
+    if (updatedForm.language.length === 0) missingFields.push('Language');
+    if (!updatedForm.accessStatement) missingFields.push('Access Statement');
+    if (updatedForm.vocabulariesUsed.length === 0) missingFields.push('Vocabularies Used');
+    if (updatedForm.metadataSchema.length === 0) missingFields.push('Metadata Schema');
     
-    // For optional date fields that have values
+    // Check for invalid dates (only for dates that are filled)
+    if (createdDateError && updatedForm.createdDate) invalidDates.push(`Created Date: ${createdDateError}`);
+    if (publishedDateError && updatedForm.publishedDate) invalidDates.push(`Published Date: ${publishedDateError}`);
+    if (modifiedDateError && updatedForm.modifiedDate.length > 0) invalidDates.push(`Modified Date: ${modifiedDateError}`);
+    if (distReleaseDateError) invalidDates.push(`Distribution Release Date: ${distReleaseDateError}`);
+    if (distModificationDateError) invalidDates.push(`Distribution Modification Date: ${distModificationDateError}`);
+    
+    // For optional date fields that have values, validate them
     if (updatedForm.createdDate) {
       const e = {
         target: {
@@ -824,9 +841,26 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       };
       validateDateInput(e);
       if (createdDateError) {
-        setMessage('Please fix the date errors before submitting');
-        return;
+        invalidDates.push(`Created Date: ${createdDateError}`);
       }
+    }
+
+    // Construct error message
+    let errorMessage = '';
+    
+    if (missingFields.length > 0) {
+      errorMessage += `The following fields are required but have not been filled: ${missingFields.join(', ')}`;
+    }
+    
+    if (invalidDates.length > 0) {
+      if (errorMessage) errorMessage += '\n\n';
+      errorMessage += `The following dates are invalid:\n${invalidDates.join('\n')}`;
+    }
+
+    if (errorMessage) {
+      setMessage(errorMessage);
+      setIsSubmitting(false);
+      return;
     }
     
     // Proceed with submission
@@ -834,26 +868,15 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     setMessage('');
     
     try {
-      if (!updatedForm.title || !updatedForm.description || 
-          updatedForm.type.length === 0 || !updatedForm.publishedDate ||
-          updatedForm.distributions.length === 0 ||
-          updatedForm.primaryReferenceDocument.length === 0 ||
-          updatedForm.keywords.length === 0 ||
-          updatedForm.language.length === 0 ||
-          !updatedForm.accessStatement ||
-          updatedForm.vocabulariesUsed.length === 0 ||
-          updatedForm.metadataSchema.length === 0) {
-        setMessage('Please fill in all required fields');
-        setIsSubmitting(false);
-        return;
-      }
-  
       // Submit form data to parent component
       const result = await onSubmit(updatedForm);
       
       if (result.success) {
-        // Close modal on success
-        onClose();
+        setMessage('Form submitted successfully!');
+        setTimeout(() => {
+          setMessage('');
+          onClose();
+        }, 3000);
       } else {
         setMessage(result.message);
       }
@@ -863,10 +886,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     } finally {
       setIsSubmitting(false);
     }
-  };
-  
-
-
+};
 
 
   // handle key press in tag input fields
@@ -945,18 +965,24 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       {message && (
         <div className="floating-message">
           <div className={message.includes('success') ? 'success-message' : 'error-message'}>
-            {message}
+            <div className="message-content">{message}</div>
+            <button 
+              type="button" 
+              className="message-close-button" 
+              onClick={() => setMessage(null)} 
+              aria-label="Dismiss message"
+            >
+              Dismiss
+            </button>
           </div>
         </div>
       )}
-
         <div className="modal-header">
           <h2>Knowledge Graph Metadata</h2>
           <button className="modal-close-button" onClick={onClose}>×</button>
         </div>
         
         <div className="modal-body" onClick={(e) => e.stopPropagation()}>
-          {message && <div className={message.includes('success') ? 'success-message' : 'error-message'}>{message}</div>}
           
           <form onSubmit={handleSubmit}>
             
@@ -1749,14 +1775,27 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                <div key={`distribution-${index}`} className="distribution-item">
                  <div className="distribution-header">
                    <div className="distribution-title">{dist.title}</div>
-                   <button 
-                     type="button"
-                     className="tag-remove"
-                     onClick={() => handleRemoveDistribution(index)}
-                   >
-                     ×
-                   </button>
-                 </div>
+                   <div className="distribution-actions">
+                        <button 
+                          type="button"
+                          className="edit-button"
+                          onClick={() => {
+                            setCurrentDistribution({...dist});
+                            handleRemoveDistribution(index);
+                            document.querySelector('.distribution-form').scrollIntoView({ behavior: 'smooth' });
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          type="button"
+                          className="tag-remove"
+                          onClick={() => handleRemoveDistribution(index)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
                  <div className="distribution-preview">
                    <div className="distribution-field">
                      <span className="field-label">Description:</span>

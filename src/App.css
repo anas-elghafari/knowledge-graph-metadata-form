@@ -1,4 +1,3 @@
-/* src/App.css - Dark Mode Styling */
 :root {
   --dark-bg: #121212;
   --dark-surface: #1e1e1e;
@@ -13,12 +12,12 @@
   --button-bg: #4169e1;
   --button-hover: #345bd3;
   --modal-bg: rgba(0, 0, 0, 0.75);
-  --tooltip-icon-bg: #3a6ea5; /* Soft blue background for icon */
-  --tooltip-icon-text: #ffffff; /* White text for icon */
-  --tooltip-content-bg: #2c3e50; /* Darker blue-gray for tooltip background */
-  --tooltip-content-border: #4a90e2; /* Blue highlight for border */
-  --tooltip-content-text: #e0e0e0; /* Light color for text */
-  --tooltip-shadow: rgba(73, 128, 192, 0.25); 
+  --tooltip-icon-bg: #3a6ea5;
+  --tooltip-icon-text: #ffffff;
+  --tooltip-content-bg: #2c3e50;
+  --tooltip-content-border: #4a90e2;
+  --tooltip-content-text: #e0e0e0;
+  --tooltip-shadow: rgba(73, 128, 192, 0.25);
 }
 
 body {
@@ -34,6 +33,7 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  overflow-x: hidden;
 }
 
 .App-header {
@@ -49,7 +49,6 @@ body {
 
 main {
   display: grid;
-  grid-template-columns: 1fr;
   gap: 40px;
 }
 
@@ -59,13 +58,17 @@ main {
   }
 }
 
-/* Form Styles */
 .form-container {
   background-color: var(--dark-surface);
   border-radius: 8px;
-  padding: 24px;
+  padding: 32px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--dark-border);
+  border: 1px solid var(--dark-border); 
+  width: 100%;
+  max-width: 1000px; 
+  overflow-x: hidden;
+  margin: 0 auto;
+  box-sizing: border-box; 
 }
 
 .form-container h2 {
@@ -80,6 +83,7 @@ main {
 
 .form-group {
   margin-bottom: 24px;
+  position: relative;
 }
 
 .form-group label {
@@ -98,7 +102,8 @@ main {
 .form-group input,
 .form-group textarea,
 .form-group select {
-  width: 100%;
+  width: calc(100% - 24px);
+  margin-right: 24px;
   padding: 12px;
   background-color: var(--dark-surface-lighter);
   color: var(--dark-text);
@@ -108,12 +113,36 @@ main {
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 
+.form-group input[required],
+.form-group textarea[required],
+.form-group select[required],
+.role-field input[required] {
+  background-color: var(--dark-surface-lighter);
+  border-color: var(--dark-border);
+}
+
 .form-group input:focus,
 .form-group textarea:focus,
-.form-group select:focus {
+.form-group select:focus,
+.tag-input-row input:focus,
+.subfield-input:focus,
+.date-input:focus {
   outline: none;
   border-color: var(--primary-blue);
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25);
+}
+
+textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23b0b0b0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
 }
 
 .form-action-buttons {
@@ -123,7 +152,7 @@ main {
   margin-top: 24px;
 }
 
-.submit-button, 
+.submit-button,
 .cancel-button {
   padding: 12px 20px;
   font-size: 16px;
@@ -146,6 +175,10 @@ main {
 .submit-button:disabled {
   background-color: var(--dark-border);
   cursor: not-allowed;
+}
+
+.form-container .submit-button {
+  background-color: var(--button-bg);
 }
 
 .cancel-button {
@@ -174,15 +207,20 @@ main {
   border-radius: 4px;
   margin-bottom: 16px;
   border: 1px solid rgba(220, 53, 69, 0.3);
+  white-space: pre-line;
+  line-height: 1.5;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
-/* Table Styles */
 .data-table-container {
   background-color: var(--dark-surface);
   border-radius: 8px;
   padding: 24px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--dark-border);
+  border: 1px solid var(--dark-border); 
+  width: 100%;
+  box-sizing: border-box; 
 }
 
 .table-header {
@@ -191,6 +229,7 @@ main {
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 10px;
+  padding-right: 16px; /* Added this line for spacing */
   border-bottom: 1px solid var(--dark-border);
 }
 
@@ -206,7 +245,7 @@ main {
   gap: 10px;
 }
 
-.download-button, 
+.download-button,
 .clear-button {
   padding: 8px 16px;
   font-size: 14px;
@@ -300,7 +339,6 @@ main {
   padding: 30px 0;
 }
 
-/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -312,6 +350,8 @@ main {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  overflow-y: auto;
+  padding: 20px;
 }
 
 .modal-content {
@@ -319,8 +359,16 @@ main {
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   width: 90%;
-  max-width: 500px;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  margin: auto;
   overflow: hidden;
+}
+
+.large-modal .modal-content {
+  max-width: 800px;
 }
 
 .modal-header {
@@ -329,6 +377,7 @@ main {
   align-items: center;
   padding: 16px 24px;
   border-bottom: 1px solid var(--dark-border);
+  flex-shrink: 0;
 }
 
 .modal-header h2 {
@@ -341,9 +390,11 @@ main {
   background: none;
   border: none;
   color: var(--dark-text-secondary);
-  font-size: 1.5rem;
+  font-size: 24px;
   cursor: pointer;
   padding: 0;
+  margin-left: 16px;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -351,7 +402,20 @@ main {
 
 .modal-body {
   padding: 24px;
+  overflow-y: auto;
+  max-height: calc(90vh - 130px);
+  overscroll-behavior: contain;
 }
+
+.large-modal .modal-body {
+   max-height: calc(90vh - 130px);
+}
+
+.modal-body > form > .form-group:first-of-type {
+  margin-top: 24px;
+  padding-top: 16px;
+}
+
 
 .modal-footer {
   display: flex;
@@ -359,9 +423,36 @@ main {
   gap: 12px;
   padding: 16px 24px;
   border-top: 1px solid var(--dark-border);
+  flex-shrink: 0;
 }
 
-/* File upload styles */
+@media (min-height: 1000px) {
+  .modal-content {
+    max-height: 80vh;
+  }
+  .modal-body {
+    max-height: calc(80vh - 130px);
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 10px;
+  }
+  .modal-content {
+    width: 95%;
+    max-height: 95vh;
+  }
+  .modal-body {
+    padding: 16px;
+    max-height: calc(95vh - 120px);
+  }
+  .modal-header,
+  .modal-footer {
+    padding: 12px 16px;
+  }
+}
+
 .file-upload {
   position: relative;
 }
@@ -404,9 +495,6 @@ main {
   cursor: pointer;
 }
 
-/* Additional CSS for the enhanced form with multiple fields */
-
-/* Form layout helpers */
 .form-row {
   display: flex;
   gap: 16px;
@@ -418,7 +506,6 @@ main {
   min-width: 0;
 }
 
-/* Array items with add/remove buttons */
 .array-item {
   display: flex;
   align-items: center;
@@ -433,11 +520,10 @@ main {
   min-width: 0;
 }
 
-.add-button,
-.edit-button {
-  background-color: var(--dark-surface-lighter);
-  color: var(--dark-text);
-  border: 1px solid var(--dark-border);
+.add-button {
+  background-color: var(--primary-blue);
+  color: white;
+  border: none;
   border-radius: 4px;
   padding: 8px 12px;
   font-size: 13px;
@@ -446,10 +532,26 @@ main {
   transition: background-color 0.3s;
 }
 
-.add-button:hover,
+.add-button:hover {
+  background-color: var(--primary-blue-hover);
+}
+
+.edit-button {
+  background-color: var(--dark-surface-lighter);
+  color: var(--dark-text);
+  border: 1px solid var(--dark-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background-color 0.3s;
+}
+
 .edit-button:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
+
 
 .remove-button {
   background-color: var(--error-red);
@@ -475,14 +577,12 @@ main {
   cursor: not-allowed;
 }
 
-/* Role items specific styling */
 .role-item {
   display: grid;
   grid-template-columns: 1fr 2fr auto;
   gap: 8px;
 }
 
-/* Tabbed form navigation */
 .form-tabs {
   display: flex;
   margin-bottom: 24px;
@@ -520,7 +620,6 @@ main {
   background-color: var(--primary-blue);
 }
 
-/* Checkbox styling */
 .checkbox-wrapper {
   display: flex;
   align-items: center;
@@ -538,7 +637,6 @@ main {
   cursor: pointer;
 }
 
-/* Field description */
 .field-description {
   color: var(--dark-text-secondary);
   font-size: 13px;
@@ -546,268 +644,14 @@ main {
   margin-bottom: 12px;
 }
 
-/* Distribution items */
-.distributions-list {
-  margin-bottom: 16px;
-}
-
-.distribution-item {
-  background-color: var(--dark-surface-lighter);
-  border: 1px solid var(--dark-border);
-  border-radius: 4px;
-  margin-bottom: 12px;
-}
-
-.distribution-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--dark-border);
-}
-
-.distribution-title {
-  font-weight: 500;
-}
-
-.distribution-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.distribution-preview {
-  padding: 12px 16px;
-}
-
-.distribution-field {
-  margin-bottom: 8px;
-}
-
-.field-label {
+.field-hint {
+  font-size: 12px;
   color: var(--dark-text-secondary);
-  margin-right: 8px;
-  font-size: 13px;
+  margin-top: 4px;
+  order: 3;
 }
 
-.field-value {
-  color: var(--dark-text);
-}
 
-/* Large modal for complex forms */
-.large-modal {
-  width: 95%;
-  max-width: 800px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.large-modal .modal-body {
-  overflow-y: auto;
-  max-height: calc(90vh - 130px); /* Account for header and footer */
-}
-
-/* Improved form styling */
-textarea {
-  min-height: 60px;
-  resize: vertical;
-}
-
-select {
-  background-color: var(--dark-surface-lighter);
-  color: var(--dark-text);
-  border: 1px solid var(--dark-border);
-  border-radius: 4px;
-  padding: 12px;
-  font-size: 16px;
-  width: 100%;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23b0b0b0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px;
-}
-
-select:focus {
-  outline: none;
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25);
-}
-
-.array-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.array-item input,
-.array-item textarea,
-.array-item select {
-  flex: 1;
-  min-width: 0;
-}
-
-.add-button {
-  background-color: var(--dark-surface-lighter);
-  color: var(--dark-text);
-  border: 1px solid var(--dark-border);
-  border-radius: 4px;
-  padding: 8px 12px;
-  font-size: 13px;
-  cursor: pointer;
-  margin-top: 8px;
-  transition: background-color 0.3s;
-}
-
-.add-button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.remove-button {
-  background-color: var(--error-red);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  width: 28px;
-  height: 28px;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.remove-button:hover {
-  background-color: #c82333;
-}
-
-.remove-button:disabled {
-  background-color: #5c2a30;
-  cursor: not-allowed;
-}
-
-/* Form element styling */
-.form-group span.required {
-  color: var(--error-red);
-  margin-left: 5px;
-}
-
-textarea {
-  min-height: 60px;
-  resize: vertical;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  overflow-y: auto; /* Enable scrolling on the overlay itself */
-  padding: 20px;
-}
-
-/* Modal content */
-.modal-content {
-  background-color: var(--dark-surface);
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh; /* Limit height to 90% of viewport */
-  display: flex;
-  flex-direction: column;
-  margin: auto; /* Center the modal */
-  overflow: hidden; /* Hide overflow to maintain rounded corners */
-}
-
-/* Modal header */
-.modal-header {
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--dark-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-shrink: 0; /* Prevent header from shrinking */
-}
-
-/* Modal body - this is the scrollable area */
-.modal-body {
-  padding: 24px;
-  overflow-y: auto; /* Enable vertical scrolling */
-  max-height: calc(90vh - 130px); /* Accommodate for header and footer */
-  overscroll-behavior: contain; /* Improve mobile scrolling */
-}
-
-/* Modal footer */
-.modal-footer {
-  padding: 16px 24px;
-  border-top: 1px solid var(--dark-border);
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  flex-shrink: 0; /* Prevent footer from shrinking */
-}
-
-/* Close button */
-.modal-close-button {
-  background: none;
-  border: none;
-  color: var(--dark-text-secondary);
-  font-size: 24px;
-  cursor: pointer;
-  padding: 0;
-  margin-left: 16px;
-  line-height: 1;
-}
-
-/* For very tall screens */
-@media (min-height: 1000px) {
-  .modal-content {
-    max-height: 80vh;
-  }
-  
-  .modal-body {
-    max-height: calc(80vh - 130px);
-  }
-}
-
-/* For mobile devices */
-@media (max-width: 768px) {
-  .modal-overlay {
-    padding: 10px;
-  }
-  
-  .modal-content {
-    width: 95%;
-    max-height: 95vh;
-  }
-  
-  .modal-body {
-    padding: 16px;
-    max-height: calc(95vh - 120px);
-  }
-  
-  .modal-header,
-  .modal-footer {
-    padding: 12px 16px;
-  }
-}
-.required-field {
-  color: #999;
-  margin-left: 5px;
-  font-size: 0.9em;
-  font-weight: normal;
-}
-
-/* Section styling */
 .form-section {
   margin-bottom: 20px;
 }
@@ -822,24 +666,37 @@ textarea {
   border-bottom: 1px solid var(--dark-border);
 }
 
-/* Tag input styling */
+.form-section h3.section-title + .field-indicator {
+  display: inline-block;
+  margin-top: -16px;
+  margin-bottom: 16px;
+}
+
+
 .tag-input-container {
   margin-bottom: 4px;
+  display: flex;
+  flex-direction: column;
 }
 
 .tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 8px;
+  min-height: 0;
+  order: 2;
+}
+
+.tag-list:not(:empty) {
+  margin-top: 12px;
   min-height: 32px;
 }
 
 .tag-item {
   display: flex;
   align-items: center;
-  background-color: var(--dark-surface-lighter);
-  border: 1px solid var(--dark-border);
+  background-color: rgba(74, 144, 226, 0.1);
+  border: 1px solid rgba(74, 144, 226, 0.2);
   border-radius: 16px;
   padding: 4px 8px 4px 12px;
   font-size: 14px;
@@ -851,6 +708,11 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tag-item .date-tag {
+  font-family: monospace;
+  letter-spacing: 0;
 }
 
 .tag-remove {
@@ -875,9 +737,14 @@ textarea {
 .tag-input-row {
   display: flex;
   gap: 8px;
+  order: 1;
 }
 
 .tag-input-row input {
+  flex: 1;
+}
+
+.tag-input-row input[type="url"] {
   flex: 1;
 }
 
@@ -899,35 +766,11 @@ textarea {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.field-hint {
-  font-size: 12px;
-  color: var(--dark-text-secondary);
-  margin-top: 4px;
-}
 
-/* Update App button text */
-.submit-button {
-  background-color: var(--button-bg);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 12px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.form-container .submit-button {
-  background-color: var(--button-bg);
-}
-
-/* Add these styles to your App.css file for the role fields */
-
-/* Role section styling */
 .role-section {
   border: 1px solid var(--dark-border);
   border-radius: 8px;
-  padding: 16px;
+  padding: 24px;
   margin-bottom: 24px;
   background-color: rgba(255, 255, 255, 0.02);
 }
@@ -950,6 +793,25 @@ textarea {
 .role-field {
   flex: 1;
   min-width: 150px;
+}
+
+.role-section .form-group {
+  padding-right: 24px;
+  margin-top: 0;
+}
+
+.role-section .form-group:first-child {
+    margin-top: 0;
+}
+.role-section .form-group + .form-group {
+  margin-top: 20px;
+}
+
+
+.role-section .form-group input,
+.role-section .form-group textarea,
+.role-section .form-group select {
+  width: calc(100% - 24px);
 }
 
 .subfield-label {
@@ -976,63 +838,16 @@ textarea {
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25);
 }
 
-/* Responsive adjustments for role fields */
 @media (max-width: 768px) {
   .role-fields {
     flex-direction: column;
     gap: 8px;
   }
-  
   .role-field {
     width: 100%;
   }
 }
 
-.role-section .form-group + .form-group {
-  margin-top: 20px;
-}
-
-/* Updated CSS for tag inputs - move empty space below the field */
-
-.tag-input-container {
-  margin-bottom: 4px;
-  display: flex;
-  flex-direction: column;
-}
-
-.tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px; /* Space moved from top to bottom of input */
-  min-height: 0; /* Remove minimum height above input */
-  order: 2; /* Change order to put list below input */
-}
-
-.tag-input-row {
-  display: flex;
-  gap: 8px;
-  order: 1; /* Change order to put input above list */
-}
-
-/* When tag list has items, add some space */
-.tag-list:not(:empty) {
-  margin-top: 12px;
-  min-height: 32px;
-}
-
-/* Field hint placement */
-.field-hint {
-  font-size: 12px;
-  color: var(--dark-text-secondary);
-  margin-top: 4px;
-  order: 3; /* Place hint below everything */
-}
-
-/* Adjust form group margin for better spacing */
-.form-group {
-  margin-bottom: 20px;
-}
 
 .field-indicator {
   font-size: 0.75rem;
@@ -1056,7 +871,6 @@ textarea {
   border: 1px solid rgba(100, 100, 100, 0.3);
 }
 
-/* Improved spacing for field labels */
 label {
   display: flex;
   align-items: center;
@@ -1064,22 +878,30 @@ label {
   margin-bottom: 6px;
 }
 
-/* For narrower screens, stack the indicators */
 @media (max-width: 500px) {
   .field-indicator {
     margin-left: 0;
     margin-top: 2px;
     font-size: 0.7rem;
   }
-  
   label {
     flex-direction: column;
     align-items: flex-start;
   }
 }
 
+.date-input-container {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  position: relative;
+}
+
 .date-input {
-  width: 100%;
+  width: auto !important;
+  min-width: 120px;
+  max-width: 140px;
+  flex: 1;
   padding: 12px;
   background-color: var(--dark-surface-lighter);
   color: var(--dark-text);
@@ -1087,126 +909,183 @@ label {
   border-radius: 4px;
   font-size: 16px;
   transition: border-color 0.3s, box-shadow 0.3s;
+  font-family: monospace;
 }
 
-.date-input:focus {
-  outline: none;
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25);
+.date-input::placeholder {
+  color: var(--dark-text-secondary);
+  opacity: 0.7;
 }
 
-/* Date picker calendar styling for dark mode */
+.date-input:invalid {
+  border-color: var(--error-red);
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
 .date-input::-webkit-calendar-picker-indicator {
-  filter: invert(0.8); /* Makes the calendar icon light-colored for dark backgrounds */
-  cursor: pointer;
-  opacity: 0.8;
+  display: none;
 }
 
-.date-input::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
+
+.date-picker-control {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background-color: var(--dark-surface-lighter) !important;
+  border: 1px solid var(--dark-border) !important;
+  border-radius: 4px !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
 }
 
-/* Date tags in tag list */
-.tag-item .tag-text {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.date-picker-control::-webkit-datetime-edit,
+.date-picker-control::-webkit-datetime-edit-fields-wrapper,
+.date-picker-control::-webkit-datetime-edit-text,
+.date-picker-control::-webkit-datetime-edit-month-field,
+.date-picker-control::-webkit-datetime-edit-day-field,
+.date-picker-control::-webkit-datetime-edit-year-field,
+.date-picker-control::-webkit-inner-spin-button,
+.date-picker-control::-webkit-clear-button {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: absolute !important;
+  pointer-events: none !important;
 }
 
-/* Spacing for date input groups */
-.form-group + .form-group {
-  margin-top: 20px;
-}
-/* Additions to App.css for new fields */
-
-/* Additional styles for new tag-based form fields */
-.tag-input-row input[type="url"] {
-  flex: 1;
-}
-
-/* Improved spacing between sections */
-.form-group + .form-group,
-.role-section + .form-group {
-  margin-top: 24px;
-}
-
-/* Slightly darker background for required fields to make them stand out */
-.form-group input[required],
-.form-group textarea[required],
-.form-group select[required],
-.role-field input[required] {
-  background-color: var(--dark-surface-lighter);
-  border-color: var(--dark-border);
+.date-picker-control::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 16px !important;
+  height: 16px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e0e0e0'%3E%3Cpath d='M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7v-5z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
 }
 
-/* Focus states for all input types to ensure visual consistency */
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus,
-.tag-input-row input:focus,
-.subfield-input:focus,
-.date-input:focus {
-  outline: none;
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25);
+.date-picker-control::-webkit-calendar-picker-indicator {
+  position: absolute !important;
+  width: 100% !important;
+  height: 100% !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  opacity: 0 !important;
+  cursor: pointer !important;
+  z-index: 2 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
-/* Extra visual indicator for the tag items from multi-value fields */
-.tag-item {
-  background-color: rgba(74, 144, 226, 0.1);
-  border-color: rgba(74, 144, 226, 0.2);
+.date-picker-control:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: var(--primary-blue) !important;
 }
 
-/* Distribution form styling */
-.distribution-form {
-  background-color: var(--dark-surface-lighter);
-  border-radius: 6px;
-  padding: 16px;
-  margin-bottom: 20px;
-  border-left: 3px solid var(--dark-border);
+.date-picker-control:focus {
+  outline: none !important;
+  border-color: var(--primary-blue) !important;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25) !important;
 }
 
-.distribution-form-header {
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--dark-border);
-}
 
-.distribution-form-header h4 {
-  margin: 0;
-  font-size: 1.1rem;
+.date-error-message {
+  color: var(--error-red);
+  font-size: 0.85rem;
+  margin-top: 4px;
   font-weight: 500;
-  color: var(--dark-text);
+  animation: fadeIn 0.2s ease-in;
 }
 
-/* Make distribution form fields appear as subfields */
-.distribution-form .form-group {
-  margin-bottom: 12px;
+.date-error-message::before {
+  content: '⚠️ ';
+  font-size: 0.85em;
 }
 
-.distribution-form .form-group label {
-  font-size: 0.9em;
-  font-weight: normal;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.distribution-form .subfield-input {
-  padding: 8px 10px;
-  font-size: 0.95em;
-  background-color: var(--dark-surface);
+@media (max-width: 768px) {
+  .date-input {
+    min-width: 110px;
+    max-width: 130px;
+    padding: 10px;
+    font-size: 14px;
+  }
+   .date-picker-control {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+  }
+  .date-picker-control::before {
+    width: 14px !important;
+    height: 14px !important;
+  }
+   .date-input-container {
+    flex-wrap: nowrap;
+  }
 }
 
-.distribution-form textarea.subfield-input {
-  min-height: 50px;
+.distributions-list {
+  margin: 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-/* Distribution item styling */
+.distributions-list:not(:empty) {
+  margin-bottom: 16px;
+}
+
 .distribution-item {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: var(--dark-surface-lighter);
   border: 1px solid var(--dark-border);
   border-radius: 6px;
+  padding: 16px;
   margin-bottom: 12px;
+  position: relative;
   overflow: hidden;
+}
+
+.distribution-item::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  bottom: -1px;
+  width: 4px;
+  background: var(--primary-blue);
+  border-radius: 4px 0 0 4px;
+  opacity: 0.5;
 }
 
 .distribution-header {
@@ -1221,6 +1100,13 @@ label {
 .distribution-title {
   font-weight: 500;
   font-size: 0.95em;
+  color: var(--dark-text);
+}
+
+.distribution-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .distribution-preview {
@@ -1238,39 +1124,19 @@ label {
   margin-right: 6px;
 }
 
-.add-button {
-  background-color: var(--primary-blue);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 0.9em;
-  cursor: pointer;
-  transition: background-color 0.3s;
+.field-value {
+  color: var(--dark-text);
 }
 
-.add-button:hover {
-  background-color: var(--primary-blue-hover);
-}
-
-/* For better visual grouping */
-.distributions-list:not(:empty) {
-  margin-bottom: 16px;
-}
-
-/* Add visual indicator that this is a field group */
-.form-section h3.section-title + .field-indicator {
-  display: inline-block;
-  margin-top: -16px;
-  margin-bottom: 16px;
-}
 
 .distribution-form {
   background-color: var(--dark-surface-lighter);
   border-radius: 6px;
-  padding: 16px;
-  margin-bottom: 20px;
+  padding: 32px;
+  margin: 20px 24px;
   border-left: 3px solid var(--dark-border);
+  position: relative;
+  max-width: 100%;
 }
 
 .distribution-form-header {
@@ -1286,9 +1152,21 @@ label {
   color: var(--dark-text);
 }
 
-/* Make distribution form fields appear as subfields */
 .distribution-form .form-group {
   margin-bottom: 12px;
+  padding-right: 24px;
+  margin-left: 12px;
+  position: relative;
+}
+
+.distribution-form .form-group::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--dark-border);
 }
 
 .distribution-form .form-group label {
@@ -1300,90 +1178,32 @@ label {
   padding: 8px 10px;
   font-size: 0.95em;
   background-color: var(--dark-surface);
+  width: calc(100% - 24px);
 }
 
 .distribution-form textarea.subfield-input {
   min-height: 50px;
 }
-
-/* Distribution item styling */
-.distribution-item {
-  background-color: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--dark-border);
-  border-radius: 6px;
-  margin-bottom: 12px;
-  overflow: hidden;
-}
-
-.distribution-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 12px;
-  background-color: var(--dark-surface-lighter);
-  border-bottom: 1px solid var(--dark-border);
-}
-
-.distribution-title {
-  font-weight: 500;
-  font-size: 0.95em;
-}
-
-.distribution-preview {
-  padding: 12px;
-  font-size: 0.9em;
-}
-
-.distribution-field {
-  margin-bottom: 6px;
-}
-
-.field-label {
-  color: var(--dark-text-secondary);
-  font-size: 0.85em;
-  margin-right: 6px;
-}
-
-.add-button {
-  background-color: var(--primary-blue);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 0.9em;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.add-button:hover {
-  background-color: var(--primary-blue-hover);
-}
-
-/* For better visual grouping */
-.distributions-list:not(:empty) {
-  margin-bottom: 16px;
-}
-
-/* visual indicator that this is a field group */
-.form-section h3.section-title + .field-indicator {
-  display: inline-block;
-  margin-top: -16px;
-  margin-bottom: 16px;
-}
-
 
 .saved-drafts-section {
   grid-column: 1 / -1;
   margin-top: 40px;
+  width: 100%;
+  background-color: var(--dark-surface); /* Assuming same background */
+  border-radius: 8px;
+  padding: 24px; /* Assuming similar padding */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* Assuming similar shadow */
+  border: 1px solid var(--dark-border); /* Add this */
+  box-sizing: border-box; /* Add this */
 }
 
-/* Draft actions */
+
 .draft-actions {
   display: flex;
   gap: 8px;
 }
 
-.load-button, 
+.load-button,
 .delete-button,
 .save-draft-button {
   padding: 8px 16px;
@@ -1411,7 +1231,7 @@ label {
 }
 
 .delete-button:hover {
-  background-color: #5c2a30;
+  background-color: #c82333;
 }
 
 .save-draft-button {
@@ -1424,490 +1244,8 @@ label {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-@media (min-width: 992px) {
-  main {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-  }
-  
-  .form-container,
-  .data-table-container,
-  .saved-drafts-section {
-    width: 100%;
-  }
-  
-  .saved-drafts-section {
-    grid-column: 1 / -1;
-  }
-}
-
-
-.floating-message {
-  position: fixed;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2000; /* Higher than the modal */
-  min-width: 300px;
-  max-width: 500px;
-  animation: fadeInUp 0.3s ease-out forwards;
-}
-
-.success-message, .error-message {
-  padding: 14px 20px;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-  text-align: center;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.success-message {
-  background-color: rgba(40, 167, 69, 0.95);
-  color: white;
-  border: 1px solid rgba(40, 167, 69, 0.3);
-}
-
-.error-message {
-  background-color: rgba(220, 53, 69, 0.95);
-  color: white;
-  border: 1px solid rgba(220, 53, 69, 0.3);
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 20px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
-
-/* Make messages more responsive */
-@media (max-width: 768px) {
-  .floating-message {
-    min-width: 250px;
-    max-width: 90%;
-    bottom: 20px;
-  }
-  
-  .success-message, .error-message {
-    padding: 12px 16px;
-    font-size: 14px;
-  }
-}
-.date-input-container {
-  display: flex;
-  align-items: center;
-}
-
-.date-input::-webkit-calendar-picker-indicator {
-  filter: invert(0.8); /* Makes the calendar icon light-colored for dark backgrounds */
-  cursor: pointer;
-  opacity: 0.8;
-}
-
-.date-input::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
-}
-
-.tag-item .date-tag {
-  font-family: monospace; /* Consistent width for digits */
-  letter-spacing: -0.5px; /* Tighten spacing */
-}
-
-@media (max-width: 768px) {
-  .date-input {
-    min-width: 140px;
-    max-width: 160px;
-    padding: 10px;
-    font-size: 14px;
-  }
-}
-
-.date-input {
-  width: auto;
-  min-width: 120px;
-  max-width: 140px;
-  padding: 12px;
-  background-color: var(--dark-surface-lighter);
-  color: var(--dark-text);
-  border: 1px solid var(--dark-border);
-  border-radius: 4px;
-  font-size: 16px;
-  transition: border-color 0.3s, box-shadow 0.3s;
-  font-family: monospace; /* Better for date formatting */
-}
-
-.date-input:focus {
-  outline: none;
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25);
-}
-
-.date-input::placeholder {
-  color: var(--dark-text-secondary);
-  opacity: 0.7;
-}
-
-/* For date input containers */
-.date-input-container {
-  display: flex;
-  align-items: center;
-}
-
-/* Invalid state styling */
-.date-input:invalid {
-  border-color: var(--error-red);
-  background-color: rgba(220, 53, 69, 0.1);
-}
-
-/* Tag items for dates */
-.tag-item .date-tag {
-  font-family: monospace;
-  letter-spacing: 0;
-}
-
-/* For mobile responsiveness */
-@media (max-width: 768px) {
-  .date-input {
-    min-width: 110px;
-    max-width: 130px;
-    padding: 10px;
-    font-size: 14px;
-  }
-}
-
-.date-error-message {
-  color: var(--error-red);
-  font-size: 0.85rem;
-  margin-top: 4px;
-  margin-bottom: 4px;
-  font-weight: 500;
-  animation: fadeIn 0.2s ease-in;
-}
-
-/* Make sure error doesn't push other elements too much */
-.form-group {
-  position: relative;
-}
-
-/* Animation for error appearance */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Make the error message stand out a bit more */
-.date-error-message::before {
-  content: '⚠️ ';
-  font-size: 0.85em;
-}
-
-/* Adjust spacing in form group to accommodate error messages */
-.form-group + .form-group {
-  margin-top: 24px;
-}
-
-
-.date-input-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  position: relative;
-}
-
-/* Styling for the date picker control */
-.date-picker-control {
-  width: 30px;
-  height: 38px;
-  padding: 4px;
-  background-color: var(--dark-surface-lighter);
-  border: 1px solid var(--dark-border);
-  border-radius: 4px;
-  color: transparent;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Create calendar icon appearance */
-.date-picker-control::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 16px;
-  height: 16px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e0e0e0'%3E%3Cpath d='M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7v-5z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  pointer-events: none;
-}
-
-/* Hide the default date picker appearance but keep functionality */
-.date-picker-control::-webkit-calendar-picker-indicator {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-}
-
-/* Style for focus state */
-.date-picker-control:focus {
-  outline: none;
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25);
-}
-
-/* Hover effect */
-.date-picker-control:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Adjust main date input width to accommodate picker */
-.date-input {
-  width: auto !important;
-  min-width: 120px;
-  max-width: 140px;
-  flex: 1;
-}
-
-/* Make sure error messages are visible */
-.date-error-message {
-  margin-top: 4px;
-  color: var(--error-red);
-  font-size: 0.85rem;
-  animation: fadeIn 0.2s ease-in;
-}
-
-/* Mobile responsive adjustments */
-@media (max-width: 768px) {
-  .date-input-container {
-    flex-wrap: nowrap;
-  }
-  
-  .date-picker-control {
-    width: 24px;
-    height: 36px;
-  }
-}
-
-/* Animation for error message appearance */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-
-/* Add to App.css - Complete overhaul of date picker styling */
-
-/* Reset and completely hide the date picker input */
-.date-picker-control {
-  /* Base size & appearance */
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  max-width: 32px !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  
-  /* Background & border */
-  background-color: var(--dark-surface-lighter) !important;
-  border: 1px solid var(--dark-border) !important;
-  border-radius: 4px !important;
-  
-  /* Text properties */
-  color: transparent !important;
-  font-size: 0 !important;
-  line-height: 0 !important;
-  text-indent: -9999px !important; /* Move text offscreen */
-  
-  /* Layout */
-  position: relative !important;
-  overflow: hidden !important;
-  flex-shrink: 0 !important;
-  flex-grow: 0 !important;
-  display: inline-block !important;
-  vertical-align: middle !important;
-  
-  /* Other */
-  cursor: pointer !important;
-  opacity: 1 !important;
-  appearance: none !important;
-  -webkit-appearance: none !important;
-}
-
-/* Hide ALL possible text elements */
-.date-picker-control::-webkit-datetime-edit,
-.date-picker-control::-webkit-datetime-edit-fields-wrapper,
-.date-picker-control::-webkit-datetime-edit-text,
-.date-picker-control::-webkit-datetime-edit-month-field,
-.date-picker-control::-webkit-datetime-edit-day-field,
-.date-picker-control::-webkit-datetime-edit-year-field,
-.date-picker-control::-webkit-inner-spin-button,
-.date-picker-control::-webkit-clear-button {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  width: 0 !important;
-  height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  position: absolute !important;
-  pointer-events: none !important;
-}
-
-/* Create calendar icon appearance */
-.date-picker-control::before {
-  content: "" !important;
-  position: absolute !important;
-  left: 50% !important;
-  top: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  width: 16px !important;
-  height: 16px !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e0e0e0'%3E%3Cpath d='M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7v-5z'/%3E%3C/svg%3E") !important;
-  background-repeat: no-repeat !important;
-  background-position: center !important;
-  background-size: contain !important;
-  pointer-events: none !important;
-  z-index: 1 !important;
-}
-
-/* Show only the calendar picker indicator */
-.date-picker-control::-webkit-calendar-picker-indicator {
-  position: absolute !important;
-  width: 100% !important;
-  height: 100% !important;
-  left: 0 !important;
-  top: 0 !important;
-  bottom: 0 !important;
-  right: 0 !important;
-  opacity: 0 !important; /* Make invisible but keeps functionality */
-  cursor: pointer !important;
-  z-index: 2 !important; /* Above the icon */
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-/* Hover & focus states */
-.date-picker-control:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  border-color: var(--primary-blue) !important;
-}
-
-.date-picker-control:focus {
-  outline: none !important;
-  border-color: var(--primary-blue) !important;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25) !important;
-}
-
-/* Date input container - set proper spacing */
-.date-input-container {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-}
-
-/* Mobile optimization */
-@media (max-width: 768px) {
-  .date-picker-control {
-    width: 28px !important;
-    height: 28px !important;
-    min-width: 28px !important;
-    max-width: 28px !important;
-  }
-  
-  .date-picker-control::before {
-    width: 14px !important;
-    height: 14px !important;
-  }
-}
-
-
-/* Base styling for labels with tooltips */
 label[data-tooltip] {
   position: relative;
-}
-
-/* Info icon after the label */
-label[data-tooltip]::after {
-  content: "i";
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  margin-left: 8px;
-  background-color: var(--dark-surface-lighter);
-  border-radius: 50%;
-  font-family: Georgia, serif;
-  font-size: 11px;
-  font-style: italic;
-  font-weight: bold;
-  color: var(--dark-text);
-  text-align: center;
-  line-height: 16px;
-  cursor: help;
-  vertical-align: middle;
-}
-
-/* Tooltip content shown on hover/focus */
-label[data-tooltip]:hover::before,
-label[data-tooltip]:focus::before {
-  content: attr(data-tooltip);
-  position: absolute;
-  z-index: 100;
-  bottom: 100%;
-  left: 0;
-  width: 220px;
-  background-color: var(--dark-surface);
-  color: var(--dark-text);
-  text-align: left;
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 5px;
-  border: 1px solid var(--dark-border);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  font-size: 0.85rem;
-  font-weight: normal;
-  line-height: 1.4;
-  font-style: normal;
-  pointer-events: none;
-}
-
-/* Highlight effect on hover */
-label[data-tooltip]:hover::after,
-label[data-tooltip]:focus::after {
-  background-color: rgba(74, 144, 226, 0.3);
-}
-
-/* For right-edge tooltips so they don't go off-screen */
-@media (min-width: 768px) {
-  .form-group:nth-child(even) label[data-tooltip]::before {
-    left: auto;
-    right: 0;
-  }
-}
-
-/* Mobile responsive adjustments */
-@media (max-width: 767px) {
-  label[data-tooltip]::before {
-    width: 180px;
-    max-width: calc(100vw - 40px);
-  }
-}
-
-.modal-body > form > .form-group:first-of-type {
-  margin-top: 24px; 
-  padding-top: 16px;
 }
 
 label[data-tooltip]::after {
@@ -1931,12 +1269,24 @@ label[data-tooltip]::after {
   transition: all 0.2s ease;
 }
 
-/* Update tooltip content styling */
+label[data-tooltip]:hover::after,
+label[data-tooltip]:focus::after {
+  background-color: #4a90e2;
+  transform: scale(1.1);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
 label[data-tooltip]:hover::before,
 label[data-tooltip]:focus::before {
   content: attr(data-tooltip);
   position: absolute;
-  z-index: 100;
+  z-index: 101;
   bottom: 100%;
   left: 0;
   width: 220px;
@@ -1955,35 +1305,180 @@ label[data-tooltip]:focus::before {
   pointer-events: none;
 }
 
-/* Enhanced hover effect */
-label[data-tooltip]:hover::after,
-label[data-tooltip]:focus::after {
-  background-color: #4a90e2; /* Brighter blue on hover */
-  transform: scale(1.1); /* Slight grow effect */
-}
-
-/* Add a subtle highlight to the border on hover */
 label[data-tooltip]:hover::before {
-  border-color: #5a9aea; /* Slightly brighter border on hover */
+  border-color: #5a9aea;
 }
 
-/* Add tooltip arrow */
-label[data-tooltip]:hover::before {
-  content: attr(data-tooltip);
+@media (min-width: 768px) {
+  .form-group:nth-child(even) label[data-tooltip]::before {
+    left: auto;
+    right: 0;
+  }
 }
 
-label[data-tooltip]:hover::before {
-  position: absolute;
-  z-index: 101;
+@media (max-width: 767px) {
+  label[data-tooltip]::before {
+    width: 180px;
+    max-width: calc(100vw - 40px);
+  }
 }
 
-/* Add a subtle pulse animation on hover */
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+
+.floating-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+  min-width: 300px;
+  max-width: 500px;
+  animation: slideIn 0.3s ease-out forwards;
 }
 
-label[data-tooltip]:hover::after {
-  animation: pulse 1.5s infinite;
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.floating-message > div {
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.message-content {
+  flex: 1;
+  margin-bottom: 20px;
+  font-weight: 500;
+  white-space: pre-line;
+  line-height: 1.5;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.floating-message .success-message {
+  background: linear-gradient(rgba(40, 167, 69, 0.85), rgba(40, 167, 69, 0.85)), var(--dark-surface);
+  color: white;
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.floating-message .error-message {
+  background: linear-gradient(rgba(240, 80, 80, 0.15), rgba(240, 80, 80, 0.15)), var(--dark-surface);
+  color: #e57373;
+  border: 1px solid rgba(240, 80, 80, 0.3);
+}
+
+.message-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.message-close-button {
+  min-width: fit-content;
+  width: auto;
+  padding: 8px 16px;
+  align-self: center;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.floating-message .error-message .message-close-button {
+    color: #e0e0e0;
+}
+
+
+.message-close-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 768px) {
+  .floating-message {
+    min-width: 250px;
+    max-width: 90%;
+    bottom: 20px;
+    top: auto;
+    right: 5%;
+    left: 5%;
+    transform: none;
+  }
+   .floating-message > div {
+    padding: 12px 16px;
+  }
+  .message-content {
+    font-size: 14px;
+  }
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: calc(100% - 24px);
+  margin-right: 24px;
+}
+
+.saved-drafts-section > .data-table-container {
+  background-color: transparent;
+  border: none;
+  padding: 0; 
+  box-shadow: none;
+}
+
+.floating-message {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%); /* Center horizontally */
+  z-index: 2000;
+  min-width: 300px;
+  max-width: 500px; /* Max width to prevent it from being too wide on large screens */
+  animation: slideIn 0.3s ease-out forwards; /* Or a fade-in animation */
+}
+
+/* Keep the slideIn animation or use a fadeIn if preferred */
+@keyframes slideIn {
+  from {
+    /* Adjust if you prefer a slide from top or just fade */
+    transform: translate(-50%, -30px); 
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .floating-message {
+    min-width: 250px;
+    max-width: 90%;
+    left: 5%; 
+    right: 5%;
+    transform: none; 
+    width: 90%; 
+    margin: 0 auto; 
+
+  }
+   .floating-message > div {
+    padding: 12px 16px;
+  }
+  .message-content {
+    font-size: 14px;
+  }
 }
