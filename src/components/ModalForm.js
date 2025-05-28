@@ -49,7 +49,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     statistics: [],
     vocabulariesUsed: [],
     metadataSchema: [],
-    kgSchema: [],
     restAPI: [],
     sparqlEndpoint: [],
     exampleQueries: [],
@@ -117,7 +116,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
 
     const [vocabulariesUsedInput, setVocabulariesUsedInput] = useState('');
     const [metadataSchemaInput, setMetadataSchemaInput] = useState('');
-    const [kgSchemaInput, setKgSchemaInput] = useState('');
     const [restAPIInput, setRestAPIInput] = useState('');
     const [sparqlEndpointInput, setSparqlEndpointInput] = useState('');
     const [exampleQueriesInput, setExampleQueriesInput] = useState('');
@@ -550,12 +548,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       };
     }
     
-    if (kgSchemaInput.trim()) {
-      updatedFormData = {
-        ...updatedFormData,
-        kgSchema: [...updatedFormData.kgSchema, kgSchemaInput.trim()]
-      };
-    }
     
     if (restAPIInput.trim()) {
       updatedFormData = {
@@ -1314,47 +1306,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                         type="button"
                         className="tag-remove"
                         onClick={() => handleRemoveTag('metadataSchema', index)}
-                    >
-                        ×
-                    </button>
-                    </div>
-                ))}
-                </div>
-                <div className="field-hint">Press Enter or click + to add</div>
-            </div>
-            </div>
-
-            {/* KG Schema [0,∞] - Optional, multiple values */}
-            <div className="form-group">
-            <label htmlFor="kgSchema">
-                KG Schema <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-            </label>
-            <div className="tag-input-container">
-                <div className="tag-input-row">
-                <input
-                    type="text"
-                    id="kgSchema"
-                    value={kgSchemaInput}
-                    onChange={(e) => setKgSchemaInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'kgSchema', kgSchemaInput, setKgSchemaInput)}
-                    placeholder="Enter KG schema"
-                />
-                <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('kgSchema', kgSchemaInput, setKgSchemaInput)}
-                >
-                    +
-                </button>
-                </div>
-                <div className="tag-list">
-                {formData.kgSchema.map((item, index) => (
-                    <div key={`kg-schema-${index}`} className="tag-item">
-                    <span className="tag-text">{item}</span>
-                    <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('kgSchema', index)}
                     >
                         ×
                     </button>
