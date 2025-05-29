@@ -5,7 +5,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   // Initial form state
   const initialFormState = {
     identifier: [],
-    type: [],
+    type: '',
     title: '',
     description: '',
     
@@ -68,7 +68,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [identifierInput, setIdentifierInput] = useState('');
-  const [typeInput, setTypeInput] = useState('');
   const [alternativeTitleInput, setAlternativeTitleInput] = useState('');
   const [acronymInput, setAcronymInput] = useState('');
   const [homepageURLInput, setHomepageURLInput] = useState('');
@@ -415,12 +414,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       };
     }
     
-    if (typeInput.trim()) {
-      updatedFormData = {
-        ...updatedFormData,
-        type: [...updatedFormData.type, typeInput.trim()]
-      };
-    }
     
     if (alternativeTitleInput.trim()) {
       updatedFormData = {
@@ -805,7 +798,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     // Check for missing required fields (including dates)
     if (!updatedForm.title) missingFields.push('Title');
     if (!updatedForm.description) missingFields.push('Description'); 
-    if (updatedForm.type.length === 0) missingFields.push('Type');
+    if (!updatedForm.type) missingFields.push('Type'); 
     if (!updatedForm.publishedDate) missingFields.push('Published Date');
     if (updatedForm.distributions.length === 0) missingFields.push('Distribution');
     if (updatedForm.primaryReferenceDocument.length === 0) missingFields.push('Primary Reference Document');
@@ -991,7 +984,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     value={identifierInput}
                     onChange={(e) => setIdentifierInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, 'identifier', identifierInput, setIdentifierInput)}
-                    placeholder="Enter identifier"
                   />
                   <button 
                     type="button" 
@@ -1015,48 +1007,37 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                   ))}
                 </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                <div className="field-hint"></div>
               </div>
             </div>
             
-            {/* Type (required, multiple values) */}
             <div className="form-group">
               <label htmlFor="type">
-                Type <span className="field-indicator required-indicator">required, multiple values allowed</span>
+                Type <span className="field-indicator required-indicator">required</span>
               </label>
-              <div className="tag-input-container">
-                <div className="tag-input-row">
+              <div className="radio-group">
+                <label className="radio-label">
                   <input
-                    type="text"
-                    id="type"
-                    value={typeInput}
-                    onChange={(e) => setTypeInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'type', typeInput, setTypeInput)}
-                    placeholder="Enter type"
+                    type="radio"
+                    name="type"
+                    value="dcat:Dataset"
+                    checked={formData.type === 'dcat:Dataset'}
+                    onChange={handleChange}
+                    className="radio-input"
                   />
-                  <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('type', typeInput, setTypeInput)}
-                  >
-                    +
-                  </button>
-                </div>
-                <div className="tag-list">
-                  {formData.type.map((type, index) => (
-                    <div key={`type-${index}`} className="tag-item">
-                      <span className="tag-text">{type}</span>
-                      <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('type', index)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                  dcat:Dataset
+                </label>
+                <label className="radio-label">
+                  <input
+                    type="radio"
+                    name="type"
+                    value="void:Dataset"
+                    checked={formData.type === 'void:Dataset'}
+                    onChange={handleChange}
+                    className="radio-input"
+                  />
+                  void:Dataset
+                </label>
               </div>
             </div>
             
@@ -1087,7 +1068,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     value={alternativeTitleInput}
                     onChange={(e) => setAlternativeTitleInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, 'alternativeTitle', alternativeTitleInput, setAlternativeTitleInput)}
-                    placeholder="Enter alternative title"
+                    
                   />
                   <button 
                     type="button" 
@@ -1111,7 +1092,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                   ))}
                 </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                <div className="field-hint"> </div>
               </div>
             </div>
             
@@ -1247,7 +1228,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     value={vocabulariesUsedInput}
                     onChange={(e) => setVocabulariesUsedInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, 'vocabulariesUsed', vocabulariesUsedInput, setVocabulariesUsedInput)}
-                    placeholder="Enter vocabulary"
+                    
                 />
                 <button 
                     type="button" 
@@ -1271,7 +1252,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                 ))}
                 </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                <div className="field-hint"> </div>
             </div>
             </div>
 
@@ -1288,7 +1269,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     value={metadataSchemaInput}
                     onChange={(e) => setMetadataSchemaInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, 'metadataSchema', metadataSchemaInput, setMetadataSchemaInput)}
-                    placeholder="Enter metadata schema"
+                    
                 />
                 <button 
                     type="button" 
@@ -1312,7 +1293,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                 ))}
                 </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                <div className="field-hint"> </div>
             </div>
             </div>
 
@@ -1329,7 +1310,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     value={primaryReferenceDocInput}
                     onChange={(e) => setPrimaryReferenceDocInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, 'primaryReferenceDocument', primaryReferenceDocInput, setPrimaryReferenceDocInput)}
-                    placeholder="Enter reference document"
+                    
                   />
                   <button 
                     type="button" 
@@ -1353,7 +1334,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                   ))}
                 </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                <div className="field-hint"> </div>
               </div>
             </div>
             
@@ -1413,7 +1394,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     value={statisticsInput}
                     onChange={(e) => setStatisticsInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, 'statistics', statisticsInput, setStatisticsInput)}
-                    placeholder="Enter statistics"
+                    
                   />
                   <button 
                     type="button" 
@@ -1437,7 +1418,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                   ))}
                 </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                <div className="field-hint"> </div>
               </div>
             </div>
 
@@ -1454,7 +1435,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     value={acronymInput}
                     onChange={(e) => setAcronymInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, 'acronym', acronymInput, setAcronymInput)}
-                    placeholder="Enter acronym"
+                    
                   />
                   <button 
                     type="button" 
@@ -1478,7 +1459,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                   ))}
                 </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                <div className="field-hint"> </div>
               </div>
             </div>
             
@@ -1495,7 +1476,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     value={homepageURLInput}
                     onChange={(e) => setHomepageURLInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, 'homepageURL', homepageURLInput, setHomepageURLInput)}
-                    placeholder="Enter homepage URL"
+                    
                   />
                   <button 
                     type="button" 
@@ -1519,7 +1500,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                   ))}
                 </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                <div className="field-hint"> </div>
               </div>
             </div>
             
@@ -1536,7 +1517,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     value={otherPagesInput}
                     onChange={(e) => setOtherPagesInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, 'otherPages', otherPagesInput, setOtherPagesInput)}
-                    placeholder="Enter page URL"
+                    
                   />
                   <button 
                     type="button" 
@@ -1560,7 +1541,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                   ))}
                 </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                <div className="field-hint"> </div>
               </div>
             </div>
             
@@ -2070,7 +2051,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     value={restAPIInput}
                     onChange={(e) => setRestAPIInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, 'restAPI', restAPIInput, setRestAPIInput)}
-                    placeholder="Enter REST API"
+                    
                 />
                 <button 
                     type="button" 
@@ -2094,7 +2075,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                 ))}
                 </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                <div className="field-hint"> </div>
             </div>
             </div>
 
@@ -2111,7 +2092,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     value={sparqlEndpointInput}
                     onChange={(e) => setSparqlEndpointInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, 'sparqlEndpoint', sparqlEndpointInput, setSparqlEndpointInput)}
-                    placeholder="Enter SPARQL endpoint"
+                    
                 />
                 <button 
                     type="button" 
@@ -2135,7 +2116,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                 ))}
                 </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                <div className="field-hint"> </div>
             </div>
             </div>
 
@@ -2152,7 +2133,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     value={exampleQueriesInput}
                     onChange={(e) => setExampleQueriesInput(e.target.value)}
                     onKeyPress={(e) => handleKeyPress(e, 'exampleQueries', exampleQueriesInput, setExampleQueriesInput)}
-                    placeholder="Enter example query"
+                    
                 />
                 <button 
                     type="button" 
@@ -2176,7 +2157,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     </div>
                 ))}
                 </div>
-                <div className="field-hint">Press Enter or click + to add</div>
+                <div className="field-hint"> </div>
             </div>
         </div>
 
@@ -2193,7 +2174,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    value={keywordsInput}
                    onChange={(e) => setKeywordsInput(e.target.value)}
                    onKeyPress={(e) => handleKeyPress(e, 'keywords', keywordsInput, setKeywordsInput)}
-                   placeholder="Enter keyword"
+                   
                  />
                  <button 
                    type="button" 
@@ -2217,7 +2198,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    </div>
                  ))}
                </div>
-               <div className="field-hint">Press Enter or click + to add</div>
+               <div className="field-hint"> </div>
              </div>
            </div>
 
@@ -2234,7 +2215,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    value={categoryInput}
                    onChange={(e) => setCategoryInput(e.target.value)}
                    onKeyPress={(e) => handleKeyPress(e, 'category', categoryInput, setCategoryInput)}
-                   placeholder="Enter category"
+                   
                  />
                  <button 
                    type="button" 
@@ -2258,7 +2239,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    </div>
                  ))}
                </div>
-               <div className="field-hint">Press Enter or click + to add</div>
+               <div className="field-hint"> </div>
              </div>
            </div>
 
@@ -2275,7 +2256,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    value={publicationReferencesInput}
                    onChange={(e) => setPublicationReferencesInput(e.target.value)}
                    onKeyPress={(e) => handleKeyPress(e, 'publicationReferences', publicationReferencesInput, setPublicationReferencesInput)}
-                   placeholder="Enter publication or reference"
+                   
                  />
                  <button 
                    type="button" 
@@ -2299,7 +2280,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    </div>
                  ))}
                </div>
-               <div className="field-hint">Press Enter or click + to add</div>
+               <div className="field-hint"> </div>
              </div>
            </div>
 
@@ -2316,7 +2297,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    value={languageInput}
                    onChange={(e) => setLanguageInput(e.target.value)}
                    onKeyPress={(e) => handleKeyPress(e, 'language', languageInput, setLanguageInput)}
-                   placeholder="Enter language (e.g., en-US, de, fr)"
+                   
                  />
                  <button 
                    type="button" 
@@ -2340,7 +2321,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    </div>
                  ))}
                </div>
-               <div className="field-hint">Press Enter or click + to add</div>
+               <div className="field-hint"> </div>
              </div>
            </div>
 
@@ -2357,7 +2338,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    value={iriTemplateInput}
                    onChange={(e) => setIriTemplateInput(e.target.value)}
                    onKeyPress={(e) => handleKeyPress(e, 'iriTemplate', iriTemplateInput, setIriTemplateInput)}
-                   placeholder="Enter IRI template"
+                   
                  />
                  <button 
                    type="button" 
@@ -2381,7 +2362,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    </div>
                  ))}
                </div>
-               <div className="field-hint">Press Enter or click + to add</div>
+               <div className="field-hint"> </div>
              </div>
            </div>
 
@@ -2398,7 +2379,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    value={linkedResourcesInput}
                    onChange={(e) => setLinkedResourcesInput(e.target.value)}
                    onKeyPress={(e) => handleKeyPress(e, 'linkedResources', linkedResourcesInput, setLinkedResourcesInput)}
-                   placeholder="Enter linked resource"
+                   
                  />
                  <button 
                    type="button" 
@@ -2422,7 +2403,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    </div>
                  ))}
                </div>
-               <div className="field-hint">Press Enter or click + to add</div>
+               <div className="field-hint"> </div>
              </div>
            </div>
 
@@ -2439,7 +2420,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    value={exampleResourceInput}
                    onChange={(e) => setExampleResourceInput(e.target.value)}
                    onKeyPress={(e) => handleKeyPress(e, 'exampleResource', exampleResourceInput, setExampleResourceInput)}
-                   placeholder="Enter example resource"
+                   
                  />
                  <button 
                    type="button" 
@@ -2463,7 +2444,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    </div>
                  ))}
                </div>
-               <div className="field-hint">Press Enter or click + to add</div>
+               <div className="field-hint"> </div>
              </div>
            </div>
 
@@ -2495,7 +2476,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    value={sourceInput}
                    onChange={(e) => setSourceInput(e.target.value)}
                    onKeyPress={(e) => handleKeyPress(e, 'source', sourceInput, setSourceInput)}
-                   placeholder="Enter source"
+                   
                  />
                  <button 
                    type="button" 
@@ -2519,7 +2500,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    </div>
                  ))}
                </div>
-               <div className="field-hint">Press Enter or click + to add</div>
+               <div className="field-hint"> </div>
              </div>
            </div>
 
@@ -2536,7 +2517,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    value={nameSpaceInput}
                    onChange={(e) => setNameSpaceInput(e.target.value)}
                    onKeyPress={(e) => handleKeyPress(e, 'nameSpace', nameSpaceInput, setNameSpaceInput)}
-                   placeholder="Enter name space"
+                   
                  />
                  <button 
                    type="button" 
@@ -2560,7 +2541,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                    </div>
                  ))}
                </div>
-               <div className="field-hint">Press Enter or click + to add</div>
+               <div className="field-hint"> </div>
              </div>
            </div>
          </form>
