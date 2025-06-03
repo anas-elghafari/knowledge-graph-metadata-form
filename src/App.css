@@ -1566,6 +1566,7 @@ textarea.form-control.form-input-valid {
   width: 44px;
   height: 24px;
   -webkit-appearance: none;
+  appearance: none;
   background-color: #ccc;
   border-radius: 12px;
   outline: none;

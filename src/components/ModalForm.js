@@ -141,8 +141,38 @@ const [sparqlTitleValid, setSparqlTitleValid] = useState(false);
 const [sparqlEndpointDescriptionValid, setSparqlEndpointDescriptionValid] = useState(false);
 const [sparqlStatusValid, setSparqlStatusValid] = useState(false);
 
+// Example Resource Section State
+const emptyExampleResource = {
+  accessURL: '',
+  title: '',
+  mediaType: '',
+  description: '',
+  status: ''
+};
+const [currentExampleResource, setCurrentExampleResource] = useState(emptyExampleResource);
+const [exampleResources, setExampleResources] = useState([]);
+const [editingExampleResourceIdx, setEditingExampleResourceIdx] = useState(null);
+const [exampleResourceAccessURLValid, setExampleResourceAccessURLValid] = useState(false);
+const [exampleResourceAccessURLError, setExampleResourceAccessURLError] = useState('');
+const [exampleResourceTitleValid, setExampleResourceTitleValid] = useState(false);
+const [exampleResourceMediaTypeValid, setExampleResourceMediaTypeValid] = useState(false);
+const [exampleResourceDescriptionValid, setExampleResourceDescriptionValid] = useState(false);
+const [exampleResourceStatusValid, setExampleResourceStatusValid] = useState(false);
+
 const handleCurrentSparqlEndpointChange = (field, value) => {
   setCurrentSparqlEndpoint(prev => ({ ...prev, [field]: value }));
+};
+
+const handleCurrentExampleResourceChange = (field, value) => {
+  setCurrentExampleResource(prev => ({ ...prev, [field]: value }));
+};
+
+// Handle Enter key press for tag inputs
+const handleKeyPress = (e, tagType, inputValue, setInputFunction) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    handleAddTag(tagType, inputValue, setInputFunction);
+  }
 };
 
 const resetSparqlEndpointForm = () => {
@@ -155,6 +185,17 @@ const resetSparqlEndpointForm = () => {
   setSparqlTitleValid(false);
   setSparqlEndpointDescriptionValid(false);
   setSparqlStatusValid(false);
+};
+
+const resetExampleResourceForm = () => {
+  setCurrentExampleResource(emptyExampleResource);
+  setEditingExampleResourceIdx(null);
+  setExampleResourceAccessURLValid(false);
+  setExampleResourceAccessURLError('');
+  setExampleResourceTitleValid(false);
+  setExampleResourceMediaTypeValid(false);
+  setExampleResourceDescriptionValid(false);
+  setExampleResourceStatusValid(false);
 };
 
 const handleAddSparqlEndpoint = () => {
@@ -184,6 +225,35 @@ const handleRemoveSparqlEndpoint = (idx) => {
 
 const handleCancelEditSparqlEndpoint = () => {
   resetSparqlEndpointForm();
+};
+
+const handleAddExampleResource = () => {
+  if (editingExampleResourceIdx !== null) {
+    // Save edits
+    const updated = [...exampleResources];
+    updated[editingExampleResourceIdx] = currentExampleResource;
+    setExampleResources(updated);
+  } else {
+    setExampleResources(prev => [...prev, currentExampleResource]);
+  }
+  resetExampleResourceForm();
+};
+
+const handleEditExampleResource = (idx) => {
+  setCurrentExampleResource(exampleResources[idx]);
+  setEditingExampleResourceIdx(idx);
+  // Optionally set valid states based on current values
+};
+
+const handleRemoveExampleResource = (idx) => {
+  setExampleResources(prev => prev.filter((_, i) => i !== idx));
+  if (editingExampleResourceIdx === idx) {
+    resetExampleResourceForm();
+  }
+};
+
+const handleCancelEditExampleResource = () => {
+  resetExampleResourceForm();
 };
 
   const [acronymInputValid, setAcronymInputValid] = useState(false);
@@ -221,6 +291,9 @@ const handleCancelEditSparqlEndpoint = () => {
   const [accessStatementValid, setAccessStatementValid] = useState(false);
   const [keywordsInputValid, setKeywordsInputValid] = useState(false);
   const [nameSpaceInputValid, setNameSpaceInputValid] = useState(false);
+  const [languageInputValid, setLanguageInputValid] = useState(false);
+  const [iriTemplateInputValid, setIriTemplateInputValid] = useState(false);
+  const [linkedResourcesInputValid, setLinkedResourcesInputValid] = useState(false);
   const [restAPIInputValid, setRestAPIInputValid] = useState(false);
   const [exampleQueriesInputValid, setExampleQueriesInputValid] = useState(false);
 
@@ -345,7 +418,8 @@ const handleCancelEditSparqlEndpoint = () => {
         'roleFunderAgent': setRoleFunderAgentError,
         'distDownloadURL': setDistDownloadURLError,
         'distAccessURL': setDistAccessURLError,
-        'sparqlEndpointURL': setSparqlEndpointURLError
+        'sparqlEndpointURL': setSparqlEndpointURLError,
+        'exampleResourceAccessURL': setExampleResourceAccessURLError
       };
       
       // Map field names to their valid setter functions - EXPANDED LIST
@@ -366,7 +440,8 @@ const handleCancelEditSparqlEndpoint = () => {
         'roleFunderAgent': setRoleFunderAgentValid,
         'distDownloadURL': setDistDownloadURLValid,
         'distAccessURL': setDistAccessURLValid,
-        'sparqlEndpointURL': setSparqlEndpointURLValid
+        'sparqlEndpointURL': setSparqlEndpointURLValid,
+        'exampleResourceAccessURL': setExampleResourceAccessURLValid
       };
       
       const setErrorFunc = errorSetters[name];
@@ -680,6 +755,9 @@ const handleCancelEditSparqlEndpoint = () => {
       'version': setVersionValid,
       'accessStatement': setAccessStatementValid,
       'keywords': setKeywordsInputValid,
+      'language': setLanguageInputValid,
+      'iriTemplate': setIriTemplateInputValid,
+      'linkedResources': setLinkedResourcesInputValid,
       'nameSpace': setNameSpaceInputValid,
       'vocabulariesUsed': setVocabulariesUsedInputValid,
       'metadataSchema': setMetadataSchemaInputValid,
@@ -697,7 +775,11 @@ const handleCancelEditSparqlEndpoint = () => {
     'sparqlIdentifier': setSparqlIdentifierValid,
     'sparqlTitle': setSparqlTitleValid,
     'sparqlEndpointDescription': setSparqlEndpointDescriptionValid,
-    'sparqlStatus': setSparqlStatusValid
+    'sparqlStatus': setSparqlStatusValid,
+    'exampleResourceTitle': setExampleResourceTitleValid,
+    'exampleResourceMediaType': setExampleResourceMediaTypeValid,
+    'exampleResourceDescription': setExampleResourceDescriptionValid,
+    'exampleResourceStatus': setExampleResourceStatusValid
     };
     
     const setValidFunc = validSetters[name];
@@ -1179,8 +1261,9 @@ const handleCancelEditSparqlEndpoint = () => {
       return;
     }
     
-    // Sync SPARQL endpoints before submission
+    // Sync SPARQL endpoints and Example Resources before submission
     updatedForm.sparqlEndpoint = sparqlEndpoints;
+    updatedForm.exampleResource = exampleResources;
 
     // Proceed with submission
     setIsSubmitting(true);
@@ -1207,15 +1290,6 @@ const handleCancelEditSparqlEndpoint = () => {
     }
 };
 
-
-  // handle key press in tag input fields
-  const handleKeyPress = (e, fieldName, inputValue, setInputFunc, setErrorFunc) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddTag(fieldName, inputValue, setInputFunc, setErrorFunc); // Pass setErrorFunc
-    }
-  };
-  
   const formatDate = (dateString) => {
     if (!dateString) return '';
     try {
@@ -1766,16 +1840,16 @@ const handleCancelEditSparqlEndpoint = () => {
             <div className="tag-input-container">
               <div className="tag-input-row">
               <input
-          onBlur={validateRegularInput}              type="text"
-                  id="statistics"
-                  value={statisticsInput}
-                  onChange={(e) => {
-                    setStatisticsInput(e.target.value);
-                    setStatisticsInputValid(false);
-                  }}
-                  onBlur={() => setStatisticsInputValid(!!statisticsInput.trim())}
-                  onKeyUp={(e) => handleKeyPress(e, 'statistics', statisticsInput, setStatisticsInput)}
-                  className={`tag-input ${statisticsInputValid ? 'tag-input-valid' : ''}`}
+                type="text"
+                id="statistics"
+                value={statisticsInput}
+                onChange={(e) => {
+                  setStatisticsInput(e.target.value);
+                  setStatisticsInputValid(false);
+                }}
+                onBlur={() => setStatisticsInputValid(!!statisticsInput.trim())}
+                onKeyPress={(e) => handleKeyPress(e, 'statistics', statisticsInput, setStatisticsInput)}
+                className={`tag-input ${statisticsInputValid ? 'tag-input-valid' : ''}`}
               />
               <button 
                   type="button" 
@@ -1811,7 +1885,7 @@ const handleCancelEditSparqlEndpoint = () => {
             <div className="tag-input-container">
               <div className="tag-input-row">
               <input
-          onBlur={validateRegularInput}              type="text"
+                  type="text"
                   id="acronym"
                   value={acronymInput}
                   onChange={(e) => {
@@ -2234,14 +2308,14 @@ const handleCancelEditSparqlEndpoint = () => {
              Version <span className="field-indicator required-indicator">required, 1 value only</span>
            </label>
            <input
-          onBlur={validateRegularInput}         type="text"
-             id="version"
-             name="version"
-             value={formData.version}
-             onChange={handleChange}
-             onBlur={() => setVersionValid(!!formData.version.trim())}
-             required
-             className={`form-control ${versionValid ? 'form-input-valid' : ''}`}
+              type="text"
+              id="version"
+              name="version"
+              value={formData.version}
+              onChange={handleChange}
+              onBlur={() => setVersionValid(!!formData.version.trim())}
+              required
+              className={`form-control ${versionValid ? 'form-input-valid' : ''}`}
            />
          </div>
     
@@ -2384,11 +2458,11 @@ const handleCancelEditSparqlEndpoint = () => {
                Title <span className="field-indicator required-indicator">required</span>
              </label>
              <input
-              onBlur={validateRegularInput}           type="text"
-               id="distTitle"
-               value={currentDistribution.title}
-               onChange={(e) => handleDistributionChange('title', e.target.value)}
-               className="subfield-input"
+              type="text"
+              id="distTitle"
+              value={currentDistribution.title}
+              onChange={(e) => handleDistributionChange('title', e.target.value)}
+              className="subfield-input"
              />
            </div>
            
@@ -2397,7 +2471,7 @@ const handleCancelEditSparqlEndpoint = () => {
                Description <span className="field-indicator required-indicator">required</span>
              </label>
              <textarea
-          onBlur={validateRegularInput}           id="distDescription"
+              id="distDescription"
                value={currentDistribution.description}
                onChange={(e) => handleDistributionChange('description', e.target.value)}
                rows="2"
@@ -2410,11 +2484,11 @@ const handleCancelEditSparqlEndpoint = () => {
                Media Type <span className="field-indicator required-indicator">required</span>
              </label>
              <input
-          onBlur={validateRegularInput}           type="text"
-               id="distMediaType"
-               value={currentDistribution.mediaType}
-               onChange={(e) => handleDistributionChange('mediaType', e.target.value)}
-               className="subfield-input"
+              type="text"
+              id="distMediaType"
+              value={currentDistribution.mediaType}
+              onChange={(e) => handleDistributionChange('mediaType', e.target.value)}
+              className="subfield-input"
              />
            </div>
            
@@ -2464,11 +2538,11 @@ const handleCancelEditSparqlEndpoint = () => {
                Access Service <span className="field-indicator optional-indicator">optional</span>
              </label>
              <input
-          onBlur={validateRegularInput}           type="text"
-               id="distAccessService"
-               value={currentDistribution.accessService}
-               onChange={(e) => handleDistributionChange('accessService', e.target.value)}
-               className="subfield-input"
+              type="text"
+              id="distAccessService"
+              value={currentDistribution.accessService}
+              onChange={(e) => handleDistributionChange('accessService', e.target.value)}
+              className="subfield-input"
              />
            </div>
            
@@ -2477,11 +2551,11 @@ const handleCancelEditSparqlEndpoint = () => {
                Byte Size <span className="field-indicator optional-indicator">optional</span>
              </label>
              <input
-          onBlur={validateRegularInput}           type="text"
-               id="distByteSize"
-               value={currentDistribution.byteSize}
-               onChange={(e) => handleDistributionChange('byteSize', e.target.value)}
-               className="subfield-input"
+              type="text"
+              id="distByteSize"
+              value={currentDistribution.byteSize}
+              onChange={(e) => handleDistributionChange('byteSize', e.target.value)}
+              className="subfield-input"
              />
            </div>
            
@@ -2592,7 +2666,7 @@ const handleCancelEditSparqlEndpoint = () => {
             </label>
             <div className="date-input-container">
               <input
-          onBlur={validateRegularInput}            type="text"
+                type="text"
                 id="distReleaseDate"
                 name="distReleaseDate"
                 value={currentDistribution.releaseDate}
@@ -2602,7 +2676,7 @@ const handleCancelEditSparqlEndpoint = () => {
                 className={`date-input subfield-input ${distReleaseDateError ? 'date-input-error' : ''}`}
               />
               <input
-          onBlur={validateRegularInput}            type="date"
+                type="date"
                 className="date-picker-control"
                 onChange={(e) => handleDatePickerChange(e, 'distReleaseDate')}
                 aria-label="Date picker for Release Date"
@@ -2619,7 +2693,7 @@ const handleCancelEditSparqlEndpoint = () => {
             </label>
             <div className="date-input-container">
               <input
-          onBlur={validateRegularInput}            type="text"
+                type="text"
                 id="distModificationDate"
                 name="distModificationDate"
                 value={currentDistribution.modificationDate}
@@ -2629,7 +2703,7 @@ const handleCancelEditSparqlEndpoint = () => {
                 className={`date-input subfield-input ${distModificationDateError ? 'date-input-error' : ''}`}
               />
               <input
-          onBlur={validateRegularInput}            type="date"
+                type="date"
                 className="date-picker-control"
                 onChange={(e) => handleDatePickerChange(e, 'distModificationDate')}
                 aria-label="Date picker for Modification Date"
@@ -2660,7 +2734,7 @@ const handleCancelEditSparqlEndpoint = () => {
           <div className="tag-input-container">
               <div className="tag-input-row">
               <input
-          onBlur={validateRegularInput}              type="text"
+                  type="text"
                   id="restAPI"
                   value={restAPIInput}
                   onChange={(e) => {
@@ -2865,7 +2939,157 @@ const handleCancelEditSparqlEndpoint = () => {
     </div>
   </div>
 </div>
-    
+
+          {/* Example Resource Section */}
+<div className="form-section">
+  <h3 className="section-title">Example Resources</h3>
+  <div className="field-indicator optional-indicator">optional, multiple submissions allowed</div>
+  
+  {/* Display existing Example Resources */}
+  <div className="distributions-list">
+    {exampleResources.map((resource, idx) => (
+      <div key={`example-resource-${idx}`} className="distribution-item">
+        <div className="distribution-header">
+          <div className="distribution-title">{resource.title || '(no title)'}</div>
+          <div className="distribution-actions">
+            <button
+              type="button"
+              className="edit-button"
+              onClick={() => handleEditExampleResource(idx)}
+              aria-label="Edit Example Resource"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="tag-remove"
+              onClick={() => handleRemoveExampleResource(idx)}
+              aria-label="Remove Example Resource"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <div className="distribution-preview">
+          <div className="distribution-field">
+            <span className="field-label">dcat:accessURL:</span>
+            <span className="field-value">{resource.accessURL}</span>
+          </div>
+          <div className="distribution-field">
+            <span className="field-label">dct:title:</span>
+            <span className="field-value">{resource.title}</span>
+          </div>
+          <div className="distribution-field">
+            <span className="field-label">dcat:mediaType:</span>
+            <span className="field-value">{resource.mediaType}</span>
+          </div>
+          <div className="distribution-field">
+            <span className="field-label">dct:description:</span>
+            <span className="field-value">{resource.description}</span>
+          </div>
+          <div className="distribution-field">
+            <span className="field-label">adms:status:</span>
+            <span className="field-value">{resource.status}</span>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  {/* Example Resource Form */}
+  <div className="distribution-form">
+    <div className="form-group">
+      <label htmlFor="exampleResourceAccessURL">
+        dcat:accessURL <span className="field-indicator optional-indicator">optional (IRI)</span>
+      </label>
+      <input
+        type="text"
+        id="exampleResourceAccessURL"
+        name="exampleResourceAccessURL"
+        value={currentExampleResource.accessURL}
+        onChange={e => handleCurrentExampleResourceChange('accessURL', e.target.value)}
+        onBlur={validateIriInput}
+        className={`subfield-input ${exampleResourceAccessURLError ? 'form-input-error' : ''} ${exampleResourceAccessURLValid ? 'form-input-valid' : ''}`}
+      />
+      {exampleResourceAccessURLError && <div className="iri-error-message">{exampleResourceAccessURLError}</div>}
+    </div>
+    <div className="form-group">
+      <label htmlFor="exampleResourceTitle">
+        dct:title <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="exampleResourceTitle"
+        name="exampleResourceTitle"
+        value={currentExampleResource.title}
+        onChange={e => handleCurrentExampleResourceChange('title', e.target.value)}
+        onBlur={validateRegularInput}
+        className={`subfield-input ${exampleResourceTitleValid ? 'form-input-valid' : ''}`}
+      />
+    </div>
+    <div className="form-group">
+      <label htmlFor="exampleResourceMediaType">
+        dcat:mediaType <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="exampleResourceMediaType"
+        name="exampleResourceMediaType"
+        value={currentExampleResource.mediaType}
+        onChange={e => handleCurrentExampleResourceChange('mediaType', e.target.value)}
+        onBlur={validateRegularInput}
+        className={`subfield-input ${exampleResourceMediaTypeValid ? 'form-input-valid' : ''}`}
+      />
+    </div>
+    <div className="form-group">
+      <label htmlFor="exampleResourceDescription">
+        dct:description <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="exampleResourceDescription"
+        name="exampleResourceDescription"
+        value={currentExampleResource.description}
+        onChange={e => handleCurrentExampleResourceChange('description', e.target.value)}
+        onBlur={validateRegularInput}
+        className={`subfield-input ${exampleResourceDescriptionValid ? 'form-input-valid' : ''}`}
+      />
+    </div>
+    <div className="form-group">
+      <label htmlFor="exampleResourceStatus">
+        adms:status <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="exampleResourceStatus"
+        name="exampleResourceStatus"
+        value={currentExampleResource.status}
+        onChange={e => handleCurrentExampleResourceChange('status', e.target.value)}
+        onBlur={validateRegularInput}
+        className={`subfield-input ${exampleResourceStatusValid ? 'form-input-valid' : ''}`}
+      />
+    </div>
+    <div className="button-row">
+      <button
+        type="button"
+        className="add-button"
+        onClick={handleAddExampleResource}
+      >
+        {editingExampleResourceIdx !== null ? 'Save Changes' : 'Add Example Resource'}
+      </button>
+      {editingExampleResourceIdx !== null && (
+        <button
+          type="button"
+          className="cancel-button"
+          onClick={handleCancelEditExampleResource}
+        >
+          Cancel
+        </button>
+      )}
+    </div>
+  </div>
+</div>
+
           {/* Example Queries [0,∞] - Optional, multiple values */}
           <div className="form-group">
           <label htmlFor="exampleQueries">
@@ -2874,12 +3098,14 @@ const handleCancelEditSparqlEndpoint = () => {
           <div className="tag-input-container">
               <div className="tag-input-row">
               <input
-          onBlur={validateRegularInput}              type="text"
+                  type="text"
                   id="exampleQueries"
+                  name="exampleQueries"
                   value={exampleQueriesInput}
                   onChange={(e) => setExampleQueriesInput(e.target.value)}
+                  onBlur={validateRegularInput}
                   onKeyPress={(e) => handleKeyPress(e, 'exampleQueries', exampleQueriesInput, setExampleQueriesInput)}
-                  
+                  className={`tag-input ${exampleQueriesInputValid ? 'form-input-valid' : ''}`}
               />
               <button 
                   type="button" 
@@ -2915,12 +3141,14 @@ const handleCancelEditSparqlEndpoint = () => {
            <div className="tag-input-container">
              <div className="tag-input-row">
                <input
-          onBlur={validateRegularInput}             type="text"
+                 type="text"
                  id="keywords"
+                 name="keywords"
                  value={keywordsInput}
                  onChange={(e) => setKeywordsInput(e.target.value)}
+                 onBlur={validateRegularInput}
                  onKeyPress={(e) => handleKeyPress(e, 'keywords', keywordsInput, setKeywordsInput)}
-                 
+                 className={`tag-input ${keywordsInputValid ? 'form-input-valid' : ''}`}
                />
                <button 
                  type="button" 
@@ -3054,12 +3282,14 @@ const handleCancelEditSparqlEndpoint = () => {
            <div className="tag-input-container">
              <div className="tag-input-row">
                <input
-          onBlur={validateRegularInput}             type="text"
+                 type="text"
                  id="language"
+                 name="language"
                  value={languageInput}
                  onChange={(e) => setLanguageInput(e.target.value)}
+                 onBlur={validateRegularInput}
                  onKeyPress={(e) => handleKeyPress(e, 'language', languageInput, setLanguageInput)}
-                 
+                 className={`tag-input ${languageInputValid ? 'form-input-valid' : ''}`}
                />
                <button 
                  type="button" 
@@ -3094,14 +3324,16 @@ const handleCancelEditSparqlEndpoint = () => {
            </label>
            <div className="tag-input-container">
              <div className="tag-input-row">
-               <input
-          onBlur={validateRegularInput}             type="text"
-                 id="iriTemplate"
-                 value={iriTemplateInput}
-                 onChange={(e) => setIriTemplateInput(e.target.value)}
-                 onKeyPress={(e) => handleKeyPress(e, 'iriTemplate', iriTemplateInput, setIriTemplateInput)}
-                 
-               />
+                <input
+                  type="text"
+                  id="iriTemplate"
+                  name="iriTemplate"
+                  value={iriTemplateInput}
+                  onChange={(e) => setIriTemplateInput(e.target.value)}
+                  onBlur={validateRegularInput}
+                  onKeyPress={(e) => handleKeyPress(e, 'iriTemplate', iriTemplateInput, setIriTemplateInput)}
+                  className={`tag-input ${iriTemplateInputValid ? 'form-input-valid' : ''}`}
+                />
                <button 
                  type="button" 
                  className="tag-add-button"
@@ -3135,14 +3367,16 @@ const handleCancelEditSparqlEndpoint = () => {
            </label>
            <div className="tag-input-container">
              <div className="tag-input-row">
-               <input
-          onBlur={validateRegularInput}             type="text"
-                 id="linkedResources"
-                 value={linkedResourcesInput}
-                 onChange={(e) => setLinkedResourcesInput(e.target.value)}
-                 onKeyPress={(e) => handleKeyPress(e, 'linkedResources', linkedResourcesInput, setLinkedResourcesInput)}
-                 
-               />
+                <input
+                  type="text"
+                  id="linkedResources"
+                  name="linkedResources"
+                  value={linkedResourcesInput}
+                  onChange={(e) => setLinkedResourcesInput(e.target.value)}
+                  onBlur={validateRegularInput}
+                  onKeyPress={(e) => handleKeyPress(e, 'linkedResources', linkedResourcesInput, setLinkedResourcesInput)}
+                  className={`tag-input ${linkedResourcesInputValid ? 'form-input-valid' : ''}`}
+                />
                <button 
                  type="button" 
                  className="tag-add-button"
@@ -3289,14 +3523,16 @@ const handleCancelEditSparqlEndpoint = () => {
            </label>
            <div className="tag-input-container">
              <div className="tag-input-row">
-               <input
-          onBlur={validateRegularInput}             type="text"
-                 id="nameSpace"
-                 value={nameSpaceInput}
-                 onChange={(e) => setNameSpaceInput(e.target.value)}
-                 onKeyPress={(e) => handleKeyPress(e, 'nameSpace', nameSpaceInput, setNameSpaceInput)}
-                 
-               />
+                <input
+                  type="text"
+                  id="nameSpace"
+                  name="nameSpace"
+                  value={nameSpaceInput}
+                  onChange={(e) => setNameSpaceInput(e.target.value)}
+                  onBlur={validateRegularInput}
+                  onKeyPress={(e) => handleKeyPress(e, 'nameSpace', nameSpaceInput, setNameSpaceInput)}
+                  className={`tag-input ${nameSpaceInputValid ? 'form-input-valid' : ''}`}
+                />
                <button 
                  type="button" 
                  className="tag-add-button"
