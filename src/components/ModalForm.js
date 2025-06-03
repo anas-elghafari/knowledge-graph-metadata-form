@@ -3403,53 +3403,12 @@ const handleCancelEditExampleResource = () => {
            </div>
          </div>
     
-         {/* Example Resource [0,∞] - Optional, multiple values */}
-         <div className="form-group">
-           <label htmlFor="exampleResource">
-             Example Resource <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-           </label>
-           <div className="tag-input-container">
-             <div className="tag-input-row">
-               <input
-          onBlur={validateRegularInput}             type="text"
-                 id="exampleResource"
-                 value={exampleResourceInput}
-                 onChange={(e) => setExampleResourceInput(e.target.value)}
-                 onKeyPress={(e) => handleKeyPress(e, 'exampleResource', exampleResourceInput, setExampleResourceInput)}
-                 
-               />
-               <button 
-                 type="button" 
-                 className="tag-add-button"
-                 onClick={() => handleAddTag('exampleResource', exampleResourceInput, setExampleResourceInput)}
-               >
-                 +
-               </button>
-             </div>
-             <div className="tag-list">
-               {formData.exampleResource.map((example, index) => (
-                 <div key={`example-resource-${index}`} className="tag-item">
-                   <span className="tag-text">{example}</span>
-                   <button 
-                     type="button"
-                     className="tag-remove"
-                     onClick={() => handleRemoveTag('exampleResource', index)}
-                   >
-                     ×
-                   </button>
-                 </div>
-               ))}
-             </div>
-             <div className="field-hint"> </div>
-           </div>
-         </div>
-    
          {/* Access Statement [1] - Required, single value */}
          <div className="form-group">
            <label htmlFor="accessStatement">
              Access Statement <span className="field-indicator required-indicator">required (IRI), 1 value only</span>
            </label>
-           <textarea
+           <input
                 id="accessStatement"
                 name="accessStatement"
                 value={formData.accessStatement}
@@ -3462,7 +3421,7 @@ const handleCancelEditExampleResource = () => {
                 required
                 rows="3"
                 className={`form-control ${accessStatementValid ? 'form-input-valid' : ''} ${accessStatementError ? 'form-input-error' : ''}`}
-              ></textarea>
+              ></input>
             {accessStatementError && <div className="iri-error-message">{accessStatementError}</div>}
 
          </div>
