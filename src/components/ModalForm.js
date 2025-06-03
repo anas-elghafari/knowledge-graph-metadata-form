@@ -119,8 +119,72 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [vocabulariesUsedInput, setVocabulariesUsedInput] = useState('');
   const [metadataSchemaInput, setMetadataSchemaInput] = useState('');
   const [restAPIInput, setRestAPIInput] = useState('');
-  const [sparqlEndpointInput, setSparqlEndpointInput] = useState('');
   const [exampleQueriesInput, setExampleQueriesInput] = useState('');
+
+// SPARQL Endpoints Section State
+const emptySparqlEndpoint = {
+  dataService: '',
+  endpointURL: '',
+  identifier: '',
+  title: '',
+  endpointDescription: '',
+  status: ''
+};
+const [currentSparqlEndpoint, setCurrentSparqlEndpoint] = useState(emptySparqlEndpoint);
+const [sparqlEndpoints, setSparqlEndpoints] = useState([]);
+const [editingSparqlEndpointIdx, setEditingSparqlEndpointIdx] = useState(null);
+const [sparqlDataServiceValid, setSparqlDataServiceValid] = useState(false);
+const [sparqlEndpointURLValid, setSparqlEndpointURLValid] = useState(false);
+const [sparqlEndpointURLError, setSparqlEndpointURLError] = useState('');
+const [sparqlIdentifierValid, setSparqlIdentifierValid] = useState(false);
+const [sparqlTitleValid, setSparqlTitleValid] = useState(false);
+const [sparqlEndpointDescriptionValid, setSparqlEndpointDescriptionValid] = useState(false);
+const [sparqlStatusValid, setSparqlStatusValid] = useState(false);
+
+const handleCurrentSparqlEndpointChange = (field, value) => {
+  setCurrentSparqlEndpoint(prev => ({ ...prev, [field]: value }));
+};
+
+const resetSparqlEndpointForm = () => {
+  setCurrentSparqlEndpoint(emptySparqlEndpoint);
+  setEditingSparqlEndpointIdx(null);
+  setSparqlDataServiceValid(false);
+  setSparqlEndpointURLValid(false);
+  setSparqlEndpointURLError('');
+  setSparqlIdentifierValid(false);
+  setSparqlTitleValid(false);
+  setSparqlEndpointDescriptionValid(false);
+  setSparqlStatusValid(false);
+};
+
+const handleAddSparqlEndpoint = () => {
+  if (editingSparqlEndpointIdx !== null) {
+    // Save edits
+    const updated = [...sparqlEndpoints];
+    updated[editingSparqlEndpointIdx] = currentSparqlEndpoint;
+    setSparqlEndpoints(updated);
+  } else {
+    setSparqlEndpoints(prev => [...prev, currentSparqlEndpoint]);
+  }
+  resetSparqlEndpointForm();
+};
+
+const handleEditSparqlEndpoint = (idx) => {
+  setCurrentSparqlEndpoint(sparqlEndpoints[idx]);
+  setEditingSparqlEndpointIdx(idx);
+  // Optionally set valid states for fields if desired
+};
+
+const handleRemoveSparqlEndpoint = (idx) => {
+  setSparqlEndpoints(prev => prev.filter((_, i) => i !== idx));
+  if (editingSparqlEndpointIdx === idx) {
+    resetSparqlEndpointForm();
+  }
+};
+
+const handleCancelEditSparqlEndpoint = () => {
+  resetSparqlEndpointForm();
+};
 
   const [acronymInputValid, setAcronymInputValid] = useState(false);
   const [metaGraphInput, setMetaGraphInput] = useState('');
@@ -158,13 +222,19 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [keywordsInputValid, setKeywordsInputValid] = useState(false);
   const [nameSpaceInputValid, setNameSpaceInputValid] = useState(false);
   const [restAPIInputValid, setRestAPIInputValid] = useState(false);
-  const [sparqlEndpointInputValid, setSparqlEndpointInputValid] = useState(false);
   const [exampleQueriesInputValid, setExampleQueriesInputValid] = useState(false);
 
   const [distReleaseDateValid, setDistReleaseDateValid] = useState(false);
   const [distModificationDateValid, setDistModificationDateValid] = useState(false);
   const [identifierInputValid, setIdentifierInputValid] = useState(false);
   const [alternativeTitleInputValid, setAlternativeTitleInputValid] = useState(false);
+  const [distLicenseValid, setDistLicenseValid] = useState(false);
+  const [distRightsValid, setDistRightsValid] = useState(false);
+  const [distSpatialResolutionValid, setDistSpatialResolutionValid] = useState(false);
+  const [distTemporalResolutionValid, setDistTemporalResolutionValid] = useState(false);
+  const [distCompressionFormatValid, setDistCompressionFormatValid] = useState(false);
+  const [distPackagingFormatValid, setDistPackagingFormatValid] = useState(false);
+  const [distHasPolicyValid, setDistHasPolicyValid] = useState(false);
 
   useEffect(() => {
       if (initialFormData) {
@@ -265,7 +335,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         'vocabulariesUsedInput': setVocabulariesUsedInputError,
         'metadataSchemaInput': setMetadataSchemaInputError,
         'primaryReferenceDocInput': setPrimaryReferenceDocInputError,
-        'metaGraphInput': setMetaGraphInputError,
         'license': setLicenseError,
         'categoryInput': setCategoryInputError,
         'publicationReferencesInput': setPublicationReferencesInputError,
@@ -275,7 +344,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         'rolePublisherAgent': setRolePublisherAgentError,
         'roleFunderAgent': setRoleFunderAgentError,
         'distDownloadURL': setDistDownloadURLError,
-        'distAccessURL': setDistAccessURLError
+        'distAccessURL': setDistAccessURLError,
+        'sparqlEndpointURL': setSparqlEndpointURLError
       };
       
       // Map field names to their valid setter functions - EXPANDED LIST
@@ -295,13 +365,16 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         'rolePublisherAgent': setRolePublisherAgentValid,
         'roleFunderAgent': setRoleFunderAgentValid,
         'distDownloadURL': setDistDownloadURLValid,
-        'distAccessURL': setDistAccessURLValid
+        'distAccessURL': setDistAccessURLValid,
+        'sparqlEndpointURL': setSparqlEndpointURLValid
       };
       
       const setErrorFunc = errorSetters[name];
       const setValidFunc = validSetters[name];
       
       if (!setErrorFunc || !setValidFunc) return; // Field doesn't need IRI validation
+      // DEBUG: Log which field is being validated
+      // console.log('Validating IRI for field:', name, value);
       
       // Skip validation for empty optional fields
       if (!value || !value.trim()) {
@@ -390,7 +463,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       if (name === 'keywords') setKeywordsInputValid(false);
       if (name === 'nameSpace') setNameSpaceInputValid(false);
       if (name === 'restAPI') setRestAPIInputValid(false);
-      if (name === 'sparqlEndpoint') setSparqlEndpointInputValid(false);
+      
       if (name === 'exampleQueries') setExampleQueriesInputValid(false);
       
       setFormData({
@@ -611,8 +684,20 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       'vocabulariesUsed': setVocabulariesUsedInputValid,
       'metadataSchema': setMetadataSchemaInputValid,
       'restAPI': setRestAPIInputValid,
-      'sparqlEndpoint': setSparqlEndpointInputValid,
-      'exampleQueries': setExampleQueriesInputValid
+      
+      'exampleQueries': setExampleQueriesInputValid,
+      'distLicense': setDistLicenseValid,
+      'distRights': setDistRightsValid,
+      'distSpatialResolution': setDistSpatialResolutionValid,
+      'distTemporalResolution': setDistTemporalResolutionValid,
+      'distCompressionFormat': setDistCompressionFormatValid,
+      'distPackagingFormat': setDistPackagingFormatValid,
+      'distHasPolicy': setDistHasPolicyValid,
+    'sparqlDataService': setSparqlDataServiceValid,
+    'sparqlIdentifier': setSparqlIdentifierValid,
+    'sparqlTitle': setSparqlTitleValid,
+    'sparqlEndpointDescription': setSparqlEndpointDescriptionValid,
+    'sparqlStatus': setSparqlStatusValid
     };
     
     const setValidFunc = validSetters[name];
@@ -799,13 +884,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       };
     }
     
-    if (sparqlEndpointInput.trim()) {
-      updatedFormData = {
-        ...updatedFormData,
-        sparqlEndpoint: [...updatedFormData.sparqlEndpoint, sparqlEndpointInput.trim()]
-      };
-    }
-    
     if (exampleQueriesInput.trim()) {
       updatedFormData = {
         ...updatedFormData,
@@ -943,7 +1021,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     
     // Check days in month
     const daysInMonth = [
-      31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+      31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30,
+      31, 31, 30, 31, 30, 31
     ];
     
     if (day < 1 || day > daysInMonth[month - 1]) return false;
@@ -1100,6 +1179,9 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       return;
     }
     
+    // Sync SPARQL endpoints before submission
+    updatedForm.sparqlEndpoint = sparqlEndpoints;
+
     // Proceed with submission
     setIsSubmitting(true);
     setMessage('');
@@ -1372,13 +1454,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
             <label htmlFor="description">
               Description <span className="field-indicator required-indicator">required, 1 value only</span>
             </label>
-            <textarea
+            <input
+              type="text"
               id="description"
               name="description"
               value={formData.description}
               onChange={handleChange}
               className={`form-control ${descriptionValid ? 'form-input-valid' : ''}`}
-              placeholder="Enter description"
               required
             />
           </div>
@@ -1683,7 +1765,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
             </label>
             <div className="tag-input-container">
               <div className="tag-input-row">
-                <input
+              <input
           onBlur={validateRegularInput}              type="text"
                   id="statistics"
                   value={statisticsInput}
@@ -1694,14 +1776,14 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                   onBlur={() => setStatisticsInputValid(!!statisticsInput.trim())}
                   onKeyUp={(e) => handleKeyPress(e, 'statistics', statisticsInput, setStatisticsInput)}
                   className={`tag-input ${statisticsInputValid ? 'tag-input-valid' : ''}`}
-                />
-                <button 
+              />
+              <button 
                   type="button" 
                   className="tag-add-button"
                   onClick={() => handleAddTag('statistics', statisticsInput, setStatisticsInput)}
-                >
+              >
                   +
-                </button>
+              </button>
               </div>
               <div className="tag-list">
                 {formData.statistics.map((stat, index) => (
@@ -1728,7 +1810,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
             </label>
             <div className="tag-input-container">
               <div className="tag-input-row">
-                <input
+              <input
           onBlur={validateRegularInput}              type="text"
                   id="acronym"
                   value={acronymInput}
@@ -1739,14 +1821,14 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                   onBlur={() => setAcronymInputValid(!!acronymInput.trim())}
                   onKeyPress={(e) => handleKeyPress(e, 'acronym', acronymInput, setAcronymInput)}
                   className={`tag-input ${acronymInputValid ? 'tag-input-valid' : ''}`}
-                />
-                <button 
+              />
+              <button 
                   type="button" 
                   className="tag-add-button"
                   onClick={() => handleAddTag('acronym', acronymInput, setAcronymInput)}
-                >
+              >
                   +
-                </button>
+              </button>
               </div>
               <div className="tag-list">
                 {formData.acronym.map((acr, index) => (
@@ -2408,11 +2490,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                Compression Format <span className="field-indicator optional-indicator">optional</span>
              </label>
              <input
-          onBlur={validateRegularInput}           type="text"
+               type="text"
                id="distCompressionFormat"
+               name="distCompressionFormat"
                value={currentDistribution.compressionFormat}
                onChange={(e) => handleDistributionChange('compressionFormat', e.target.value)}
-               className="subfield-input"
+               onBlur={validateRegularInput}
+               className={`subfield-input ${distCompressionFormatValid ? 'form-input-valid' : ''}`}
              />
            </div>
            
@@ -2421,11 +2505,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                Packaging Format <span className="field-indicator optional-indicator">optional</span>
              </label>
              <input
-          onBlur={validateRegularInput}           type="text"
+               type="text"
                id="distPackagingFormat"
+               name="distPackagingFormat"
                value={currentDistribution.packagingFormat}
                onChange={(e) => handleDistributionChange('packagingFormat', e.target.value)}
-               className="subfield-input"
+               onBlur={validateRegularInput}
+               className={`subfield-input ${distPackagingFormatValid ? 'form-input-valid' : ''}`}
              />
            </div>
            <div className="form-group">
@@ -2433,11 +2519,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                Has Policy <span className="field-indicator optional-indicator">optional</span>
              </label>
              <input
-          onBlur={validateRegularInput}           type="text"
+               type="text"
                id="distHasPolicy"
+               name="distHasPolicy"
                value={currentDistribution.hasPolicy}
                onChange={(e) => handleDistributionChange('hasPolicy', e.target.value)}
-               className="subfield-input"
+               onBlur={validateRegularInput}
+               className={`subfield-input ${distHasPolicyValid ? 'form-input-valid' : ''}`}
              />
            </div>
            
@@ -2446,11 +2534,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                License <span className="field-indicator optional-indicator">optional</span>
              </label>
              <input
-          onBlur={validateRegularInput}           type="text"
+               type="text"
                id="distLicense"
+               name="distLicense"
                value={currentDistribution.license}
                onChange={(e) => handleDistributionChange('license', e.target.value)}
-               className="subfield-input"
+               onBlur={validateRegularInput}
+               className={`subfield-input ${distLicenseValid ? 'form-input-valid' : ''}`}
              />
            </div>
            
@@ -2459,11 +2549,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                Rights <span className="field-indicator optional-indicator">optional</span>
              </label>
              <input
-          onBlur={validateRegularInput}           type="text"
+               type="text"
                id="distRights"
+               name="distRights"
                value={currentDistribution.rights}
                onChange={(e) => handleDistributionChange('rights', e.target.value)}
-               className="subfield-input"
+               onBlur={validateRegularInput}
+               className={`subfield-input ${distRightsValid ? 'form-input-valid' : ''}`}
              />
            </div>
            <div className="form-group">
@@ -2471,11 +2563,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                Spatial Resolution <span className="field-indicator optional-indicator">optional</span>
              </label>
              <input
-          onBlur={validateRegularInput}           type="text"
+               type="text"
                id="distSpatialResolution"
+               name="distSpatialResolution"
                value={currentDistribution.spatialResolution}
                onChange={(e) => handleDistributionChange('spatialResolution', e.target.value)}
-               className="subfield-input"
+               onBlur={validateRegularInput}
+               className={`subfield-input ${distSpatialResolutionValid ? 'form-input-valid' : ''}`}
              />
            </div>
            <div className="form-group">
@@ -2483,11 +2577,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                Temporal Resolution <span className="field-indicator optional-indicator">optional</span>
              </label>
              <input
-          onBlur={validateRegularInput}           type="text"
+               type="text"
                id="distTemporalResolution"
+               name="distTemporalResolution"
                value={currentDistribution.temporalResolution}
                onChange={(e) => handleDistributionChange('temporalResolution', e.target.value)}
-               className="subfield-input"
+               onBlur={validateRegularInput}
+               className={`subfield-input ${distTemporalResolutionValid ? 'form-input-valid' : ''}`}
              />
            </div>
            <div className="form-group">
@@ -2601,46 +2697,174 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
           </div>
           </div>
     
-          {/* SPARQL Endpoint [0,∞] - Optional, multiple values */}
-          <div className="form-group">
-          <label htmlFor="sparqlEndpoint">
-              SPARQL Endpoint <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-          </label>
-          <div className="tag-input-container">
-              <div className="tag-input-row">
-              <input
-          onBlur={validateRegularInput}              type="text"
-                  id="sparqlEndpoint"
-                  value={sparqlEndpointInput}
-                  onChange={(e) => setSparqlEndpointInput(e.target.value)}
-                  onKeyPress={(e) => handleKeyPress(e, 'sparqlEndpoint', sparqlEndpointInput, setSparqlEndpointInput)}
-                  
-              />
-              <button 
-                  type="button" 
-                  className="tag-add-button"
-                  onClick={() => handleAddTag('sparqlEndpoint', sparqlEndpointInput, setSparqlEndpointInput)}
-              >
-                  +
-              </button>
-              </div>
-              <div className="tag-list">
-              {formData.sparqlEndpoint.map((item, index) => (
-                  <div key={`sparql-endpoint-${index}`} className="tag-item">
-                  <span className="tag-text">{item}</span>
-                  <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('sparqlEndpoint', index)}
-                  >
-                      ×
-                  </button>
-                  </div>
-              ))}
-              </div>
-              <div className="field-hint"> </div>
+          {/* SPARQL Endpoints Section */}
+<div className="form-section">
+  <h3 className="section-title">SPARQL Endpoints</h3>
+  <div className="field-indicator optional-indicator">optional, multiple submissions allowed</div>
+  {/* Display existing SPARQL endpoints */}
+  <div className="distributions-list">
+    {sparqlEndpoints.map((endpoint, idx) => (
+      <div key={`sparql-endpoint-${idx}`} className="distribution-item">
+        <div className="distribution-header">
+          <div className="distribution-title">{endpoint.title || '(no title)'}</div>
+          <div className="distribution-actions">
+            <button
+              type="button"
+              className="edit-button"
+              onClick={() => handleEditSparqlEndpoint(idx)}
+              aria-label="Edit SPARQL endpoint"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="tag-remove"
+              onClick={() => handleRemoveSparqlEndpoint(idx)}
+              aria-label="Remove SPARQL endpoint"
+            >
+              ×
+            </button>
           </div>
+        </div>
+        <div className="distribution-preview">
+          <div className="distribution-field">
+            <span className="field-label">dcat:DataService:</span>
+            <span className="field-value">{endpoint.dataService}</span>
           </div>
+          <div className="distribution-field">
+            <span className="field-label">dcat:endpointURL:</span>
+            <span className="field-value">{endpoint.endpointURL}</span>
+          </div>
+          <div className="distribution-field">
+            <span className="field-label">dct:identifier:</span>
+            <span className="field-value">{endpoint.identifier}</span>
+          </div>
+          <div className="distribution-field">
+            <span className="field-label">dct:title:</span>
+            <span className="field-value">{endpoint.title}</span>
+          </div>
+          <div className="distribution-field">
+            <span className="field-label">dcat:endpointDescription:</span>
+            <span className="field-value">{endpoint.endpointDescription}</span>
+          </div>
+          <div className="distribution-field">
+            <span className="field-label">adms:status:</span>
+            <span className="field-value">{endpoint.status}</span>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+  {/* SPARQL Endpoint Form */}
+  <div className="distribution-form sparql-endpoint-form">
+    <div className="distribution-form-header">
+      <h4>Add New SPARQL Endpoint</h4>
+    </div>
+    <div className="form-group">
+      <label htmlFor="sparqlDataService">
+        dcat:DataService <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="sparqlDataService"
+        name="sparqlDataService"
+        value={currentSparqlEndpoint.dataService}
+        onChange={e => handleCurrentSparqlEndpointChange('dataService', e.target.value)}
+        onBlur={validateRegularInput}
+        className={`subfield-input ${sparqlDataServiceValid ? 'form-input-valid' : ''}`}
+      />
+    </div>
+    <div className="form-group">
+      <label htmlFor="sparqlEndpointURL">
+        dcat:endpointURL <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="sparqlEndpointURL"
+        name="sparqlEndpointURL"
+        value={currentSparqlEndpoint.endpointURL}
+        onChange={e => handleCurrentSparqlEndpointChange('endpointURL', e.target.value)}
+        onBlur={validateIriInput}
+        className={`subfield-input ${sparqlEndpointURLError ? 'form-input-error' : ''} ${sparqlEndpointURLValid ? 'form-input-valid' : ''}`}
+      />
+      {sparqlEndpointURLError && <div className="iri-error-message">{sparqlEndpointURLError}</div>}
+    </div>
+    <div className="form-group">
+      <label htmlFor="sparqlIdentifier">
+        dct:identifier <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="sparqlIdentifier"
+        name="sparqlIdentifier"
+        value={currentSparqlEndpoint.identifier}
+        onChange={e => handleCurrentSparqlEndpointChange('identifier', e.target.value)}
+        onBlur={validateRegularInput}
+        className={`subfield-input ${sparqlIdentifierValid ? 'form-input-valid' : ''}`}
+      />
+    </div>
+    <div className="form-group">
+      <label htmlFor="sparqlTitle">
+        dct:title <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="sparqlTitle"
+        name="sparqlTitle"
+        value={currentSparqlEndpoint.title}
+        onChange={e => handleCurrentSparqlEndpointChange('title', e.target.value)}
+        onBlur={validateRegularInput}
+        className={`subfield-input ${sparqlTitleValid ? 'form-input-valid' : ''}`}
+      />
+    </div>
+    <div className="form-group">
+      <label htmlFor="sparqlEndpointDescription">
+        dcat:endpointDescription <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="sparqlEndpointDescription"
+        name="sparqlEndpointDescription"
+        value={currentSparqlEndpoint.endpointDescription}
+        onChange={e => handleCurrentSparqlEndpointChange('endpointDescription', e.target.value)}
+        onBlur={validateRegularInput}
+        className={`subfield-input ${sparqlEndpointDescriptionValid ? 'form-input-valid' : ''}`}
+      />
+    </div>
+    <div className="form-group">
+      <label htmlFor="sparqlStatus">
+        adms:status <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="sparqlStatus"
+        name="sparqlStatus"
+        value={currentSparqlEndpoint.status}
+        onChange={e => handleCurrentSparqlEndpointChange('status', e.target.value)}
+        onBlur={validateRegularInput}
+        className={`subfield-input ${sparqlStatusValid ? 'form-input-valid' : ''}`}
+      />
+    </div>
+    <div className="distribution-actions">
+      <button
+        type="button"
+        className="add-button"
+        onClick={handleAddSparqlEndpoint}
+      >
+        {editingSparqlEndpointIdx !== null ? 'Save SPARQL Endpoint' : 'Add SPARQL Endpoint'}
+      </button>
+      {editingSparqlEndpointIdx !== null && (
+        <button
+          type="button"
+          className="cancel-button"
+          onClick={handleCancelEditSparqlEndpoint}
+        >
+          Cancel
+        </button>
+      )}
+    </div>
+  </div>
+</div>
     
           {/* Example Queries [0,∞] - Optional, multiple values */}
           <div className="form-group">
@@ -3003,7 +3227,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                 onBlur={validateIriInput}
                 required
                 rows="3"
-                className={`${accessStatementError ? 'input-error' : ''} ${accessStatementValid ? 'input-valid' : ''}`}
+                className={`form-control ${accessStatementValid ? 'form-input-valid' : ''} ${accessStatementError ? 'form-input-error' : ''}`}
               ></textarea>
             {accessStatementError && <div className="iri-error-message">{accessStatementError}</div>}
 
