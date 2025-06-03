@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/knowledge-graph-metadata-form/precache-manifest.02f1b215fada67d1628345a6389682ed.js"
+  "/knowledge-graph-metadata-form/precache-manifest.9e2210dfd2cf02af0a14136fbf26b058.js"
 );
 
 self.addEventListener('message', (event) => {
