@@ -5,7 +5,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   // Initial form state
   const initialFormState = {
     identifier: [],
-    type: '',
+    type: [],
     title: '',
     description: '',
     
@@ -43,7 +43,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     // Distributions array
     distributions: [],
     
-    // Primary Reference Document, Meta Graph, Statistics
     primaryReferenceDocument: [],
     metaGraph: [],
     statistics: [],
@@ -85,6 +84,10 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [sourceInput, setSourceInput] = useState('');
   const [nameSpaceInput, setNameSpaceInput] = useState('');
   const [imageFileName, setImageFileName] = useState('');
+  const [roleCreatorToggle, setRoleCreatorToggle] = useState('agentIRI'); // 'agentIRI' or 'nameEmail'
+  const [rolePublisherToggle, setRolePublisherToggle] = useState('agentIRI');
+  const [roleFunderToggle, setRoleFunderToggle] = useState('agentIRI');
+
   const fileInputRef = useRef(null);
 
   const [createdDateError, setCreatedDateError] = useState('');
@@ -93,8 +96,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [distReleaseDateError, setDistReleaseDateError] = useState('');
   const [distModificationDateError, setDistModificationDateError] = useState('');
 
-
-  
   // New state for distribution editing
   const [currentDistribution, setCurrentDistribution] = useState({
     title: '',
@@ -109,18 +110,61 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     hasPolicy: '',
     license: '',
     rights:'',
+    spatialResolution: '',
+    temporalResolution: '',
     releaseDate: '',
     modificationDate: ''
   });
 
-    const [vocabulariesUsedInput, setVocabulariesUsedInput] = useState('');
-    const [metadataSchemaInput, setMetadataSchemaInput] = useState('');
-    const [restAPIInput, setRestAPIInput] = useState('');
-    const [sparqlEndpointInput, setSparqlEndpointInput] = useState('');
-    const [exampleQueriesInput, setExampleQueriesInput] = useState('');
+  const [vocabulariesUsedInput, setVocabulariesUsedInput] = useState('');
+  const [metadataSchemaInput, setMetadataSchemaInput] = useState('');
+  const [restAPIInput, setRestAPIInput] = useState('');
+  const [sparqlEndpointInput, setSparqlEndpointInput] = useState('');
+  const [exampleQueriesInput, setExampleQueriesInput] = useState('');
 
+  const [acronymInputValid, setAcronymInputValid] = useState(false);
+  const [metaGraphInput, setMetaGraphInput] = useState('');
 
+  const [homepageURLInputError, setHomepageURLInputError] = useState('');
+  const [otherPagesInputError, setOtherPagesInputError] = useState('');
+  const [primaryReferenceDocInputError, setPrimaryReferenceDocInputError] = useState('');
+  const [metaGraphInputError, setMetaGraphInputError] = useState('');
+  const [statisticsInputError, setStatisticsInputError] = useState('');
+  const [categoryInputError, setCategoryInputError] = useState('');
+  const [publicationReferencesInputError, setPublicationReferencesInputError] = useState('');
+  const [sourceInputError, setSourceInputError] = useState('');
 
+  // Valid states for date fields
+  const [createdDateValid, setCreatedDateValid] = useState(false);
+  const [publishedDateValid, setPublishedDateValid] = useState(false);
+  const [modifiedDateValid, setModifiedDateValid] = useState(false);
+
+  // Valid states for IRI fields (removed metaGraph)
+  const [homepageURLInputValid, setHomepageURLInputValid] = useState(false);
+  const [otherPagesInputValid, setOtherPagesInputValid] = useState(false);
+  const [primaryReferenceDocInputValid, setPrimaryReferenceDocInputValid] = useState(false);
+  const [statisticsInputValid, setStatisticsInputValid] = useState(false);
+  const [categoryInputValid, setCategoryInputValid] = useState(false);
+  const [publicationReferencesInputValid, setPublicationReferencesInputValid] = useState(false);
+  const [sourceInputValid, setSourceInputValid] = useState(false);
+
+  // Valid states for other fields
+  const [titleValid, setTitleValid] = useState(false);
+  const [descriptionValid, setDescriptionValid] = useState(false);
+  const [typeValid, setTypeValid] = useState(false);
+  const [licenseValid, setLicenseValid] = useState(false);
+  const [versionValid, setVersionValid] = useState(false);
+  const [accessStatementValid, setAccessStatementValid] = useState(false);
+  const [keywordsInputValid, setKeywordsInputValid] = useState(false);
+  const [nameSpaceInputValid, setNameSpaceInputValid] = useState(false);
+  const [restAPIInputValid, setRestAPIInputValid] = useState(false);
+  const [sparqlEndpointInputValid, setSparqlEndpointInputValid] = useState(false);
+  const [exampleQueriesInputValid, setExampleQueriesInputValid] = useState(false);
+
+  const [distReleaseDateValid, setDistReleaseDateValid] = useState(false);
+  const [distModificationDateValid, setDistModificationDateValid] = useState(false);
+  const [identifierInputValid, setIdentifierInputValid] = useState(false);
+  const [alternativeTitleInputValid, setAlternativeTitleInputValid] = useState(false);
 
   useEffect(() => {
       if (initialFormData) {
@@ -167,14 +211,221 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
 
 
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
+
+    const isValidIriString = (iriString) => {
+      console.log('Validating IRI:', iriString);
+      
+      // Allow empty values for optional fields
+      if (!iriString || !iriString.trim()) {
+        console.log('IRI is empty - allowed for optional fields');
+        return null;
+      }
+      
+      const trimmed = iriString.trim();
+      
+      // Check for obviously invalid characters at the start
+      if (/^[@#{}|\\^`<>"']/.test(trimmed)) {
+        return 'IRI cannot start with invalid characters.';
+      }
+      
+      // Basic scheme check - IRI must have a scheme
+      if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) {
+        return 'IRI must have a valid scheme (e.g., http:, https:, ftp:).';
+      }
+      
+      // Check for invalid characters that should not appear in IRIs
+      if (/[\s<>"{}|\\^`]/.test(trimmed)) {
+        return 'IRI contains invalid characters.';
+      }
+      
+      // Check for unmatched brackets
+      const openBrackets = (trimmed.match(/\[/g) || []).length;
+      const closeBrackets = (trimmed.match(/\]/g) || []).length;
+      if (openBrackets !== closeBrackets) {
+        return 'IRI has unmatched brackets.';
+      }
+      
+      // Check for @ symbol in inappropriate places (not in userinfo or email schemes)
+      if (/@/.test(trimmed) && !/^(mailto:|http:\/\/[^@]*@|https:\/\/[^@]*@)/.test(trimmed)) {
+        return 'IRI contains @ symbol in invalid position.';
+      }
+      
+      console.log('IRI is valid');
+      return null;
+    };
+
+
+    const validateIriInput = (e) => {
+      const { name, value } = e.target;
+      
+      // Map field names to their error setter functions - EXPANDED LIST
+      const errorSetters = {
+        'homepageURLInput': setHomepageURLInputError,
+        'otherPagesInput': setOtherPagesInputError,
+        'vocabulariesUsedInput': setVocabulariesUsedInputError,
+        'metadataSchemaInput': setMetadataSchemaInputError,
+        'primaryReferenceDocInput': setPrimaryReferenceDocInputError,
+        'metaGraphInput': setMetaGraphInputError,
+        'license': setLicenseError,
+        'categoryInput': setCategoryInputError,
+        'publicationReferencesInput': setPublicationReferencesInputError,
+        'accessStatement': setAccessStatementError,
+        'sourceInput': setSourceInputError,
+        'roleCreatorAgent': setRoleCreatorAgentError,
+        'rolePublisherAgent': setRolePublisherAgentError,
+        'roleFunderAgent': setRoleFunderAgentError,
+        'distDownloadURL': setDistDownloadURLError,
+        'distAccessURL': setDistAccessURLError
+      };
+      
+      // Map field names to their valid setter functions - EXPANDED LIST
+      const validSetters = {
+        'homepageURLInput': setHomepageURLInputValid,
+        'otherPagesInput': setOtherPagesInputValid,
+        'vocabulariesUsedInput': setVocabulariesUsedInputValid,
+        'metadataSchemaInput': setMetadataSchemaInputValid,
+        'primaryReferenceDocInput': setPrimaryReferenceDocInputValid,
+        'license': setLicenseValid,
+        
+        'categoryInput': setCategoryInputValid,
+        'publicationReferencesInput': setPublicationReferencesInputValid,
+        'accessStatement': setAccessStatementValid,
+        'sourceInput': setSourceInputValid,
+        'roleCreatorAgent': setRoleCreatorAgentValid,
+        'rolePublisherAgent': setRolePublisherAgentValid,
+        'roleFunderAgent': setRoleFunderAgentValid,
+        'distDownloadURL': setDistDownloadURLValid,
+        'distAccessURL': setDistAccessURLValid
+      };
+      
+      const setErrorFunc = errorSetters[name];
+      const setValidFunc = validSetters[name];
+      
+      if (!setErrorFunc || !setValidFunc) return; // Field doesn't need IRI validation
+      
+      // Skip validation for empty optional fields
+      if (!value || !value.trim()) {
+        setErrorFunc('');
+        setValidFunc(false);
+        return;
+      }
+      
+      const iriError = isValidIriString(value);
+      if (iriError) {
+        setErrorFunc(iriError);
+        setValidFunc(false);
+      } else {
+        setErrorFunc('');
+        setValidFunc(true);
+      }
+    };
+    
+    // 2. Add new state declarations for error and valid states (add these to your existing state declarations):
+    
+    // Error states for new IRI fields
+    const [vocabulariesUsedInputError, setVocabulariesUsedInputError] = useState('');
+    const [metadataSchemaInputError, setMetadataSchemaInputError] = useState('');
+    const [licenseError, setLicenseError] = useState('');
+    const [accessStatementError, setAccessStatementError] = useState('');
+    const [roleCreatorAgentError, setRoleCreatorAgentError] = useState('');
+    const [rolePublisherAgentError, setRolePublisherAgentError] = useState('');
+    const [roleFunderAgentError, setRoleFunderAgentError] = useState('');
+    const [distDownloadURLError, setDistDownloadURLError] = useState('');
+    const [distAccessURLError, setDistAccessURLError] = useState('');
+    
+    // Valid states for new IRI fields
+    const [vocabulariesUsedInputValid, setVocabulariesUsedInputValid] = useState(false);
+    const [metadataSchemaInputValid, setMetadataSchemaInputValid] = useState(false);
+    const [roleCreatorAgentValid, setRoleCreatorAgentValid] = useState(false);
+    const [rolePublisherAgentValid, setRolePublisherAgentValid] = useState(false);
+    const [roleFunderAgentValid, setRoleFunderAgentValid] = useState(false);
+    const [distDownloadURLValid, setDistDownloadURLValid] = useState(false);
+    const [distAccessURLValid, setDistAccessURLValid] = useState(false);
+    
+    // 3. Update handleAddTag to include IRI validation for new fields:
+    
+    const handleAddTag = (fieldName, inputValue, setInputFunc, setErrorFunc) => {
+      if (setErrorFunc) setErrorFunc(''); // Clear previous error
+      if (fieldName === 'identifier') setIdentifierInputValid(false);
+      if (fieldName === 'alternativeTitle') setAlternativeTitleInputValid(false);
+    
+      // Fields that require IRI validation - EXPANDED LIST
+      const iriFields = [
+        'homepageURL', 'otherPages', 'vocabulariesUsed', 'metadataSchema',
+        'primaryReferenceDocument', 'category', 
+        'publicationReferences', 'source'
+      ];
+    
+      if (iriFields.includes(fieldName)) {
+        const iriError = isValidIriString(inputValue);
+        if (iriError) {
+          if (setErrorFunc) setErrorFunc(iriError);
+          return;
+        }
+      }
+    
+      if (inputValue.trim()) {
+        setFormData(prevFormData => ({
+          ...prevFormData,
+          [fieldName]: [...(prevFormData[fieldName] || []), inputValue.trim()]
+        }));
+        setInputFunc('');
+      }
+    };
+    
+
+    const handleChange = (e) => {
+      const { name, value } = e.target;
+      
+      // Clear valid states when user starts typing in date fields
+      if (name === 'createdDate') setCreatedDateValid(false);
+      if (name === 'publishedDate') setPublishedDateValid(false);
+      
+      // Clear valid states for regular fields when typing
+      if (name === 'title') setTitleValid(false);
+      if (name === 'description') setDescriptionValid(false);
+      if (name === 'license') setLicenseValid(false);
+      if (name === 'version') setVersionValid(false);
+      if (name === 'accessStatement') setAccessStatementValid(false);
+      if (name === 'keywords') setKeywordsInputValid(false);
+      if (name === 'nameSpace') setNameSpaceInputValid(false);
+      if (name === 'restAPI') setRestAPIInputValid(false);
+      if (name === 'sparqlEndpoint') setSparqlEndpointInputValid(false);
+      if (name === 'exampleQueries') setExampleQueriesInputValid(false);
+      
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+
+      // Validate non-IRI and non-date fields
+      validateRegularInput(e);
+    };
   
+    const handleTypeChange = (value) => {
+      setFormData(prevData => {
+        const currentTypes = prevData.type || [];
+        let newTypes;
+        
+        if (currentTypes.includes(value)) {
+          // Remove the value if it's already selected
+          newTypes = currentTypes.filter(type => type !== value);
+        } else {
+          // Add the value if it's not selected
+          newTypes = [...currentTypes, value];
+        }
+        
+        // Update validation state
+        setTypeValid(newTypes.length > 0);
+        
+        return {
+          ...prevData,
+          type: newTypes
+        };
+      });
+    };
+
+
   // Handle role field changes
   const handleRoleChange = (role, field, value) => {
     setFormData({
@@ -184,17 +435,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         [field]: value
       }
     });
-  };
-  
-  // Handle adding a tag
-  const handleAddTag = (fieldName, inputValue, setInputFunc) => {
-    if (inputValue.trim()) {
-      setFormData({
-        ...formData,
-        [fieldName]: [...formData[fieldName], inputValue.trim()]
-      });
-      setInputFunc('');
-    }
   };
   
   // Handle adding a date tag
@@ -212,102 +452,95 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     const { name, value } = e.target;
     let errorMessage = '';
     
-    // Skip empty optional fields
+    const validSetters = {
+      'createdDate': setCreatedDateValid,
+      'publishedDate': setPublishedDateValid,
+      'modifiedDate': setModifiedDateValid,
+      'distReleaseDate': setDistReleaseDateValid,
+      'distModificationDate': setDistModificationDateValid
+    };
+    
+    const setValidFunc = validSetters[name];
+    
     if (!value && name !== 'publishedDate') {
       e.target.setCustomValidity('');
       
-      // Clear error for the specific field
       if (name === 'createdDate') setCreatedDateError('');
       else if (name === 'modifiedDate') setModifiedDateError('');
       else if (name === 'distReleaseDate') setDistReleaseDateError('');
       else if (name === 'distModificationDate') setDistModificationDateError('');
       
+      if (setValidFunc) setValidFunc(false);
       return;
     }
     
-    // Check if the value matches YYYY/MM/DD pattern
     const datePattern = /^\d{4}\/\d{2}\/\d{2}$/;
     if (!datePattern.test(value)) {
       errorMessage = 'Please use YYYY/MM/DD format';
       e.target.setCustomValidity(errorMessage);
       
-      // Set error for the specific field
       if (name === 'createdDate') setCreatedDateError(errorMessage);
       else if (name === 'publishedDate') setPublishedDateError(errorMessage);
       else if (name === 'modifiedDate') setModifiedDateError(errorMessage);
       else if (name === 'distReleaseDate') setDistReleaseDateError(errorMessage);
       else if (name === 'distModificationDate') setDistModificationDateError(errorMessage);
       
+      if (setValidFunc) setValidFunc(false);
       return;
     }
     
-    // Parse date parts
     const parts = value.split('/');
     const year = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10);
     const day = parseInt(parts[2], 10);
     
-    // Check year range (reasonable range)
     if (year < 1900 || year > 2100) {
       errorMessage = 'Year should be between 1900 and 2100';
       e.target.setCustomValidity(errorMessage);
       
-      // Set error for the specific field
       if (name === 'createdDate') setCreatedDateError(errorMessage);
       else if (name === 'publishedDate') setPublishedDateError(errorMessage);
       else if (name === 'modifiedDate') setModifiedDateError(errorMessage);
       else if (name === 'distReleaseDate') setDistReleaseDateError(errorMessage);
       else if (name === 'distModificationDate') setDistModificationDateError(errorMessage);
       
+      if (setValidFunc) setValidFunc(false);
       return;
     }
     
-    // Check month range
     if (month < 1 || month > 12) {
       errorMessage = 'Month should be between 1 and 12';
       e.target.setCustomValidity(errorMessage);
       
-      // Set error for the specific field
       if (name === 'createdDate') setCreatedDateError(errorMessage);
       else if (name === 'publishedDate') setPublishedDateError(errorMessage);
       else if (name === 'modifiedDate') setModifiedDateError(errorMessage);
       else if (name === 'distReleaseDate') setDistReleaseDateError(errorMessage);
       else if (name === 'distModificationDate') setDistModificationDateError(errorMessage);
       
+      if (setValidFunc) setValidFunc(false);
       return;
     }
     
-    // Check day range based on month
     const daysInMonth = [
-      31, // January
-      isLeapYear(year) ? 29 : 28, // February (leap year check)
-      31, // March
-      30, // April
-      31, // May
-      30, // June
-      31, // July
-      31, // August
-      30, // September
-      31, // October
-      30, // November
-      31  // December
+      31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30,
+      31, 31, 30, 31, 30, 31
     ];
     
     if (day < 1 || day > daysInMonth[month - 1]) {
       errorMessage = `Day should be between 1 and ${daysInMonth[month - 1]} for this month`;
       e.target.setCustomValidity(errorMessage);
       
-      // Set error for the specific field
       if (name === 'createdDate') setCreatedDateError(errorMessage);
       else if (name === 'publishedDate') setPublishedDateError(errorMessage);
       else if (name === 'modifiedDate') setModifiedDateError(errorMessage);
       else if (name === 'distReleaseDate') setDistReleaseDateError(errorMessage);
       else if (name === 'distModificationDate') setDistModificationDateError(errorMessage);
       
+      if (setValidFunc) setValidFunc(false);
       return;
     }
     
-    // Final check: Create date object and verify
     const date = new Date(year, month - 1, day);
     if (
       isNaN(date.getTime()) || 
@@ -318,58 +551,38 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       errorMessage = 'Invalid date';
       e.target.setCustomValidity(errorMessage);
       
-      // Set error for the specific field
       if (name === 'createdDate') setCreatedDateError(errorMessage);
       else if (name === 'publishedDate') setPublishedDateError(errorMessage);
       else if (name === 'modifiedDate') setModifiedDateError(errorMessage);
       else if (name === 'distReleaseDate') setDistReleaseDateError(errorMessage);
       else if (name === 'distModificationDate') setDistModificationDateError(errorMessage);
       
+      if (setValidFunc) setValidFunc(false);
       return;
     }
     
-    // Reset validation if all checks pass
     e.target.setCustomValidity('');
     
-    // Clear error for the specific field
     if (name === 'createdDate') setCreatedDateError('');
     else if (name === 'publishedDate') setPublishedDateError('');
     else if (name === 'modifiedDate') setModifiedDateError('');
     else if (name === 'distReleaseDate') setDistReleaseDateError('');
     else if (name === 'distModificationDate') setDistModificationDateError('');
-  };
-  
+    
+    if (setValidFunc) setValidFunc(true);
+
+    if (setValidFunc) {
+      setValidFunc(true);
+      console.log(`Setting ${name} to valid`); // Add this line
+    }
+
+    };
   
 
   const isLeapYear = (year) => {
     return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
   };
   
-  const formatDateForInput = (dateString) => {
-    if (!dateString) return '';
-    
-    if (/^\d{4}\/\d{2}\/\d{2}$/.test(dateString)) {
-      return dateString;
-    }
-    
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      return dateString.replace(/-/g, '/');
-    }
-    
-    //try to parse and format
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return '';
-      
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      
-      return `${year}/${month}/${day}`;
-    } catch (e) {
-      return '';
-    }
-  };
   
   const convertToISODate = (dateString) => {
     if (!dateString) return '';
@@ -381,6 +594,33 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     return dateString;
   };
 
+
+  const validateRegularInput = (e) => {
+    const { name, value } = e.target;
+    
+    // Map field names to their valid setter functions
+    const validSetters = {
+      'title': setTitleValid,
+      'description': setDescriptionValid,
+      'type': setTypeValid,
+      
+      'version': setVersionValid,
+      'accessStatement': setAccessStatementValid,
+      'keywords': setKeywordsInputValid,
+      'nameSpace': setNameSpaceInputValid,
+      'vocabulariesUsed': setVocabulariesUsedInputValid,
+      'metadataSchema': setMetadataSchemaInputValid,
+      'restAPI': setRestAPIInputValid,
+      'sparqlEndpoint': setSparqlEndpointInputValid,
+      'exampleQueries': setExampleQueriesInputValid
+    };
+    
+    const setValidFunc = validSetters[name];
+    if (!setValidFunc) return;
+    
+    // Set valid if field has content
+    setValidFunc(value && value.trim().length > 0);
+};
   
   const handleRemoveTag = (fieldName, index) => {
     const newTags = [...formData[fieldName]];
@@ -430,17 +670,27 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     }
     
     if (homepageURLInput.trim()) {
-      updatedFormData = {
-        ...updatedFormData,
-        homepageURL: [...updatedFormData.homepageURL, homepageURLInput.trim()]
-      };
+      const iriError = isValidIriString(homepageURLInput);
+      if (!iriError) {
+        updatedFormData = {
+          ...updatedFormData,
+          homepageURL: [...updatedFormData.homepageURL, homepageURLInput.trim()]
+        };
+      } else {
+        setHomepageURLInputError(iriError);
+      }
     }
     
     if (otherPagesInput.trim()) {
-      updatedFormData = {
-        ...updatedFormData,
-        otherPages: [...updatedFormData.otherPages, otherPagesInput.trim()]
-      };
+      const iriError = isValidIriString(otherPagesInput);
+      if (!iriError) {
+        updatedFormData = {
+          ...updatedFormData,
+          otherPages: [...updatedFormData.otherPages, otherPagesInput.trim()]
+        };
+      } else {
+        setOtherPagesInputError(iriError);
+      }
     }
     
     if (modifiedDateInput) {
@@ -623,6 +873,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       hasPolicy: '',
       license: '',
        rights:'',
+      spatialResolution: '',
+      temporalResolution: '',
       releaseDate: '',
       modificationDate: ''
     });
@@ -798,7 +1050,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     // Check for missing required fields (including dates)
     if (!updatedForm.title) missingFields.push('Title');
     if (!updatedForm.description) missingFields.push('Description'); 
-    if (!updatedForm.type) missingFields.push('Type'); 
+    if (!updatedForm.type || updatedForm.type.length === 0) missingFields.push('Type');
     if (!updatedForm.publishedDate) missingFields.push('Published Date');
     if (updatedForm.distributions.length === 0) missingFields.push('Distribution');
     if (updatedForm.primaryReferenceDocument.length === 0) missingFields.push('Primary Reference Document');
@@ -875,10 +1127,10 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
 
 
   // handle key press in tag input fields
-  const handleKeyPress = (e, fieldName, inputValue, setInputFunc) => {
+  const handleKeyPress = (e, fieldName, inputValue, setInputFunc, setErrorFunc) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleAddTag(fieldName, inputValue, setInputFunc);
+      handleAddTag(fieldName, inputValue, setInputFunc, setErrorFunc); // Pass setErrorFunc
     }
   };
   
@@ -944,1635 +1196,1938 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
 
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-
-      {message && (
-        <div className="floating-message">
-          <div className={message.includes('success') ? 'success-message' : 'error-message'}>
-            <div className="message-content">{message}</div>
-            <button 
-              type="button" 
-              className="message-close-button" 
-              onClick={() => setMessage(null)} 
-              aria-label="Dismiss message"
-            >
-              Dismiss
-            </button>
-          </div>
+    <div className={`modal-overlay`}>
+    <div className={`modal-content`} onClick={e => e.stopPropagation()}>
+    
+    {message && (
+      <div className={`floating-message`}>
+        <div className={message.includes('success') ? 'success-message' : 'error-message'}>
+          <div className={`message-content`}>{message}</div>
+          <button 
+            type="button" 
+            className={`message-close-button`} 
+            onClick={() => setMessage(null)} 
+            aria-label="Dismiss message"
+          >
+            Dismiss
+          </button>
         </div>
-      )}
-        <div className="modal-header">
-          <h2>Knowledge Graph Metadata</h2>
-          <button className="modal-close-button" onClick={onClose}>×</button>
-        </div>
+      </div>
+    )}
+      <div className={`modal-header`}>
+        <h2>Knowledge Graph Metadata</h2>
+        <button className={`modal-close-button`} onClick={onClose}>×</button>
+      </div>
+      
+      <div className={`modal-body`} onClick={(e) => e.stopPropagation()}>
         
-        <div className="modal-body" onClick={(e) => e.stopPropagation()}>
+        <form onSubmit={handleSubmit}>
           
-          <form onSubmit={handleSubmit}>
-            
-            {/* Identifier (now optional, multiple values) */}
-            <div className="form-group">
-              <label htmlFor="identifier">
-                Identifier <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-              </label>
-              <div className="tag-input-container">
-                <div className="tag-input-row">
-                  <input
-                    type="text"
-                    id="identifier"
-                    value={identifierInput}
-                    onChange={(e) => setIdentifierInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'identifier', identifierInput, setIdentifierInput)}
-                  />
-                  <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('identifier', identifierInput, setIdentifierInput)}
-                  >
-                    +
-                  </button>
-                </div>
-                <div className="tag-list">
-                  {formData.identifier.map((id, index) => (
-                    <div key={`identifier-${index}`} className="tag-item">
-                      <span className="tag-text">{id}</span>
-                      <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('identifier', index)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="field-hint"></div>
+          {/* Identifier (now optional, multiple values) */}
+          <div className="form-group">
+            <label htmlFor="identifier">
+              Identifier <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <input
+                  type="text"
+                  id="identifier"
+                  value={identifierInput}
+                  onChange={(e) => {
+                    setIdentifierInput(e.target.value);
+                    setIdentifierInputValid(false);
+                  }}
+                  onBlur={() => {
+                    if (identifierInput.trim()) setIdentifierInputValid(true);
+                  }}
+                  onKeyPress={(e) => handleKeyPress(e, 'identifier', identifierInput, setIdentifierInput)}
+                  className={`tag-input ${identifierInputValid ? 'tag-input-valid' : ''}`}
+                />
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => {
+                    handleAddTag('identifier', identifierInput, setIdentifierInput);
+                    setIdentifierInputValid(false);
+                  }}
+                >
+                  +
+                </button>
+              </div>
+              <div className="tag-list">
+                {formData.identifier.map((id, index) => (
+                  <div key={`identifier-${index}`} className="tag-item tag-item-valid">
+                    <span className="tag-text">{id}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('identifier', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
-            
-            <div className="form-group">
-              <label htmlFor="type">
-                Type <span className="field-indicator required-indicator">required</span>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="type">
+              Type <span className="field-indicator required-indicator">required</span>
+            </label>
+            <div className={`checkbox-group ${typeValid ? 'form-input-valid' : ''}`}>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="type"
+                  value="dcat:Dataset"
+                  checked={formData.type.includes('dcat:Dataset')}
+                  onChange={() => handleTypeChange('dcat:Dataset')}
+                  className="checkbox-input"
+                />
+                dcat:Dataset
               </label>
-              <div className="radio-group">
-                <label className="radio-label">
-                  <input
-                    type="radio"
-                    name="type"
-                    value="dcat:Dataset"
-                    checked={formData.type === 'dcat:Dataset'}
-                    onChange={handleChange}
-                    className="radio-input"
-                  />
-                  dcat:Dataset
-                </label>
-                <label className="radio-label">
-                  <input
-                    type="radio"
-                    name="type"
-                    value="void:Dataset"
-                    checked={formData.type === 'void:Dataset'}
-                    onChange={handleChange}
-                    className="radio-input"
-                  />
-                  void:Dataset
-                </label>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="type"
+                  value="void:Dataset"
+                  checked={formData.type.includes('void:Dataset')}
+                  onChange={() => handleTypeChange('void:Dataset')}
+                  className="checkbox-input"
+                />
+                void:Dataset
+              </label>
+            </div>
+          </div>
+          
+          {/* Title */}
+          <div className="form-group">
+            <label htmlFor="title">
+              Title <span className="field-indicator required-indicator">required, 1 value only</span>
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              className={`form-control ${titleValid ? 'form-input-valid' : ''}`}
+              placeholder="Enter title"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="alternativeTitle">
+              Alternative Title <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <input
+                  type="text"
+                  id="alternativeTitle"
+                  value={alternativeTitleInput}
+                  onChange={(e) => {
+                    setAlternativeTitleInput(e.target.value);
+                    setAlternativeTitleInputValid(false);
+                  }}
+                  onBlur={() => {
+                    if (alternativeTitleInput.trim()) setAlternativeTitleInputValid(true);
+                  }}
+                  onKeyPress={(e) => handleKeyPress(e, 'alternativeTitle', alternativeTitleInput, setAlternativeTitleInput)}
+                  className={`tag-input ${alternativeTitleInputValid ? 'tag-input-valid' : ''}`}
+                />
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => {
+                    handleAddTag('alternativeTitle', alternativeTitleInput, setAlternativeTitleInput);
+                    setAlternativeTitleInputValid(false);
+                  }}
+                >
+                  +
+                </button>
+              </div>
+              <div className="tag-list">
+                {formData.alternativeTitle.map((title, index) => (
+                  <div key={`alt-title-${index}`} className="tag-item tag-item-valid">
+                    <span className="tag-text">{title}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('alternativeTitle', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
-            
-            {/* Title */}
-            <div className="form-group">
-              <label htmlFor="title">
-                Title <span className="field-indicator required-indicator">required, 1 value only</span>
-              </label>
+          </div>
+          
+          {/* Description */}
+          <div className="form-group">
+            <label htmlFor="description">
+              Description <span className="field-indicator required-indicator">required, 1 value only</span>
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              className={`form-control ${descriptionValid ? 'form-input-valid' : ''}`}
+              placeholder="Enter description"
+              required
+            />
+          </div>
+          
+          {/* Date fields */}
+          <div className="form-group">
+            <label htmlFor="createdDate">
+              Created Date <span className="field-indicator optional-indicator">optional, 1 value only</span>
+            </label>
+            <div className="date-input-container">
               <input
                 type="text"
-                id="title"
-                name="title"
-                value={formData.title}
+                id="createdDate"
+                name="createdDate"
+                value={formData.createdDate}
                 onChange={handleChange}
-                required
+                onBlur={validateDateInput}
+                placeholder="YYYY/MM/DD"
+                className={`date-input ${createdDateError ? 'date-input-error' : ''} ${createdDateValid ? 'date-input-valid' : ''}`}
+              />
+              <input
+                type="date"
+                className="date-picker-control"
+                onChange={(e) => handleDatePickerChange(e, 'createdDate')}
+                aria-label="Date picker for Created Date"
               />
             </div>
-            
-            <div className="form-group">
-              <label htmlFor="alternativeTitle">
-                Alternative Title <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-              </label>
-              <div className="tag-input-container">
-                <div className="tag-input-row">
-                  <input
-                    type="text"
-                    id="alternativeTitle"
-                    value={alternativeTitleInput}
-                    onChange={(e) => setAlternativeTitleInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'alternativeTitle', alternativeTitleInput, setAlternativeTitleInput)}
-                    
-                  />
-                  <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('alternativeTitle', alternativeTitleInput, setAlternativeTitleInput)}
-                  >
-                    +
-                  </button>
-                </div>
-                <div className="tag-list">
-                  {formData.alternativeTitle.map((title, index) => (
-                    <div key={`alt-title-${index}`} className="tag-item">
-                      <span className="tag-text">{title}</span>
-                      <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('alternativeTitle', index)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="field-hint"> </div>
+            {createdDateError && <div className="date-error-message">{createdDateError}</div>}
+          </div>
+          
+    
+          <div className="form-group">
+            <label htmlFor="modifiedDate">
+              Modified Date <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <input
+                  type="text"
+                  id="modifiedDate"
+                  name="modifiedDate"
+                  value={modifiedDateInput}
+                  onChange={(e) => setModifiedDateInput(e.target.value)}
+                  onBlur={validateDateInput}
+                  placeholder="YYYY/MM/DD"
+                  className={`date-input ${modifiedDateError ? 'date-input-error' : ''} ${modifiedDateValid ? 'date-input-valid' : ''}`}
+                />
+                <input
+                  type="date"
+                  className="date-picker-control"
+                  onChange={(e) => handleDatePickerChange(e, 'modifiedDate')}
+                  aria-label="Date picker for Modified Date"
+                />
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={handleAddDate}
+                  disabled={!modifiedDateInput || modifiedDateError}
+                >
+                  +
+                </button>
+              </div>
+              {modifiedDateError && <div className="date-error-message">{modifiedDateError}</div>}
+              <div className="tag-list">
+                {formData.modifiedDate.map((date, index) => (
+                  <div key={`modified-date-${index}`} className="tag-item">
+                    <span className="tag-text date-tag">{date}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('modifiedDate', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
-            
-            {/* Description */}
-            <div className="form-group">
-              <label htmlFor="description">
-                Description <span className="field-indicator required-indicator">required, 1 value only</span>
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
+          </div>
+    
+                      
+          <div className="form-group">
+            <label htmlFor="publishedDate">
+              Published Date <span className="field-indicator required-indicator">required, 1 value only</span>
+            </label>
+            <div className="date-input-container">
+              <input
+                type="text"
+                id="publishedDate"
+                name="publishedDate"
+                value={formData.publishedDate}
                 onChange={handleChange}
+                onBlur={validateDateInput}
+                placeholder="YYYY/MM/DD"
                 required
-                rows="3"
-              ></textarea>
+                className={`date-input ${publishedDateError ? 'date-input-error' : ''} ${publishedDateValid ? 'date-input-valid' : ''}`}
+              />
+              <input
+                type="date"
+                className="date-picker-control"
+                onChange={(e) => handleDatePickerChange(e, 'publishedDate')}
+                aria-label="Date picker for Published Date"
+              />
             </div>
-            
-            {/* Date fields */}
-            <div className="form-group">
-              <label htmlFor="createdDate">
-                Created Date <span className="field-indicator optional-indicator">optional, 1 value only</span>
-              </label>
-              <div className="date-input-container">
-                <input
+            {publishedDateError && <div className="date-error-message">{publishedDateError}</div>}
+          </div>
+    
+    
+          <div className="form-group">
+          <label htmlFor="vocabulariesUsed">
+              Vocabularies Used <span className="field-indicator required-indicator">required (IRI), multiple values allowed</span>
+          </label>
+          <div className="tag-input-container">
+              <div className="tag-input-row">
+              <input
                   type="text"
-                  id="createdDate"
-                  name="createdDate"
-                  value={formData.createdDate}
-                  onChange={handleChange}
-                  onBlur={validateDateInput}
-                  placeholder="YYYY/MM/DD"
-                  className={`date-input ${createdDateError ? 'date-input-error' : ''}`}
-                />
-                <input
-                  type="date"
-                  className="date-picker-control"
-                  onChange={(e) => handleDatePickerChange(e, 'createdDate')}
-                  aria-label="Date picker for Created Date"
-                />
-              </div>
-              {createdDateError && <div className="date-error-message">{createdDateError}</div>}
-            </div>
-            
+                  id="vocabulariesUsed"
+                  name="vocabulariesUsedInput"
+                  value={vocabulariesUsedInput}
+                  onChange={(e) => {
+                    setVocabulariesUsedInput(e.target.value);
+                    setVocabulariesUsedInputError('');
+                    setVocabulariesUsedInputValid(false);
+                  }}
+                  onBlur={validateIriInput}
+                  onKeyUp= {(e) => handleKeyPress(e, 'vocabulariesUsed', vocabulariesUsedInput, setVocabulariesUsedInput, setVocabulariesUsedInputError)}
+                  className={`tag-input ${vocabulariesUsedInputError ? 'tag-input-error' : ''} ${vocabulariesUsedInputValid ? 'tag-input-valid' : ''}`}
+              />
+              {vocabulariesUsedInputError && <div className="iri-error-message">{vocabulariesUsedInputError}</div>}
 
-            <div className="form-group">
-              <label htmlFor="modifiedDate">
-                Modified Date <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-              </label>
-              <div className="tag-input-container">
-                <div className="tag-input-row">
-                  <input
-                    type="text"
-                    id="modifiedDate"
-                    name="modifiedDate"
-                    value={modifiedDateInput}
-                    onChange={(e) => setModifiedDateInput(e.target.value)}
-                    onBlur={validateDateInput}
-                    placeholder="YYYY/MM/DD"
-                    className={`date-input ${modifiedDateError ? 'date-input-error' : ''}`}
-                  />
-                  <input
-                    type="date"
-                    className="date-picker-control"
-                    onChange={(e) => handleDatePickerChange(e, 'modifiedDate')}
-                    aria-label="Date picker for Modified Date"
-                  />
+              <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('vocabulariesUsed', vocabulariesUsedInput, setVocabulariesUsedInput)}
+              >
+                  +
+              </button>
+              </div>
+              <div className="tag-list">
+              {formData.vocabulariesUsed.map((item, index) => (
+                  <div key={`vocabulary-${index}`} className="tag-item">
+                  <span className="tag-text">{item}</span>
                   <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={handleAddDate}
-                    disabled={!modifiedDateInput || modifiedDateError}
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('vocabulariesUsed', index)}
                   >
-                    +
+                      ×
                   </button>
-                </div>
-                {modifiedDateError && <div className="date-error-message">{modifiedDateError}</div>}
-                <div className="tag-list">
-                  {formData.modifiedDate.map((date, index) => (
-                    <div key={`modified-date-${index}`} className="tag-item">
-                      <span className="tag-text date-tag">{date}</span>
-                      <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('modifiedDate', index)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="field-hint">Enter date in YYYY/MM/DD format or use the date picker</div>
+                  </div>
+              ))}
               </div>
-            </div>
+              <div className="field-hint"> </div>
+          </div>
+          </div>
+    
+          {/* Metadata Schema [1,∞] - Required, multiple values */}
+          <div className="form-group">
+          <label htmlFor="metadataSchema">
+              Metadata Schema <span className="field-indicator required-indicator">required (IRI), multiple values allowed</span>
+          </label>
+          <div className="tag-input-container">
+              <div className="tag-input-row">
+              <input
+                type="text"
+                id="metadataSchema"
+                name="metadataSchemaInput"
+                value={metadataSchemaInput}
+                onChange={(e) => {
+                  setMetadataSchemaInput(e.target.value);
+                  setMetadataSchemaInputError('');
+                  setMetadataSchemaInputValid(false);
+                }}
+                onBlur={validateIriInput}
+                onKeyPress={(e) => handleKeyPress(e, 'metadataSchema', metadataSchemaInput, setMetadataSchemaInput, setMetadataSchemaInputError)}
+                className={`tag-input ${metadataSchemaInputError ? 'tag-input-error' : ''} ${metadataSchemaInputValid ? 'tag-input-valid' : ''}`}
+              />
+              {metadataSchemaInputError && <div className="iri-error-message">{metadataSchemaInputError}</div>}
 
-                        
-            <div className="form-group">
-              <label htmlFor="publishedDate">
-                Published Date <span className="field-indicator required-indicator">required, 1 value only</span>
-              </label>
-              <div className="date-input-container">
+              <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('metadataSchema', metadataSchemaInput, setMetadataSchemaInput)}
+              >
+                  +
+              </button>
+              </div>
+              <div className="tag-list">
+              {formData.metadataSchema.map((item, index) => (
+                  <div key={`metadata-schema-${index}`} className="tag-item">
+                  <span className="tag-text">{item}</span>
+                  <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('metadataSchema', index)}
+                  >
+                      ×
+                  </button>
+                  </div>
+              ))}
+              </div>
+              <div className="field-hint"> </div>
+          </div>
+          </div>
+    
+          {/* Primary Reference Document */}
+          <div className="form-group">
+            <label htmlFor="primaryReferenceDocument">
+              Primary Reference Document <span className="field-indicator required-indicator">required (IRI), multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+              <input
+                type="text"
+                id="primaryReferenceDocument"
+                name="primaryReferenceDocInput"
+                value={primaryReferenceDocInput}
+                onChange={(e) => {
+                  setPrimaryReferenceDocInput(e.target.value);
+                  setPrimaryReferenceDocInputError('');
+                  setPrimaryReferenceDocInputValid(false);
+                }}
+                onBlur={validateIriInput}
+                onKeyUp={(e) => handleKeyPress(e, 'primaryReferenceDocument', primaryReferenceDocInput, setPrimaryReferenceDocInput, setPrimaryReferenceDocInputError)}
+                className={`${primaryReferenceDocInputError ? 'tag-input-error' : ''} ${primaryReferenceDocInputValid ? 'tag-input-valid' : ''}`}
+              />
+              {primaryReferenceDocInputError && <div className="iri-error-message">{primaryReferenceDocInputError}</div>}
+
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('primaryReferenceDocument', primaryReferenceDocInput, setPrimaryReferenceDocInput)}
+                >
+                  +
+                </button>
+              </div>
+              <div className="tag-list">
+                {formData.primaryReferenceDocument.map((doc, index) => (
+                  <div key={`ref-doc-${index}`} className="tag-item">
+                    <span className="tag-text">{doc}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('primaryReferenceDocument', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="field-hint"> </div>
+            </div>
+          </div>
+          
+          {/* Meta Graph */}
+          <div className="form-group">
+            <label htmlFor="metaGraph">
+              Meta Graph <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+            </label>
+            <div className="file-upload-section">
+              <div className="file-upload-label">
+                <span className="file-name">{imageFileName || "No file selected"}</span>
+                <button 
+                  type="button" 
+                  className="browse-button"
+                  onClick={() => fileInputRef.current.click()}
+                >
+                  Browse
+                </button>
                 <input
+          onBlur={validateRegularInput}              type="file"
+                  id="metaGraph"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="image/*"
+                  className="file-upload-input"
+                  style={{ display: "none" }}
+                />
+              </div>
+              <div className="tag-list">
+                {formData.metaGraph.map((graph, index) => (
+                  <div key={`meta-graph-${index}`} className="tag-item">
+                    <span className="tag-text">{graph}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('metaGraph', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="field-hint">Upload image files to add to meta graph</div>
+            </div>
+          </div>
+          
+          {/* Statistics */}
+          <div className="form-group">
+            <label htmlFor="statistics">
+              Statistics <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <input
+          onBlur={validateRegularInput}              type="text"
+                  id="statistics"
+                  value={statisticsInput}
+                  onChange={(e) => {
+                    setStatisticsInput(e.target.value);
+                    setStatisticsInputValid(false);
+                  }}
+                  onBlur={() => setStatisticsInputValid(!!statisticsInput.trim())}
+                  onKeyUp={(e) => handleKeyPress(e, 'statistics', statisticsInput, setStatisticsInput)}
+                  className={`tag-input ${statisticsInputValid ? 'tag-input-valid' : ''}`}
+                />
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('statistics', statisticsInput, setStatisticsInput)}
+                >
+                  +
+                </button>
+              </div>
+              <div className="tag-list">
+                {formData.statistics.map((stat, index) => (
+                  <div key={`stat-${index}`} className="tag-item">
+                    <span className="tag-text">{stat}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('statistics', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="field-hint"> </div>
+            </div>
+          </div>
+    
+          {/* Acronym */}
+          <div className="form-group">
+            <label htmlFor="acronym">
+              Acronym <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <input
+          onBlur={validateRegularInput}              type="text"
+                  id="acronym"
+                  value={acronymInput}
+                  onChange={(e) => {
+                    setAcronymInput(e.target.value);
+                    setAcronymInputValid(false);
+                  }}
+                  onBlur={() => setAcronymInputValid(!!acronymInput.trim())}
+                  onKeyPress={(e) => handleKeyPress(e, 'acronym', acronymInput, setAcronymInput)}
+                  className={`tag-input ${acronymInputValid ? 'tag-input-valid' : ''}`}
+                />
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('acronym', acronymInput, setAcronymInput)}
+                >
+                  +
+                </button>
+              </div>
+              <div className="tag-list">
+                {formData.acronym.map((acr, index) => (
+                  <div key={`acronym-${index}`} className="tag-item">
+                    <span className="tag-text">{acr}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('acronym', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="field-hint"> </div>
+            </div>
+          </div>
+          
+          {/* Homepage URL (optional, multiple values allowed, IRIs) */}
+          <div className="form-group">
+            <label htmlFor="homepageURL">
+              Homepage URL <span className="field-indicator optional-indicator">optional (IRI), multiple values allowed, IRIs</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+              <input
+                type="text"
+                id="homepageURL"
+                name="homepageURLInput"
+                value={homepageURLInput}
+                onChange={(e) => {
+                  setHomepageURLInput(e.target.value);
+                  setHomepageURLInputError('');
+                  setHomepageURLInputValid(false);
+                }}
+                onBlur={validateIriInput}
+                onKeyPress={(e) => handleKeyPress(e, 'homepageURL', homepageURLInput, setHomepageURLInput, setHomepageURLInputError)}
+                placeholder="Enter IRI and press Enter or +"
+                className={`${homepageURLInputError ? 'tag-input-error' : ''} ${homepageURLInputValid ? 'tag-input-valid' : ''}`}
+              />
+                <button
+                  type="button"
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('homepageURL', homepageURLInput, setHomepageURLInput)}
+                >
+                  +
+                </button>
+              </div>
+              <div className="tag-list">
+                {formData.homepageURL.map((url, index) => (
+                  <div key={`homepage-url-${index}`} className="tag-item">
+                    <span className="tag-text">{url}</span>
+                    <button
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('homepageURL', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {homepageURLInputError && <div className="iri-error-message">{homepageURLInputError}</div>}
+              <div className="field-hint">Press Enter or click + to add IRI</div>
+            </div>
+          </div>
+          
+         {/* Other Pages (optional, multiple values allowed, IRIs) */}
+          <div className="form-group">
+            <label htmlFor="otherPages">
+              Other Pages <span className="field-indicator optional-indicator">optional (IRI), multiple values allowed, IRIs</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+              <input
+                type="text"
+                id="otherPages"
+                name="otherPagesInput"
+                value={otherPagesInput}
+                onChange={(e) => {
+                  setOtherPagesInput(e.target.value);
+                  setOtherPagesInputError('');
+                  setOtherPagesInputValid(false);
+                }}
+                onBlur={validateIriInput}
+                onKeyPress={(e) => handleKeyPress(e, 'otherPages', otherPagesInput, setOtherPagesInput, setOtherPagesInputError)}
+                placeholder="Enter IRI and press Enter or +"
+                className={`tag-input ${otherPagesInputError ? 'tag-input-error' : ''} ${otherPagesInputValid ? 'tag-input-valid' : ''}`}
+              />
+              {otherPagesInputError && <div className="iri-error-message">{otherPagesInputError}</div>}
+
+                <button
+                  type="button"
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('otherPages', otherPagesInput, setOtherPagesInput)}
+                >
+                  +
+                </button>
+              </div>
+              {otherPagesInputError && <div className={`field-error-message`}>{otherPagesInputError}</div>}
+              <div className="tag-list">
+                {formData.otherPages.map((page, index) => (
+                  <div key={`other-page-${index}`} className="tag-item">
+                    <span className="tag-text">{page}</span>
+                    <button
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('otherPages', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="field-hint">Press Enter or click + to add IRI</div>
+            </div>
+          </div>
+
+          {/* Role fields */}
+          <div className={`role-section`}>
+          <div className="form-group">
+          <label className="role-label">
+            Role: Creator <span className="field-indicator optional-indicator">optional, 1 set of values</span>
+          </label>
+          {/* Role Creator */}
+          <div className="toggle-container">
+            <div className="toggle-switch-container">
+              <label className={`toggle-option ${roleCreatorToggle === 'agentIRI' ? 'active' : 'inactive'}`}>
+                Agent IRI available
+              </label>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={roleCreatorToggle === 'nameEmail'}
+                  onChange={(e) => {
+                    const newToggle = e.target.checked ? 'nameEmail' : 'agentIRI';
+                    setRoleCreatorToggle(newToggle);
+                    
+                    // Clear fields when switching
+                    if (newToggle === 'agentIRI') {
+                      handleRoleChange('roleCreator', 'givenName', '');
+                      handleRoleChange('roleCreator', 'mbox', '');
+                    } else {
+                      handleRoleChange('roleCreator', 'agent', '');
+                      setRoleCreatorAgentError('');
+                      setRoleCreatorAgentValid(false);
+                    }
+                  }}
+                />
+                <span className={`slider ${roleCreatorToggle === 'nameEmail' ? 'active' : ''}`}></span>
+              </label>
+              <label className={`toggle-option ${roleCreatorToggle === 'nameEmail' ? 'active' : 'inactive'}`}>
+                Name + mBox
+              </label>
+            </div>
+          </div>
+          
+          <div className="role-fields">
+            {roleCreatorToggle === 'agentIRI' ? (
+              <div className="role-field">
+                <label htmlFor="roleCreatorAgent" className="subfield-label">Agent</label>
+                <input
+                  onBlur={validateIriInput}
                   type="text"
-                  id="publishedDate"
-                  name="publishedDate"
-                  value={formData.publishedDate}
-                  onChange={handleChange}
-                  onBlur={validateDateInput}
-                  placeholder="YYYY/MM/DD"
-                  required
-                  className={`date-input ${publishedDateError ? 'date-input-error' : ''}`}
+                  id="roleCreatorAgent"
+                  name="roleCreatorAgent"
+                  value={formData.roleCreator.agent}
+                  onChange={(e) => {
+                    handleRoleChange('roleCreator', 'agent', e.target.value);
+                    setRoleCreatorAgentError('');
+                    setRoleCreatorAgentValid(false);
+                  }}
+                  className={`subfield-input ${roleCreatorAgentError ? 'input-error' : ''} ${roleCreatorAgentValid ? 'input-valid' : ''}`}
                 />
-                <input
-                  type="date"
-                  className="date-picker-control"
-                  onChange={(e) => handleDatePickerChange(e, 'publishedDate')}
-                  aria-label="Date picker for Published Date"
-                />
-              </div>
-              {publishedDateError && <div className="date-error-message">{publishedDateError}</div>}
-            </div>
-
-
-            <div className="form-group">
-            <label htmlFor="vocabulariesUsed">
-                Vocabularies Used <span className="field-indicator required-indicator">required, multiple values allowed</span>
-            </label>
-            <div className="tag-input-container">
-                <div className="tag-input-row">
-                <input
-                    type="text"
-                    id="vocabulariesUsed"
-                    value={vocabulariesUsedInput}
-                    onChange={(e) => setVocabulariesUsedInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'vocabulariesUsed', vocabulariesUsedInput, setVocabulariesUsedInput)}
-                    
-                />
-                <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('vocabulariesUsed', vocabulariesUsedInput, setVocabulariesUsedInput)}
-                >
-                    +
-                </button>
-                </div>
-                <div className="tag-list">
-                {formData.vocabulariesUsed.map((item, index) => (
-                    <div key={`vocabulary-${index}`} className="tag-item">
-                    <span className="tag-text">{item}</span>
-                    <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('vocabulariesUsed', index)}
-                    >
-                        ×
-                    </button>
-                    </div>
-                ))}
-                </div>
-                <div className="field-hint"> </div>
-            </div>
-            </div>
-
-            {/* Metadata Schema [1,∞] - Required, multiple values */}
-            <div className="form-group">
-            <label htmlFor="metadataSchema">
-                Metadata Schema <span className="field-indicator required-indicator">required, multiple values allowed</span>
-            </label>
-            <div className="tag-input-container">
-                <div className="tag-input-row">
-                <input
-                    type="text"
-                    id="metadataSchema"
-                    value={metadataSchemaInput}
-                    onChange={(e) => setMetadataSchemaInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'metadataSchema', metadataSchemaInput, setMetadataSchemaInput)}
-                    
-                />
-                <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('metadataSchema', metadataSchemaInput, setMetadataSchemaInput)}
-                >
-                    +
-                </button>
-                </div>
-                <div className="tag-list">
-                {formData.metadataSchema.map((item, index) => (
-                    <div key={`metadata-schema-${index}`} className="tag-item">
-                    <span className="tag-text">{item}</span>
-                    <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('metadataSchema', index)}
-                    >
-                        ×
-                    </button>
-                    </div>
-                ))}
-                </div>
-                <div className="field-hint"> </div>
-            </div>
-            </div>
-
-            {/* Primary Reference Document */}
-            <div className="form-group">
-              <label htmlFor="primaryReferenceDocument">
-                Primary Reference Document <span className="field-indicator required-indicator">required, multiple values allowed</span>
-              </label>
-              <div className="tag-input-container">
-                <div className="tag-input-row">
+                {roleCreatorAgentError && <div className="iri-error-message">{roleCreatorAgentError}</div>}
+              </div> 
+            ) : (
+              <>
+                <div className="role-field">
+                  <label htmlFor="roleCreatorGivenName" className="subfield-label">Given Name</label>
                   <input
+                    onBlur={validateRegularInput}
                     type="text"
-                    id="primaryReferenceDocument"
-                    value={primaryReferenceDocInput}
-                    onChange={(e) => setPrimaryReferenceDocInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'primaryReferenceDocument', primaryReferenceDocInput, setPrimaryReferenceDocInput)}
-                    
-                  />
-                  <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('primaryReferenceDocument', primaryReferenceDocInput, setPrimaryReferenceDocInput)}
-                  >
-                    +
-                  </button>
-                </div>
-                <div className="tag-list">
-                  {formData.primaryReferenceDocument.map((doc, index) => (
-                    <div key={`ref-doc-${index}`} className="tag-item">
-                      <span className="tag-text">{doc}</span>
-                      <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('primaryReferenceDocument', index)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="field-hint"> </div>
-              </div>
-            </div>
-            
-            {/* Meta Graph */}
-            <div className="form-group">
-              <label htmlFor="metaGraph">
-                Meta Graph <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-              </label>
-              <div className="file-upload-section">
-                <div className="file-upload-label">
-                  <span className="file-name">{imageFileName || "No file selected"}</span>
-                  <button 
-                    type="button" 
-                    className="browse-button"
-                    onClick={() => fileInputRef.current.click()}
-                  >
-                    Browse
-                  </button>
-                  <input
-                    type="file"
-                    id="metaGraph"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    accept="image/*"
-                    className="file-upload-input"
-                    style={{ display: "none" }}
+                    id="roleCreatorGivenName"
+                    value={formData.roleCreator.givenName}
+                    onChange={(e) => handleRoleChange('roleCreator', 'givenName', e.target.value)}
+                    className="subfield-input"
                   />
                 </div>
-                <div className="tag-list">
-                  {formData.metaGraph.map((graph, index) => (
-                    <div key={`meta-graph-${index}`} className="tag-item">
-                      <span className="tag-text">{graph}</span>
-                      <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('metaGraph', index)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="field-hint">Upload image files to add to meta graph</div>
-              </div>
-            </div>
-            
-            {/* Statistics */}
-            <div className="form-group">
-              <label htmlFor="statistics">
-                Statistics <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-              </label>
-              <div className="tag-input-container">
-                <div className="tag-input-row">
+                <div className="role-field">
+                  <label htmlFor="roleCreatorMbox" className="subfield-label">Mbox</label>
                   <input
-                    type="text"
-                    id="statistics"
-                    value={statisticsInput}
-                    onChange={(e) => setStatisticsInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'statistics', statisticsInput, setStatisticsInput)}
-                    
+                    onBlur={validateRegularInput}
+                    type="email"
+                    id="roleCreatorMbox"
+                    value={formData.roleCreator.mbox}
+                    onChange={(e) => handleRoleChange('roleCreator', 'mbox', e.target.value)}
+                    className="subfield-input"
                   />
-                  <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('statistics', statisticsInput, setStatisticsInput)}
-                  >
-                    +
-                  </button>
                 </div>
-                <div className="tag-list">
-                  {formData.statistics.map((stat, index) => (
-                    <div key={`stat-${index}`} className="tag-item">
-                      <span className="tag-text">{stat}</span>
-                      <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('statistics', index)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="field-hint"> </div>
-              </div>
-            </div>
-
-            {/* Acronym */}
-            <div className="form-group">
-              <label htmlFor="acronym">
-                Acronym <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-              </label>
-              <div className="tag-input-container">
-                <div className="tag-input-row">
-                  <input
-                    type="text"
-                    id="acronym"
-                    value={acronymInput}
-                    onChange={(e) => setAcronymInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'acronym', acronymInput, setAcronymInput)}
-                    
-                  />
-                  <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('acronym', acronymInput, setAcronymInput)}
-                  >
-                    +
-                  </button>
-                </div>
-                <div className="tag-list">
-                  {formData.acronym.map((acr, index) => (
-                    <div key={`acronym-${index}`} className="tag-item">
-                      <span className="tag-text">{acr}</span>
-                      <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('acronym', index)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="field-hint"> </div>
-              </div>
-            </div>
-            
-            {/* Homepage URL */}
-            <div className="form-group">
-              <label htmlFor="homepageURL">
-                Homepage URL <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-              </label>
-              <div className="tag-input-container">
-                <div className="tag-input-row">
-                  <input
-                    type="url"
-                    id="homepageURL"
-                    value={homepageURLInput}
-                    onChange={(e) => setHomepageURLInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'homepageURL', homepageURLInput, setHomepageURLInput)}
-                    
-                  />
-                  <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('homepageURL', homepageURLInput, setHomepageURLInput)}
-                  >
-                    +
-                  </button>
-                </div>
-                <div className="tag-list">
-                  {formData.homepageURL.map((url, index) => (
-                    <div key={`homepage-${index}`} className="tag-item">
-                      <span className="tag-text">{url}</span>
-                      <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('homepageURL', index)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="field-hint"> </div>
-              </div>
-            </div>
-            
-            {/* Other Pages */}
-            <div className="form-group">
-              <label htmlFor="otherPages">
-                Other Pages <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-              </label>
-              <div className="tag-input-container">
-                <div className="tag-input-row">
-                  <input
-                    type="url"
-                    id="otherPages"
-                    value={otherPagesInput}
-                    onChange={(e) => setOtherPagesInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'otherPages', otherPagesInput, setOtherPagesInput)}
-                    
-                  />
-                  <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('otherPages', otherPagesInput, setOtherPagesInput)}
-                  >
-                    +
-                  </button>
-                </div>
-                <div className="tag-list">
-                  {formData.otherPages.map((page, index) => (
-                    <div key={`other-page-${index}`} className="tag-item">
-                      <span className="tag-text">{page}</span>
-                      <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('otherPages', index)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="field-hint"> </div>
-              </div>
-            </div>
-            
-            {/* Role fields */}
-            <div className="role-section">
-                {/* Role: Creator */}
-             <div className="form-group">
-               <label className="role-label">
-                 Role: Creator <span className="field-indicator optional-indicator">optional, 1 set of values</span>
-               </label>
-               <div className="role-fields">
-                 <div className="role-field">
-                   <label htmlFor="roleCreatorAgent" className="subfield-label">Agent</label>
-                   <input
-                     type="text"
-                     id="roleCreatorAgent"
-                     value={formData.roleCreator.agent}
-                     onChange={(e) => handleRoleChange('roleCreator', 'agent', e.target.value)}
-                     className="subfield-input"
-                   />
-                 </div>
-                 <div className="role-field">
-                   <label htmlFor="roleCreatorGivenName" className="subfield-label">Given Name</label>
-                   <input
-                     type="text"
-                     id="roleCreatorGivenName"
-                     value={formData.roleCreator.givenName}
-                     onChange={(e) => handleRoleChange('roleCreator', 'givenName', e.target.value)}
-                     className="subfield-input"
-                   />
-                 </div>
-                 <div className="role-field">
-                   <label htmlFor="roleCreatorMbox" className="subfield-label">Mbox</label>
-                   <input
-                     type="email"
-                     id="roleCreatorMbox"
-                     value={formData.roleCreator.mbox}
-                     onChange={(e) => handleRoleChange('roleCreator', 'mbox', e.target.value)}
-                     className="subfield-input"
-                   />
-                 </div>
-               </div>
-             </div>
-             
-             {/* Role: Publisher */}
-             <div className="form-group">
-               <label className="role-label">
-                 Role: Publisher <span className="field-indicator optional-indicator">optional, 1 set of values</span>
-               </label>
-               <div className="role-fields">
-                 <div className="role-field">
-                   <label htmlFor="rolePublisherAgent" className="subfield-label">Agent</label>
-                   <input
-                     type="text"
-                     id="rolePublisherAgent"
-                     value={formData.rolePublisher.agent}
-                     onChange={(e) => handleRoleChange('rolePublisher', 'agent', e.target.value)}
-                     className="subfield-input"
-                   />
-                 </div>
-                 <div className="role-field">
-                   <label htmlFor="rolePublisherGivenName" className="subfield-label">Given Name</label>
-                   <input
-                     type="text"
-                     id="rolePublisherGivenName"
-                     value={formData.rolePublisher.givenName}
-                     onChange={(e) => handleRoleChange('rolePublisher', 'givenName', e.target.value)}
-                     className="subfield-input"
-                   />
-                 </div>
-                 <div className="role-field">
-                   <label htmlFor="rolePublisherMbox" className="subfield-label">Mbox</label>
-                   <input
-                     type="email"
-                     id="rolePublisherMbox"
-                     value={formData.rolePublisher.mbox}
-                     onChange={(e) => handleRoleChange('rolePublisher', 'mbox', e.target.value)}
-                     className="subfield-input"
-                   />
-                 </div>
-               </div>
-             </div>
-             
-             {/* Role: Funder */}
-             <div className="form-group">
-               <label className="role-label">
-                 Role: Funder <span className="field-indicator optional-indicator">optional, 1 set of values</span>
-               </label>
-               <div className="role-fields">
-                 <div className="role-field">
-                   <label htmlFor="roleFunderAgent" className="subfield-label">Agent</label>
-                   <input
-                     type="text"
-                     id="roleFunderAgent"
-                     value={formData.roleFunder.agent}
-                     onChange={(e) => handleRoleChange('roleFunder', 'agent', e.target.value)}
-                     className="subfield-input"
-                   />
-                 </div>
-                 <div className="role-field">
-                   <label htmlFor="roleFunderGivenName" className="subfield-label">Given Name</label>
-                   <input
-                     type="text"
-                     id="roleFunderGivenName"
-                     value={formData.roleFunder.givenName}
-                     onChange={(e) => handleRoleChange('roleFunder', 'givenName', e.target.value)}
-                     className="subfield-input"
-                   />
-                 </div>
-                 <div className="role-field">
-                   <label htmlFor="roleFunderMbox" className="subfield-label">Mbox</label>
-                   <input
-                     type="email"
-                     id="roleFunderMbox"
-                     value={formData.roleFunder.mbox}
-                     onChange={(e) => handleRoleChange('roleFunder', 'mbox', e.target.value)}
-                     className="subfield-input"
-                   />
-                 </div>
-               </div>
-             </div>
-           </div>
-           
-           {/* License */}
-           <div className="form-group">
-             <label htmlFor="license">
-               License <span className="field-indicator required-indicator">required, 1 value only</span>
-             </label>
-             <input
-               type="text"
-               id="license"
-               name="license"
-               value={formData.license}
-               onChange={handleChange}
-               required
-             />
-           </div>
-           
-           {/* Version */}
-           <div className="form-group">
-             <label htmlFor="version">
-               Version <span className="field-indicator required-indicator">required, 1 value only</span>
-             </label>
-             <input
-               type="text"
-               id="version"
-               name="version"
-               value={formData.version}
-               onChange={handleChange}
-               required
-             />
-           </div>
-
-           {/* Distributions Section */}
-           <div className="form-section">
-             <h3 className="section-title">Distributions</h3>
-             <div className="field-indicator required-indicator">required, multiple submissions allowed</div>
-           </div>
-
-           {/* Display existing distributions */}
-           <div className="distributions-list">
-             {formData.distributions.map((dist, index) => (
-               <div key={`distribution-${index}`} className="distribution-item">
-                 <div className="distribution-header">
-                   <div className="distribution-title">{dist.title}</div>
-                   <div className="distribution-actions">
-                        <button 
-                          type="button"
-                          className="edit-button"
-                          onClick={() => {
-                            setCurrentDistribution({...dist});
-                            handleRemoveDistribution(index);
-                            document.querySelector('.distribution-form').scrollIntoView({ behavior: 'smooth' });
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          type="button"
-                          className="tag-remove"
-                          onClick={() => handleRemoveDistribution(index)}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                 <div className="distribution-preview">
-                   <div className="distribution-field">
-                     <span className="field-label">Description:</span>
-                     <span className="field-value">{dist.description}</span>
-                   </div>
-                   <div className="distribution-field">
-                     <span className="field-label">Media Type:</span>
-                     <span className="field-value">{dist.mediaType}</span>
-                   </div>
-                   <div className="distribution-field">
-                     <span className="field-label">Download URL:</span>
-                     <span className="field-value">{dist.downloadURL}</span>
-                   </div>
-                   <div className="distribution-field">
-                     <span className="field-label">Access URL:</span>
-                     <span className="field-value">{dist.accessURL}</span>
-                   </div>
-                   {dist.accessService && (
-                     <div className="distribution-field">
-                       <span className="field-label">Access Service:</span>
-                       <span className="field-value">{dist.accessService}</span>
-                     </div>
-                   )}
-                   {dist.byteSize && (
-                     <div className="distribution-field">
-                       <span className="field-label">Byte Size:</span>
-                       <span className="field-value">{dist.byteSize}</span>
-                     </div>
-                   )}
-                   {dist.compressionFormat && (
-                     <div className="distribution-field">
-                       <span className="field-label">Compression Format:</span>
-                       <span className="field-value">{dist.compressionFormat}</span>
-                     </div>
-                   )}
-                   {dist.packagingFormat && (
-                     <div className="distribution-field">
-                       <span className="field-label">Packaging Format:</span>
-                       <span className="field-value">{dist.packagingFormat}</span>
-                     </div>
-                   )}
-
-
-                   {dist.hasPolicy && (
-                     <div className="distribution-field">
-                       <span className="field-label">Has Policy:</span>
-                       <span className="field-value">{dist.hasPolicy}</span>
-                     </div>
-                   )}
-                   {dist.license && (
-                     <div className="distribution-field">
-                       <span className="field-label">license:</span>
-                       <span className="field-value">{dist.license}</span>
-                     </div>
-                   )}
-                   {dist.rights && (
-                     <div className="distribution-field">
-                       <span className="field-label">Rights:</span>
-                       <span className="field-value">{dist.rights}</span>
-                     </div>
-                   )}
-
-
-
-
-                   {dist.releaseDate && (
-                     <div className="distribution-field">
-                       <span className="field-label">Release Date:</span>
-                       <span className="field-value">{formatDate(dist.releaseDate)}</span>
-                     </div>
-                   )}
-                   {dist.modificationDate && (
-                     <div className="distribution-field">
-                       <span className="field-label">Modification Date:</span>
-                       <span className="field-value">{formatDate(dist.modificationDate)}</span>
-                     </div>
-                   )}
-                 </div>
-               </div>
-             ))}
-           </div>
-
-           {/* Distribution Form */}
-           <div className="distribution-form">
-             <div className="distribution-form-header">
-               <h4>Add New Distribution</h4>
-             </div>
-             
-             {/* Required distribution fields */}
-             <div className="form-group">
-               <label htmlFor="distTitle">
-                 Title <span className="field-indicator required-indicator">required</span>
-               </label>
-               <input
-                 type="text"
-                 id="distTitle"
-                 value={currentDistribution.title}
-                 onChange={(e) => handleDistributionChange('title', e.target.value)}
-                 className="subfield-input"
-               />
-             </div>
-             
-             <div className="form-group">
-               <label htmlFor="distDescription">
-                 Description <span className="field-indicator required-indicator">required</span>
-               </label>
-               <textarea
-                 id="distDescription"
-                 value={currentDistribution.description}
-                 onChange={(e) => handleDistributionChange('description', e.target.value)}
-                 rows="2"
-                 className="subfield-input"
-               ></textarea>
-             </div>
-             
-             <div className="form-group">
-               <label htmlFor="distMediaType">
-                 Media Type <span className="field-indicator required-indicator">required</span>
-               </label>
-               <input
-                 type="text"
-                 id="distMediaType"
-                 value={currentDistribution.mediaType}
-                 onChange={(e) => handleDistributionChange('mediaType', e.target.value)}
-                 className="subfield-input"
-               />
-             </div>
-             
-             <div className="form-group">
-               <label htmlFor="distDownloadURL">
-                 Download URL (dcat:downloadURL) <span className="field-indicator required-indicator">required</span>
-               </label>
-               <input
-                 type="url"
-                 id="distDownloadURL"
-                 value={currentDistribution.downloadURL}
-                 onChange={(e) => handleDistributionChange('downloadURL', e.target.value)}
-                 className="subfield-input"
-               />
-             </div>
-             
-             <div className="form-group">
-               <label htmlFor="distAccessURL">
-                 Access URL <span className="field-indicator required-indicator">required</span>
-               </label>
-               <input
-                 type="url"
-                 id="distAccessURL"
-                 value={currentDistribution.accessURL}
-                 onChange={(e) => handleDistributionChange('accessURL', e.target.value)}
-                 className="subfield-input"
-               />
-             </div>
-             
-             {/* Optional distribution fields */}
-             <div className="form-group">
-               <label htmlFor="distAccessService">
-                 Access Service <span className="field-indicator optional-indicator">optional</span>
-               </label>
-               <input
-                 type="text"
-                 id="distAccessService"
-                 value={currentDistribution.accessService}
-                 onChange={(e) => handleDistributionChange('accessService', e.target.value)}
-                 className="subfield-input"
-               />
-             </div>
-             
-             <div className="form-group">
-               <label htmlFor="distByteSize">
-                 Byte Size <span className="field-indicator optional-indicator">optional</span>
-               </label>
-               <input
-                 type="text"
-                 id="distByteSize"
-                 value={currentDistribution.byteSize}
-                 onChange={(e) => handleDistributionChange('byteSize', e.target.value)}
-                 className="subfield-input"
-               />
-             </div>
-             
-             <div className="form-group">
-               <label htmlFor="distCompressionFormat">
-                 Compression Format <span className="field-indicator optional-indicator">optional</span>
-               </label>
-               <input
-                 type="text"
-                 id="distCompressionFormat"
-                 value={currentDistribution.compressionFormat}
-                 onChange={(e) => handleDistributionChange('compressionFormat', e.target.value)}
-                 className="subfield-input"
-               />
-             </div>
-             
-             <div className="form-group">
-               <label htmlFor="distPackagingFormat">
-                 Packaging Format <span className="field-indicator optional-indicator">optional</span>
-               </label>
-               <input
-                 type="text"
-                 id="distPackagingFormat"
-                 value={currentDistribution.packagingFormat}
-                 onChange={(e) => handleDistributionChange('packagingFormat', e.target.value)}
-                 className="subfield-input"
-               />
-             </div>
-             <div className="form-group">
-               <label htmlFor="distHasPolicy">
-                 Has Policy <span className="field-indicator optional-indicator">optional</span>
-               </label>
-               <input
-                 type="text"
-                 id="distHasPolicy"
-                 value={currentDistribution.hasPolicy}
-                 onChange={(e) => handleDistributionChange('hasPolicy', e.target.value)}
-                 className="subfield-input"
-               />
-             </div>
-             
-             <div className="form-group">
-               <label htmlFor="distLicense">
-                 License <span className="field-indicator optional-indicator">optional</span>
-               </label>
-               <input
-                 type="text"
-                 id="distLicense"
-                 value={currentDistribution.license}
-                 onChange={(e) => handleDistributionChange('license', e.target.value)}
-                 className="subfield-input"
-               />
-             </div>
-             
-             <div className="form-group">
-               <label htmlFor="distRights">
-                 Rights <span className="field-indicator optional-indicator">optional</span>
-               </label>
-               <input
-                 type="text"
-                 id="distRights"
-                 value={currentDistribution.packagingFormat}
-                 onChange={(e) => handleDistributionChange('rights', e.target.value)}
-                 className="subfield-input"
-               />
-             </div>
-            <div className="form-group">
-              <label htmlFor="distReleaseDate">
-                Release Date <span className="field-indicator optional-indicator">optional</span>
-              </label>
-              <div className="date-input-container">
-                <input
-                  type="text"
-                  id="distReleaseDate"
-                  name="distReleaseDate"
-                  value={currentDistribution.releaseDate}
-                  onChange={(e) => handleDistributionChange('releaseDate', e.target.value)}
-                  onBlur={validateDateInput}
-                  placeholder="YYYY/MM/DD"
-                  className={`date-input subfield-input ${distReleaseDateError ? 'date-input-error' : ''}`}
-                />
-                <input
-                  type="date"
-                  className="date-picker-control"
-                  onChange={(e) => handleDatePickerChange(e, 'distReleaseDate')}
-                  aria-label="Date picker for Release Date"
-                  defaultValue=""
-                  tabIndex="-1"
-                />
-              </div>
-              {distReleaseDateError && <div className="date-error-message">{distReleaseDateError}</div>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="distModificationDate">
-                Update/Modification Date <span className="field-indicator optional-indicator">optional</span>
-              </label>
-              <div className="date-input-container">
-                <input
-                  type="text"
-                  id="distModificationDate"
-                  name="distModificationDate"
-                  value={currentDistribution.modificationDate}
-                  onChange={(e) => handleDistributionChange('modificationDate', e.target.value)}
-                  onBlur={validateDateInput}
-                  placeholder="YYYY/MM/DD"
-                  className={`date-input subfield-input ${distModificationDateError ? 'date-input-error' : ''}`}
-                />
-                <input
-                  type="date"
-                  className="date-picker-control"
-                  onChange={(e) => handleDatePickerChange(e, 'distModificationDate')}
-                  aria-label="Date picker for Modification Date"
-                  defaultValue=""
-                  tabIndex="-1"
-                />
-              </div>
-              {distModificationDateError && <div className="date-error-message">{distModificationDateError}</div>}
-            </div>
- 
-             
-            
-             <div className="distribution-actions">
-               <button 
-                 type="button" 
-                 className="add-button"
-                 onClick={handleAddDistribution}
-               >
-                 Add Distribution
-               </button>
-             </div>
-           </div>
-           
-           <div className="form-group">
-            <label htmlFor="restAPI">
-                REST API <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-            </label>
-            <div className="tag-input-container">
-                <div className="tag-input-row">
-                <input
-                    type="text"
-                    id="restAPI"
-                    value={restAPIInput}
-                    onChange={(e) => setRestAPIInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'restAPI', restAPIInput, setRestAPIInput)}
-                    
-                />
-                <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('restAPI', restAPIInput, setRestAPIInput)}
-                >
-                    +
-                </button>
-                </div>
-                <div className="tag-list">
-                {formData.restAPI.map((item, index) => (
-                    <div key={`rest-api-${index}`} className="tag-item">
-                    <span className="tag-text">{item}</span>
-                    <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('restAPI', index)}
-                    >
-                        ×
-                    </button>
-                    </div>
-                ))}
-                </div>
-                <div className="field-hint"> </div>
-            </div>
-            </div>
-
-            {/* SPARQL Endpoint [0,∞] - Optional, multiple values */}
-            <div className="form-group">
-            <label htmlFor="sparqlEndpoint">
-                SPARQL Endpoint <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-            </label>
-            <div className="tag-input-container">
-                <div className="tag-input-row">
-                <input
-                    type="text"
-                    id="sparqlEndpoint"
-                    value={sparqlEndpointInput}
-                    onChange={(e) => setSparqlEndpointInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'sparqlEndpoint', sparqlEndpointInput, setSparqlEndpointInput)}
-                    
-                />
-                <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('sparqlEndpoint', sparqlEndpointInput, setSparqlEndpointInput)}
-                >
-                    +
-                </button>
-                </div>
-                <div className="tag-list">
-                {formData.sparqlEndpoint.map((item, index) => (
-                    <div key={`sparql-endpoint-${index}`} className="tag-item">
-                    <span className="tag-text">{item}</span>
-                    <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('sparqlEndpoint', index)}
-                    >
-                        ×
-                    </button>
-                    </div>
-                ))}
-                </div>
-                <div className="field-hint"> </div>
-            </div>
-            </div>
-
-            {/* Example Queries [0,∞] - Optional, multiple values */}
-            <div className="form-group">
-            <label htmlFor="exampleQueries">
-                Example Queries <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-            </label>
-            <div className="tag-input-container">
-                <div className="tag-input-row">
-                <input
-                    type="text"
-                    id="exampleQueries"
-                    value={exampleQueriesInput}
-                    onChange={(e) => setExampleQueriesInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'exampleQueries', exampleQueriesInput, setExampleQueriesInput)}
-                    
-                />
-                <button 
-                    type="button" 
-                    className="tag-add-button"
-                    onClick={() => handleAddTag('exampleQueries', exampleQueriesInput, setExampleQueriesInput)}
-                >
-                    +
-                </button>
-                </div>
-                <div className="tag-list">
-                {formData.exampleQueries.map((item, index) => (
-                    <div key={`example-query-${index}`} className="tag-item">
-                    <span className="tag-text">{item}</span>
-                    <button 
-                        type="button"
-                        className="tag-remove"
-                        onClick={() => handleRemoveTag('exampleQueries', index)}
-                    >
-                        ×
-                    </button>
-                    </div>
-                ))}
-                </div>
-                <div className="field-hint"> </div>
-            </div>
+              </>
+            )}
+          </div>
         </div>
 
-           {/* Keywords [1,∞] - Required, multiple values */}
-           <div className="form-group">
-             <label htmlFor="keywords">
-               Keywords <span className="field-indicator required-indicator">required, multiple values allowed</span>
-             </label>
-             <div className="tag-input-container">
-               <div className="tag-input-row">
-                 <input
-                   type="text"
-                   id="keywords"
-                   value={keywordsInput}
-                   onChange={(e) => setKeywordsInput(e.target.value)}
-                   onKeyPress={(e) => handleKeyPress(e, 'keywords', keywordsInput, setKeywordsInput)}
-                   
-                 />
-                 <button 
-                   type="button" 
-                   className="tag-add-button"
-                   onClick={() => handleAddTag('keywords', keywordsInput, setKeywordsInput)}
-                 >
-                   +
-                 </button>
-               </div>
-               <div className="tag-list">
-                 {formData.keywords.map((keyword, index) => (
-                   <div key={`keyword-${index}`} className="tag-item">
-                     <span className="tag-text">{keyword}</span>
-                     <button 
-                       type="button"
-                       className="tag-remove"
-                       onClick={() => handleRemoveTag('keywords', index)}
-                     >
-                       ×
-                     </button>
-                   </div>
-                 ))}
-               </div>
-               <div className="field-hint"> </div>
-             </div>
-           </div>
+        {/* Role: Publisher */}
+        <div className="form-group">
+          <label className="role-label">
+            Role: Publisher <span className="field-indicator optional-indicator">optional, 1 set of values</span>
+          </label>
+          
+          <div className="toggle-container">
+            <div className="toggle-switch-container">
+              <label className={`toggle-option ${rolePublisherToggle === 'agentIRI' ? 'active' : 'inactive'}`}>
+                Agent IRI available
+              </label>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={rolePublisherToggle === 'nameEmail'}
+                  onChange={(e) => {
+                    const newToggle = e.target.checked ? 'nameEmail' : 'agentIRI';
+                    setRolePublisherToggle(newToggle);
+                    
+                    if (newToggle === 'agentIRI') {
+                      handleRoleChange('rolePublisher', 'givenName', '');
+                      handleRoleChange('rolePublisher', 'mbox', '');
+                    } else {
+                      handleRoleChange('rolePublisher', 'agent', '');
+                      setRolePublisherAgentError('');
+                      setRolePublisherAgentValid(false);
+                    }
+                  }}
+                />
+                <span className={`slider ${rolePublisherToggle === 'nameEmail' ? 'active' : ''}`}></span>
+              </label>
+              <label className={`toggle-option ${rolePublisherToggle === 'nameEmail' ? 'active' : 'inactive'}`}>
+                Name + mBox
+              </label>
+            </div>
+          </div>
+          
+          <div className="role-fields">
+            {rolePublisherToggle === 'agentIRI' ? (
+              <div className="role-field">
+                <label htmlFor="rolePublisherAgent" className="subfield-label">Agent</label>
+                <input
+                  onBlur={validateIriInput}
+                  type="text"
+                  id="rolePublisherAgent"
+                  name="rolePublisherAgent"
+                  value={formData.rolePublisher.agent}
+                  onChange={(e) => {
+                    handleRoleChange('rolePublisher', 'agent', e.target.value);
+                    setRolePublisherAgentError('');
+                    setRolePublisherAgentValid(false);
+                  }}
+                  className={`subfield-input ${rolePublisherAgentError ? 'input-error' : ''} ${rolePublisherAgentValid ? 'input-valid' : ''}`}
+                />
+                {rolePublisherAgentError && <div className="iri-error-message">{rolePublisherAgentError}</div>}
+              </div>
+            ) : (
+              <>
+                <div className="role-field">
+                  <label htmlFor="rolePublisherGivenName" className="subfield-label">Given Name</label>
+                  <input
+                    onBlur={validateRegularInput}
+                    type="text"
+                    id="rolePublisherGivenName"
+                    value={formData.rolePublisher.givenName}
+                    onChange={(e) => handleRoleChange('rolePublisher', 'givenName', e.target.value)}
+                    className="subfield-input"
+                  />
+                </div>
+                <div className="role-field">
+                  <label htmlFor="rolePublisherMbox" className="subfield-label">Mbox</label>
+                  <input
+                    onBlur={validateRegularInput}
+                    type="email"
+                    id="rolePublisherMbox"
+                    value={formData.rolePublisher.mbox}
+                    onChange={(e) => handleRoleChange('rolePublisher', 'mbox', e.target.value)}
+                    className="subfield-input"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
 
-           {/* Category [0,∞] - Optional, multiple values */}
-           <div className="form-group">
-             <label htmlFor="category">
-               Category <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-             </label>
-             <div className="tag-input-container">
-               <div className="tag-input-row">
-                 <input
-                   type="text"
-                   id="category"
-                   value={categoryInput}
-                   onChange={(e) => setCategoryInput(e.target.value)}
-                   onKeyPress={(e) => handleKeyPress(e, 'category', categoryInput, setCategoryInput)}
-                   
-                 />
-                 <button 
-                   type="button" 
-                   className="tag-add-button"
-                   onClick={() => handleAddTag('category', categoryInput, setCategoryInput)}
-                 >
-                   +
-                 </button>
-               </div>
-               <div className="tag-list">
-                 {formData.category.map((cat, index) => (
-                   <div key={`category-${index}`} className="tag-item">
-                     <span className="tag-text">{cat}</span>
-                     <button 
-                       type="button"
-                       className="tag-remove"
-                       onClick={() => handleRemoveTag('category', index)}
-                     >
-                       ×
-                     </button>
-                   </div>
-                 ))}
-               </div>
-               <div className="field-hint"> </div>
-             </div>
-           </div>
+        {/* Role Funder */}
+        <div className="form-group">
+          <label className="role-label">
+            Role: Funder <span className="field-indicator optional-indicator">optional, 1 set of values</span>
+          </label>
+          
+          <div className="toggle-container">
+            <div className="toggle-switch-container">
+              <label className={`toggle-option ${roleFunderToggle === 'agentIRI' ? 'active' : 'inactive'}`}>
+                Agent IRI available
+              </label>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={roleFunderToggle === 'nameEmail'}
+                  onChange={(e) => {
+                    const newToggle = e.target.checked ? 'nameEmail' : 'agentIRI';
+                    setRoleFunderToggle(newToggle);
+                    
+                    if (newToggle === 'agentIRI') {
+                      handleRoleChange('roleFunder', 'givenName', '');
+                      handleRoleChange('roleFunder', 'mbox', '');
+                    } else {
+                      handleRoleChange('roleFunder', 'agent', '');
+                      setRoleFunderAgentError('');
+                      setRoleFunderAgentValid(false);
+                    }
+                  }}
+                />
+                <span className={`slider ${roleFunderToggle === 'nameEmail' ? 'active' : ''}`}></span>
+              </label>
+              <label className={`toggle-option ${roleFunderToggle === 'nameEmail' ? 'active' : 'inactive'}`}>
+                Name + mBox
+              </label>
+            </div>
+          </div>
+          
+          <div className="role-fields">
+            {roleFunderToggle === 'agentIRI' ? (
+              <div className="role-field">
+                <label htmlFor="roleFunderAgent" className="subfield-label">Agent</label>
+                <input
+                  onBlur={validateIriInput}
+                  type="text"
+                  id="roleFunderAgent"
+                  name="roleFunderAgent"
+                  value={formData.roleFunder.agent}
+                  onChange={(e) => {
+                    handleRoleChange('roleFunder', 'agent', e.target.value);
+                    setRoleFunderAgentError('');
+                    setRoleFunderAgentValid(false);
+                  }}
+                  className={`subfield-input ${roleFunderAgentError ? 'input-error' : ''} ${roleFunderAgentValid ? 'input-valid' : ''}`}
+                />
+                {roleFunderAgentError && <div className="iri-error-message">{roleFunderAgentError}</div>}
+              </div>  
+            ) : (
+              <>
+                <div className="role-field">
+                  <label htmlFor="roleFunderGivenName" className="subfield-label">Given Name</label>
+                  <input
+                    onBlur={validateRegularInput}
+                    type="text"
+                    id="roleFunderGivenName"
+                    value={formData.roleFunder.givenName}
+                    onChange={(e) => handleRoleChange('roleFunder', 'givenName', e.target.value)}
+                    className="subfield-input"
+                  />
+                </div>
+                <div className="role-field">
+                  <label htmlFor="roleFunderMbox" className="subfield-label">Mbox</label>
+                  <input
+                    onBlur={validateRegularInput}
+                    type="email"
+                    id="roleFunderMbox"
+                    value={formData.roleFunder.mbox}
+                    onChange={(e) => handleRoleChange('roleFunder', 'mbox', e.target.value)}
+                    className="subfield-input"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+        </div>
 
-           {/* Publication/References [0,∞] - Optional, multiple values */}
-           <div className="form-group">
-             <label htmlFor="publicationReferences">
-               Publication/References <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-             </label>
-             <div className="tag-input-container">
-               <div className="tag-input-row">
-                 <input
-                   type="text"
-                   id="publicationReferences"
-                   value={publicationReferencesInput}
-                   onChange={(e) => setPublicationReferencesInput(e.target.value)}
-                   onKeyPress={(e) => handleKeyPress(e, 'publicationReferences', publicationReferencesInput, setPublicationReferencesInput)}
-                   
-                 />
-                 <button 
-                   type="button" 
-                   className="tag-add-button"
-                   onClick={() => handleAddTag('publicationReferences', publicationReferencesInput, setPublicationReferencesInput)}
-                 >
-                   +
-                 </button>
-               </div>
-               <div className="tag-list">
-                 {formData.publicationReferences.map((ref, index) => (
-                   <div key={`pub-ref-${index}`} className="tag-item">
-                     <span className="tag-text">{ref}</span>
-                     <button 
-                       type="button"
-                       className="tag-remove"
-                       onClick={() => handleRemoveTag('publicationReferences', index)}
-                     >
-                       ×
-                     </button>
+         {/* License */}
+         <div className="form-group">
+           <label htmlFor="license">
+             License <span className="field-indicator required-indicator">required (IRI), 1 value only</span>
+           </label>
+           <input
+              type="text"
+              id="license"
+              name="license"
+              value={formData.license}
+              onChange={(e) => {
+                handleChange(e);
+                setLicenseError('');
+                setLicenseValid(false);
+              }}
+              onBlur={validateIriInput}
+              required
+              className={`form-control ${licenseValid ? 'form-input-valid' : ''} ${licenseError ? 'form-input-error' : ''}`}
+            />
+            {licenseError && <div className="iri-error-message">{licenseError}</div>}
+         </div>
+         
+         {/* Version */}
+         <div className="form-group">
+           <label htmlFor="version">
+             Version <span className="field-indicator required-indicator">required, 1 value only</span>
+           </label>
+           <input
+          onBlur={validateRegularInput}         type="text"
+             id="version"
+             name="version"
+             value={formData.version}
+             onChange={handleChange}
+             onBlur={() => setVersionValid(!!formData.version.trim())}
+             required
+             className={`form-control ${versionValid ? 'form-input-valid' : ''}`}
+           />
+         </div>
+    
+         {/* Distributions Section */}
+         <div className="form-section">
+           <h3 className="section-title">Distributions</h3>
+           <div className="field-indicator required-indicator">required, multiple submissions allowed</div>
+         </div>
+    
+         {/* Display existing distributions */}
+         <div className="distributions-list">
+           {formData.distributions.map((dist, index) => (
+             <div key={`distribution-${index}`} className="distribution-item">
+               <div className="distribution-header">
+                 <div className="distribution-title">{dist.title}</div>
+                 <div className="distribution-actions">
+                      <button 
+                        type="button"
+                        className="edit-button"
+                        onClick={() => {
+                          setCurrentDistribution({...dist});
+                          handleRemoveDistribution(index);
+                          document.querySelector('.distribution-form').scrollIntoView({ behavior: 'smooth' });
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        type="button"
+                        className="tag-remove"
+                        onClick={() => handleRemoveDistribution(index)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+               <div className="distribution-preview">
+                 <div className="distribution-field">
+                   <span className="field-label">Description:</span>
+                   <span className="field-value">{dist.description}</span>
+                 </div>
+                 <div className="distribution-field">
+                   <span className="field-label">Media Type:</span>
+                   <span className="field-value">{dist.mediaType}</span>
+                 </div>
+                 <div className="distribution-field">
+                   <span className="field-label">Download URL:</span>
+                   <span className="field-value">{dist.downloadURL}</span>
+                 </div>
+                 <div className="distribution-field">
+                   <span className="field-label">Access URL:</span>
+                   <span className="field-value">{dist.accessURL}</span>
+                 </div>
+                 {dist.accessService && (
+                   <div className="distribution-field">
+                     <span className="field-label">Access Service:</span>
+                     <span className="field-value">{dist.accessService}</span>
                    </div>
-                 ))}
-               </div>
-               <div className="field-hint"> </div>
-             </div>
-           </div>
-
-           {/* Language [1,∞] - Required, multiple values */}
-           <div className="form-group">
-             <label htmlFor="language">
-               Language <span className="field-indicator required-indicator">required, multiple values allowed</span>
-             </label>
-             <div className="tag-input-container">
-               <div className="tag-input-row">
-                 <input
-                   type="text"
-                   id="language"
-                   value={languageInput}
-                   onChange={(e) => setLanguageInput(e.target.value)}
-                   onKeyPress={(e) => handleKeyPress(e, 'language', languageInput, setLanguageInput)}
-                   
-                 />
-                 <button 
-                   type="button" 
-                   className="tag-add-button"
-                   onClick={() => handleAddTag('language', languageInput, setLanguageInput)}
-                 >
-                   +
-                 </button>
-               </div>
-               <div className="tag-list">
-                 {formData.language.map((lang, index) => (
-                   <div key={`language-${index}`} className="tag-item">
-                     <span className="tag-text">{lang}</span>
-                     <button 
-                       type="button"
-                       className="tag-remove"
-                       onClick={() => handleRemoveTag('language', index)}
-                     >
-                       ×
-                     </button>
+                 )}
+                 {dist.byteSize && (
+                   <div className="distribution-field">
+                     <span className="field-label">Byte Size:</span>
+                     <span className="field-value">{dist.byteSize}</span>
                    </div>
-                 ))}
-               </div>
-               <div className="field-hint"> </div>
-             </div>
-           </div>
-
-           {/* IRI Template [0,∞] - Optional, multiple values */}
-           <div className="form-group">
-             <label htmlFor="iriTemplate">
-               IRI Template <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-             </label>
-             <div className="tag-input-container">
-               <div className="tag-input-row">
-                 <input
-                   type="text"
-                   id="iriTemplate"
-                   value={iriTemplateInput}
-                   onChange={(e) => setIriTemplateInput(e.target.value)}
-                   onKeyPress={(e) => handleKeyPress(e, 'iriTemplate', iriTemplateInput, setIriTemplateInput)}
-                   
-                 />
-                 <button 
-                   type="button" 
-                   className="tag-add-button"
-                   onClick={() => handleAddTag('iriTemplate', iriTemplateInput, setIriTemplateInput)}
-                 >
-                   +
-                 </button>
-               </div>
-               <div className="tag-list">
-                 {formData.iriTemplate.map((iri, index) => (
-                   <div key={`iri-${index}`} className="tag-item">
-                     <span className="tag-text">{iri}</span>
-                     <button 
-                       type="button"
-                       className="tag-remove"
-                       onClick={() => handleRemoveTag('iriTemplate', index)}
-                     >
-                       ×
-                     </button>
+                 )}
+                 {dist.compressionFormat && (
+                   <div className="distribution-field">
+                     <span className="field-label">Compression Format:</span>
+                     <span className="field-value">{dist.compressionFormat}</span>
                    </div>
-                 ))}
-               </div>
-               <div className="field-hint"> </div>
-             </div>
-           </div>
-
-           {/* Linked Resources [0,∞] - Optional, multiple values */}
-           <div className="form-group">
-             <label htmlFor="linkedResources">
-               Linked Resources <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-             </label>
-             <div className="tag-input-container">
-               <div className="tag-input-row">
-                 <input
-                   type="text"
-                   id="linkedResources"
-                   value={linkedResourcesInput}
-                   onChange={(e) => setLinkedResourcesInput(e.target.value)}
-                   onKeyPress={(e) => handleKeyPress(e, 'linkedResources', linkedResourcesInput, setLinkedResourcesInput)}
-                   
-                 />
-                 <button 
-                   type="button" 
-                   className="tag-add-button"
-                   onClick={() => handleAddTag('linkedResources', linkedResourcesInput, setLinkedResourcesInput)}
-                 >
-                   +
-                 </button>
-               </div>
-               <div className="tag-list">
-                 {formData.linkedResources.map((resource, index) => (
-                   <div key={`linked-resource-${index}`} className="tag-item">
-                     <span className="tag-text">{resource}</span>
-                     <button 
-                       type="button"
-                       className="tag-remove"
-                       onClick={() => handleRemoveTag('linkedResources', index)}
-                     >
-                       ×
-                     </button>
+                 )}
+                 {dist.packagingFormat && (
+                   <div className="distribution-field">
+                     <span className="field-label">Packaging Format:</span>
+                     <span className="field-value">{dist.packagingFormat}</span>
                    </div>
-                 ))}
-               </div>
-               <div className="field-hint"> </div>
-             </div>
-           </div>
-
-           {/* Example Resource [0,∞] - Optional, multiple values */}
-           <div className="form-group">
-             <label htmlFor="exampleResource">
-               Example Resource <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-             </label>
-             <div className="tag-input-container">
-               <div className="tag-input-row">
-                 <input
-                   type="text"
-                   id="exampleResource"
-                   value={exampleResourceInput}
-                   onChange={(e) => setExampleResourceInput(e.target.value)}
-                   onKeyPress={(e) => handleKeyPress(e, 'exampleResource', exampleResourceInput, setExampleResourceInput)}
-                   
-                 />
-                 <button 
-                   type="button" 
-                   className="tag-add-button"
-                   onClick={() => handleAddTag('exampleResource', exampleResourceInput, setExampleResourceInput)}
-                 >
-                   +
-                 </button>
-               </div>
-               <div className="tag-list">
-                 {formData.exampleResource.map((example, index) => (
-                   <div key={`example-resource-${index}`} className="tag-item">
-                     <span className="tag-text">{example}</span>
-                     <button 
-                       type="button"
-                       className="tag-remove"
-                       onClick={() => handleRemoveTag('exampleResource', index)}
-                     >
-                       ×
-                     </button>
+                 )}
+    
+    
+                 {dist.hasPolicy && (
+                   <div className="distribution-field">
+                     <span className="field-label">Has Policy:</span>
+                     <span className="field-value">{dist.hasPolicy}</span>
                    </div>
-                 ))}
+                 )}
+                 {dist.license && (
+                   <div className="distribution-field">
+                     <span className="field-label">license:</span>
+                     <span className="field-value">{dist.license}</span>
+                   </div>
+                 )}
+                 {dist.rights && (
+                   <div className="distribution-field">
+                     <span className="field-label">Rights:</span>
+                     <span className="field-value">{dist.rights}</span>
+                   </div>
+                 )}
+                 {dist.spatialResolution && (
+                   <div className="distribution-field">
+                     <span className="field-label">Spatial Resolution:</span>
+                     <span className="field-value">{dist.spatialResolution}</span>
+                   </div>
+                 )}
+                 {dist.temporalResolution && (
+                   <div className="distribution-field">
+                     <span className="field-label">Temporal Resolution:</span>
+                     <span className="field-value">{dist.temporalResolution}</span>
+                   </div>
+                 )}
+    
+    
+    
+    
+                 {dist.releaseDate && (
+                   <div className="distribution-field">
+                     <span className="field-label">Release Date:</span>
+                     <span className="field-value">{formatDate(dist.releaseDate)}</span>
+                   </div>
+                 )}
+                 {dist.modificationDate && (
+                   <div className="distribution-field">
+                     <span className="field-label">Modification Date:</span>
+                     <span className="field-value">{formatDate(dist.modificationDate)}</span>
+                   </div>
+                 )}
                </div>
-               <div className="field-hint"> </div>
              </div>
+           ))}
+         </div>
+    
+         {/* Distribution Form */}
+         <div className="distribution-form">
+           <div className="distribution-form-header">
+             <h4>Add New Distribution</h4>
            </div>
-
-           {/* Access Statement [1] - Required, single value */}
+           
+           {/* Required distribution fields */}
            <div className="form-group">
-             <label htmlFor="accessStatement">
-               Access Statement <span className="field-indicator required-indicator">required, 1 value only</span>
+             <label htmlFor="distTitle">
+               Title <span className="field-indicator required-indicator">required</span>
+             </label>
+             <input
+              onBlur={validateRegularInput}           type="text"
+               id="distTitle"
+               value={currentDistribution.title}
+               onChange={(e) => handleDistributionChange('title', e.target.value)}
+               className="subfield-input"
+             />
+           </div>
+           
+           <div className="form-group">
+             <label htmlFor="distDescription">
+               Description <span className="field-indicator required-indicator">required</span>
              </label>
              <textarea
-               id="accessStatement"
-               name="accessStatement"
-               value={formData.accessStatement}
-               onChange={handleChange}
-               required
-               rows="3"
+          onBlur={validateRegularInput}           id="distDescription"
+               value={currentDistribution.description}
+               onChange={(e) => handleDistributionChange('description', e.target.value)}
+               rows="2"
+               className="subfield-input"
              ></textarea>
            </div>
-
-           {/* Source [0,∞] - Optional, multiple values */}
+           
            <div className="form-group">
-             <label htmlFor="source">
-               Source <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+             <label htmlFor="distMediaType">
+               Media Type <span className="field-indicator required-indicator">required</span>
              </label>
-             <div className="tag-input-container">
-               <div className="tag-input-row">
-                 <input
-                   type="text"
-                   id="source"
-                   value={sourceInput}
-                   onChange={(e) => setSourceInput(e.target.value)}
-                   onKeyPress={(e) => handleKeyPress(e, 'source', sourceInput, setSourceInput)}
-                   
-                 />
-                 <button 
-                   type="button" 
-                   className="tag-add-button"
-                   onClick={() => handleAddTag('source', sourceInput, setSourceInput)}
-                 >
-                   +
-                 </button>
-               </div>
-               <div className="tag-list">
-                 {formData.source.map((src, index) => (
-                   <div key={`source-${index}`} className="tag-item">
-                     <span className="tag-text">{src}</span>
-                     <button 
-                       type="button"
-                       className="tag-remove"
-                       onClick={() => handleRemoveTag('source', index)}
-                     >
-                       ×
-                     </button>
-                   </div>
-                 ))}
-               </div>
-               <div className="field-hint"> </div>
-             </div>
+             <input
+          onBlur={validateRegularInput}           type="text"
+               id="distMediaType"
+               value={currentDistribution.mediaType}
+               onChange={(e) => handleDistributionChange('mediaType', e.target.value)}
+               className="subfield-input"
+             />
            </div>
-
-           {/* Name Space [0,∞] - Optional, multiple values */}
+           
            <div className="form-group">
-             <label htmlFor="nameSpace">
-               Name Space <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+             <label htmlFor="distDownloadURL">
+               Download URL (dcat:downloadURL) <span className="field-indicator required-indicator">required (IRI)</span>
              </label>
-             <div className="tag-input-container">
-               <div className="tag-input-row">
-                 <input
-                   type="text"
-                   id="nameSpace"
-                   value={nameSpaceInput}
-                   onChange={(e) => setNameSpaceInput(e.target.value)}
-                   onKeyPress={(e) => handleKeyPress(e, 'nameSpace', nameSpaceInput, setNameSpaceInput)}
-                   
-                 />
-                 <button 
-                   type="button" 
-                   className="tag-add-button"
-                   onClick={() => handleAddTag('nameSpace', nameSpaceInput, setNameSpaceInput)}
-                 >
-                   +
-                 </button>
-               </div>
-               <div className="tag-list">
-                 {formData.nameSpace.map((ns, index) => (
-                   <div key={`namespace-${index}`} className="tag-item">
-                     <span className="tag-text">{ns}</span>
-                     <button 
-                       type="button"
-                       className="tag-remove"
-                       onClick={() => handleRemoveTag('nameSpace', index)}
-                     >
-                       ×
-                     </button>
-                   </div>
-                 ))}
-               </div>
-               <div className="field-hint"> </div>
-             </div>
+             <input
+                type="url"
+                id="distDownloadURL"
+                name="distDownloadURL"
+                value={currentDistribution.downloadURL}
+                onChange={(e) => {
+                  handleDistributionChange('downloadURL', e.target.value);
+                  setDistDownloadURLError('');
+                  setDistDownloadURLValid(false);
+                }}
+                onBlur={validateIriInput}
+                className={`subfield-input ${distDownloadURLError ? 'input-error' : ''} ${distDownloadURLValid ? 'input-valid' : ''}`}
+              />
+              {distDownloadURLError && <div className="iri-error-message">{distDownloadURLError}</div>}
+
            </div>
-         </form>
-       </div>
-       
-       <div className="modal-footer">
-         <button 
-           className="cancel-button"
-           onClick={onClose}
-         >
-           Cancel
-         </button>
+           
+           <div className="form-group">
+             <label htmlFor="distAccessURL">
+               Access URL <span className="field-indicator required-indicator">required (IRI)</span>
+             </label>
+             <input
+                type="url"
+                id="distAccessURL"
+                name="distAccessURL"
+                value={currentDistribution.accessURL}
+                onChange={(e) => {
+                  handleDistributionChange('accessURL', e.target.value);
+                  setDistAccessURLError('');
+                  setDistAccessURLValid(false);
+                }}
+                onBlur={validateIriInput}
+                className={`subfield-input ${distAccessURLError ? 'input-error' : ''} ${distAccessURLValid ? 'input-valid' : ''}`}
+              />
+              {distAccessURLError && <div className="iri-error-message">{distAccessURLError}</div>}
+          </div>    
+           {/* Optional distribution fields */}
+           <div className="form-group">
+             <label htmlFor="distAccessService">
+               Access Service <span className="field-indicator optional-indicator">optional</span>
+             </label>
+             <input
+          onBlur={validateRegularInput}           type="text"
+               id="distAccessService"
+               value={currentDistribution.accessService}
+               onChange={(e) => handleDistributionChange('accessService', e.target.value)}
+               className="subfield-input"
+             />
+           </div>
+           
+           <div className="form-group">
+             <label htmlFor="distByteSize">
+               Byte Size <span className="field-indicator optional-indicator">optional</span>
+             </label>
+             <input
+          onBlur={validateRegularInput}           type="text"
+               id="distByteSize"
+               value={currentDistribution.byteSize}
+               onChange={(e) => handleDistributionChange('byteSize', e.target.value)}
+               className="subfield-input"
+             />
+           </div>
+           
+           <div className="form-group">
+             <label htmlFor="distCompressionFormat">
+               Compression Format <span className="field-indicator optional-indicator">optional</span>
+             </label>
+             <input
+          onBlur={validateRegularInput}           type="text"
+               id="distCompressionFormat"
+               value={currentDistribution.compressionFormat}
+               onChange={(e) => handleDistributionChange('compressionFormat', e.target.value)}
+               className="subfield-input"
+             />
+           </div>
+           
+           <div className="form-group">
+             <label htmlFor="distPackagingFormat">
+               Packaging Format <span className="field-indicator optional-indicator">optional</span>
+             </label>
+             <input
+          onBlur={validateRegularInput}           type="text"
+               id="distPackagingFormat"
+               value={currentDistribution.packagingFormat}
+               onChange={(e) => handleDistributionChange('packagingFormat', e.target.value)}
+               className="subfield-input"
+             />
+           </div>
+           <div className="form-group">
+             <label htmlFor="distHasPolicy">
+               Has Policy <span className="field-indicator optional-indicator">optional</span>
+             </label>
+             <input
+          onBlur={validateRegularInput}           type="text"
+               id="distHasPolicy"
+               value={currentDistribution.hasPolicy}
+               onChange={(e) => handleDistributionChange('hasPolicy', e.target.value)}
+               className="subfield-input"
+             />
+           </div>
+           
+           <div className="form-group">
+             <label htmlFor="distLicense">
+               License <span className="field-indicator optional-indicator">optional</span>
+             </label>
+             <input
+          onBlur={validateRegularInput}           type="text"
+               id="distLicense"
+               value={currentDistribution.license}
+               onChange={(e) => handleDistributionChange('license', e.target.value)}
+               className="subfield-input"
+             />
+           </div>
+           
+           <div className="form-group">
+             <label htmlFor="distRights">
+               Rights <span className="field-indicator optional-indicator">optional</span>
+             </label>
+             <input
+          onBlur={validateRegularInput}           type="text"
+               id="distRights"
+               value={currentDistribution.rights}
+               onChange={(e) => handleDistributionChange('rights', e.target.value)}
+               className="subfield-input"
+             />
+           </div>
+           <div className="form-group">
+             <label htmlFor="distSpatialResolution">
+               Spatial Resolution <span className="field-indicator optional-indicator">optional</span>
+             </label>
+             <input
+          onBlur={validateRegularInput}           type="text"
+               id="distSpatialResolution"
+               value={currentDistribution.spatialResolution}
+               onChange={(e) => handleDistributionChange('spatialResolution', e.target.value)}
+               className="subfield-input"
+             />
+           </div>
+           <div className="form-group">
+             <label htmlFor="distTemporalResolution">
+               Temporal Resolution <span className="field-indicator optional-indicator">optional</span>
+             </label>
+             <input
+          onBlur={validateRegularInput}           type="text"
+               id="distTemporalResolution"
+               value={currentDistribution.temporalResolution}
+               onChange={(e) => handleDistributionChange('temporalResolution', e.target.value)}
+               className="subfield-input"
+             />
+           </div>
+           <div className="form-group">
+             <label htmlFor="distReleaseDate">
+              Release Date <span className="field-indicator optional-indicator">optional</span>
+            </label>
+            <div className="date-input-container">
+              <input
+          onBlur={validateRegularInput}            type="text"
+                id="distReleaseDate"
+                name="distReleaseDate"
+                value={currentDistribution.releaseDate}
+                onChange={(e) => handleDistributionChange('releaseDate', e.target.value)}
+                onBlur={validateDateInput}
+                placeholder="YYYY/MM/DD"
+                className={`date-input subfield-input ${distReleaseDateError ? 'date-input-error' : ''}`}
+              />
+              <input
+          onBlur={validateRegularInput}            type="date"
+                className="date-picker-control"
+                onChange={(e) => handleDatePickerChange(e, 'distReleaseDate')}
+                aria-label="Date picker for Release Date"
+                defaultValue=""
+                tabIndex="-1"
+              />
+            </div>
+            {distReleaseDateError && <div className="date-error-message">{distReleaseDateError}</div>}
+          </div>
+    
+          <div className="form-group">
+            <label htmlFor="distModificationDate">
+              Update/Modification Date <span className="field-indicator optional-indicator">optional</span>
+            </label>
+            <div className="date-input-container">
+              <input
+          onBlur={validateRegularInput}            type="text"
+                id="distModificationDate"
+                name="distModificationDate"
+                value={currentDistribution.modificationDate}
+                onChange={(e) => handleDistributionChange('modificationDate', e.target.value)}
+                onBlur={validateDateInput}
+                placeholder="YYYY/MM/DD"
+                className={`date-input subfield-input ${distModificationDateError ? 'date-input-error' : ''}`}
+              />
+              <input
+          onBlur={validateRegularInput}            type="date"
+                className="date-picker-control"
+                onChange={(e) => handleDatePickerChange(e, 'distModificationDate')}
+                aria-label="Date picker for Modification Date"
+                defaultValue=""
+                tabIndex="-1"
+              />
+            </div>
+            {distModificationDateError && <div className="date-error-message">{distModificationDateError}</div>}
+          </div>
+    
+           
+          
+           <div className="distribution-actions">
+             <button 
+               type="button" 
+               className={`add-button`}
+               onClick={handleAddDistribution}
+             >
+               Add Distribution
+             </button>
+           </div>
+         </div>
+         
+         <div className="form-group">
+          <label htmlFor="restAPI">
+              REST API <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+          </label>
+          <div className="tag-input-container">
+              <div className="tag-input-row">
+              <input
+          onBlur={validateRegularInput}              type="text"
+                  id="restAPI"
+                  value={restAPIInput}
+                  onChange={(e) => {
+                    setRestAPIInput(e.target.value);
+                    setRestAPIInputValid(false);
+                  }}
+                  onBlur={() => setRestAPIInputValid(!!restAPIInput.trim())}
+                  onKeyPress={(e) => handleKeyPress(e, 'restAPI', restAPIInput, setRestAPIInput)}
+                  className={`tag-input ${restAPIInputValid ? 'tag-input-valid' : ''}`}
+              />
+              <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('restAPI', restAPIInput, setRestAPIInput)}
+              >
+                  +
+              </button>
+              </div>
+              <div className="tag-list">
+              {formData.restAPI.map((item, index) => (
+                  <div key={`rest-api-${index}`} className="tag-item">
+                  <span className="tag-text">{item}</span>
+                  <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('restAPI', index)}
+                  >
+                      ×
+                  </button>
+                  </div>
+              ))}
+              </div>
+              <div className="field-hint"> </div>
+          </div>
+          </div>
+    
+          {/* SPARQL Endpoint [0,∞] - Optional, multiple values */}
+          <div className="form-group">
+          <label htmlFor="sparqlEndpoint">
+              SPARQL Endpoint <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+          </label>
+          <div className="tag-input-container">
+              <div className="tag-input-row">
+              <input
+          onBlur={validateRegularInput}              type="text"
+                  id="sparqlEndpoint"
+                  value={sparqlEndpointInput}
+                  onChange={(e) => setSparqlEndpointInput(e.target.value)}
+                  onKeyPress={(e) => handleKeyPress(e, 'sparqlEndpoint', sparqlEndpointInput, setSparqlEndpointInput)}
+                  
+              />
+              <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('sparqlEndpoint', sparqlEndpointInput, setSparqlEndpointInput)}
+              >
+                  +
+              </button>
+              </div>
+              <div className="tag-list">
+              {formData.sparqlEndpoint.map((item, index) => (
+                  <div key={`sparql-endpoint-${index}`} className="tag-item">
+                  <span className="tag-text">{item}</span>
+                  <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('sparqlEndpoint', index)}
+                  >
+                      ×
+                  </button>
+                  </div>
+              ))}
+              </div>
+              <div className="field-hint"> </div>
+          </div>
+          </div>
+    
+          {/* Example Queries [0,∞] - Optional, multiple values */}
+          <div className="form-group">
+          <label htmlFor="exampleQueries">
+              Example Queries <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+          </label>
+          <div className="tag-input-container">
+              <div className="tag-input-row">
+              <input
+          onBlur={validateRegularInput}              type="text"
+                  id="exampleQueries"
+                  value={exampleQueriesInput}
+                  onChange={(e) => setExampleQueriesInput(e.target.value)}
+                  onKeyPress={(e) => handleKeyPress(e, 'exampleQueries', exampleQueriesInput, setExampleQueriesInput)}
+                  
+              />
+              <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('exampleQueries', exampleQueriesInput, setExampleQueriesInput)}
+              >
+                  +
+              </button>
+              </div>
+              <div className="tag-list">
+              {formData.exampleQueries.map((item, index) => (
+                  <div key={`example-query-${index}`} className="tag-item">
+                  <span className="tag-text">{item}</span>
+                  <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('exampleQueries', index)}
+                  >
+                      ×
+                  </button>
+                  </div>
+              ))}
+              </div>
+              <div className="field-hint"> </div>
+          </div>
+      </div>
+    
+         {/* Keywords [1,∞] - Required, multiple values */}
+         <div className="form-group">
+           <label htmlFor="keywords">
+             Keywords <span className="field-indicator required-indicator">required, multiple values allowed</span>
+           </label>
+           <div className="tag-input-container">
+             <div className="tag-input-row">
+               <input
+          onBlur={validateRegularInput}             type="text"
+                 id="keywords"
+                 value={keywordsInput}
+                 onChange={(e) => setKeywordsInput(e.target.value)}
+                 onKeyPress={(e) => handleKeyPress(e, 'keywords', keywordsInput, setKeywordsInput)}
+                 
+               />
+               <button 
+                 type="button" 
+                 className="tag-add-button"
+                 onClick={() => handleAddTag('keywords', keywordsInput, setKeywordsInput)}
+               >
+                 +
+               </button>
+             </div>
+             <div className="tag-list">
+               {formData.keywords.map((keyword, index) => (
+                 <div key={`keyword-${index}`} className="tag-item">
+                   <span className="tag-text">{keyword}</span>
+                   <button 
+                     type="button"
+                     className="tag-remove"
+                     onClick={() => handleRemoveTag('keywords', index)}
+                   >
+                     ×
+                   </button>
+                 </div>
+               ))}
+             </div>
+             <div className="field-hint"> </div>
+           </div>
+         </div>
+    
+         {/* Category [0,∞] - Optional, multiple values */}
+         <div className="form-group">
+           <label htmlFor="category">
+             Category <span className="field-indicator optional-indicator">optional (IRI), multiple values allowed</span>
+           </label>
+           <div className="tag-input-container">
+             <div className="tag-input-row">
+             <input
+                    type="text"
+                    id="category"
+                    name="categoryInput"
+                    value={categoryInput}
+                    onChange={(e) => {
+                      setCategoryInput(e.target.value);
+                      setCategoryInputError('');
+                      setCategoryInputValid(false);
+                    }}
+                    onBlur={validateIriInput}
+                    onKeyUp={(e) => handleKeyPress(e, 'category', categoryInput, setCategoryInput, setCategoryInputError)}
+                    className={`${categoryInputError ? 'tag-input-error' : ''} ${categoryInputValid ? 'tag-input-valid' : ''}`}
+                  />
+                  {categoryInputError && <div className="iri-error-message">{categoryInputError}</div>}
 
-         <button 
-          className="save-draft-button"
-        onClick={handleSaveDraft}
-        >
-          Save Draft
-        </button>
+               <button 
+                 type="button" 
+                 className="tag-add-button"
+                 onClick={() => handleAddTag('category', categoryInput, setCategoryInput)}
+               >
+                 +
+               </button>
+             </div>
+             <div className="tag-list">
+               {formData.category.map((cat, index) => (
+                 <div key={`category-${index}`} className="tag-item">
+                   <span className="tag-text">{cat}</span>
+                   <button 
+                     type="button"
+                     className="tag-remove"
+                     onClick={() => handleRemoveTag('category', index)}
+                   >
+                     ×
+                   </button>
+                 </div>
+               ))}
+             </div>
+             <div className="field-hint"> </div>
+           </div>
+         </div>
+    
+         {/* Publication/References [0,∞] - Optional, multiple values */}
+         <div className="form-group">
+           <label htmlFor="publicationReferences">
+             Publication/References <span className="field-indicator optional-indicator">optional (IRI), multiple values allowed</span>
+           </label>
+           <div className="tag-input-container">
+             <div className="tag-input-row">
+             <input
+                type="text"
+                id="publicationReferences"
+                name="publicationReferencesInput"
+                value={publicationReferencesInput}
+                onChange={(e) => {
+                  setPublicationReferencesInput(e.target.value);
+                  setPublicationReferencesInputError('');
+                  setPublicationReferencesInputValid(false);
+                }}
+                onBlur={validateIriInput}
+                onKeyPress={(e) => handleKeyPress(e, 'publicationReferences', publicationReferencesInput, setPublicationReferencesInput, setPublicationReferencesInputError)}
+                className={`${publicationReferencesInputError ? 'tag-input-error' : ''} ${publicationReferencesInputValid ? 'tag-input-valid' : ''}`}
+              />
+              {publicationReferencesInputError && <div className="iri-error-message">{publicationReferencesInputError}</div>}
 
-         <button 
-           className="submit-button"
-           onClick={handleSubmit}
-           disabled={isSubmitting}
-         >
-           {isSubmitting ? 'Submitting...' : 'Submit'}
-         </button>
+               <button 
+                 type="button" 
+                 className="tag-add-button"
+                 onClick={() => handleAddTag('publicationReferences', publicationReferencesInput, setPublicationReferencesInput)}
+               >
+                 +
+               </button>
+             </div>
+             <div className="tag-list">
+               {formData.publicationReferences.map((ref, index) => (
+                 <div key={`pub-ref-${index}`} className="tag-item">
+                   <span className="tag-text">{ref}</span>
+                   <button 
+                     type="button"
+                     className="tag-remove"
+                     onClick={() => handleRemoveTag('publicationReferences', index)}
+                   >
+                     ×
+                   </button>
+                 </div>
+               ))}
+             </div>
+             <div className="field-hint"> </div>
+           </div>
+         </div>
+    
+         {/* Language [1,∞] - Required, multiple values */}
+         <div className="form-group">
+           <label htmlFor="language">
+             Language <span className="field-indicator required-indicator">required, multiple values allowed</span>
+           </label>
+           <div className="tag-input-container">
+             <div className="tag-input-row">
+               <input
+          onBlur={validateRegularInput}             type="text"
+                 id="language"
+                 value={languageInput}
+                 onChange={(e) => setLanguageInput(e.target.value)}
+                 onKeyPress={(e) => handleKeyPress(e, 'language', languageInput, setLanguageInput)}
+                 
+               />
+               <button 
+                 type="button" 
+                 className="tag-add-button"
+                 onClick={() => handleAddTag('language', languageInput, setLanguageInput)}
+               >
+                 +
+               </button>
+             </div>
+             <div className="tag-list">
+               {formData.language.map((lang, index) => (
+                 <div key={`language-${index}`} className="tag-item">
+                   <span className="tag-text">{lang}</span>
+                   <button 
+                     type="button"
+                     className="tag-remove"
+                     onClick={() => handleRemoveTag('language', index)}
+                   >
+                     ×
+                   </button>
+                 </div>
+               ))}
+             </div>
+             <div className="field-hint"> </div>
+           </div>
+         </div>
+    
+         {/* IRI Template [0,∞] - Optional, multiple values */}
+         <div className="form-group">
+           <label htmlFor="iriTemplate">
+             IRI Template <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+           </label>
+           <div className="tag-input-container">
+             <div className="tag-input-row">
+               <input
+          onBlur={validateRegularInput}             type="text"
+                 id="iriTemplate"
+                 value={iriTemplateInput}
+                 onChange={(e) => setIriTemplateInput(e.target.value)}
+                 onKeyPress={(e) => handleKeyPress(e, 'iriTemplate', iriTemplateInput, setIriTemplateInput)}
+                 
+               />
+               <button 
+                 type="button" 
+                 className="tag-add-button"
+                 onClick={() => handleAddTag('iriTemplate', iriTemplateInput, setIriTemplateInput)}
+               >
+                 +
+               </button>
+             </div>
+             <div className="tag-list">
+               {formData.iriTemplate.map((iri, index) => (
+                 <div key={`iri-${index}`} className="tag-item">
+                   <span className="tag-text">{iri}</span>
+                   <button 
+                     type="button"
+                     className="tag-remove"
+                     onClick={() => handleRemoveTag('iriTemplate', index)}
+                   >
+                     ×
+                   </button>
+                 </div>
+               ))}
+             </div>
+             <div className="field-hint"> </div>
+           </div>
+         </div>
+    
+         {/* Linked Resources [0,∞] - Optional, multiple values */}
+         <div className="form-group">
+           <label htmlFor="linkedResources">
+             Linked Resources <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+           </label>
+           <div className="tag-input-container">
+             <div className="tag-input-row">
+               <input
+          onBlur={validateRegularInput}             type="text"
+                 id="linkedResources"
+                 value={linkedResourcesInput}
+                 onChange={(e) => setLinkedResourcesInput(e.target.value)}
+                 onKeyPress={(e) => handleKeyPress(e, 'linkedResources', linkedResourcesInput, setLinkedResourcesInput)}
+                 
+               />
+               <button 
+                 type="button" 
+                 className="tag-add-button"
+                 onClick={() => handleAddTag('linkedResources', linkedResourcesInput, setLinkedResourcesInput)}
+               >
+                 +
+               </button>
+             </div>
+             <div className="tag-list">
+               {formData.linkedResources.map((resource, index) => (
+                 <div key={`linked-resource-${index}`} className="tag-item">
+                   <span className="tag-text">{resource}</span>
+                   <button 
+                     type="button"
+                     className="tag-remove"
+                     onClick={() => handleRemoveTag('linkedResources', index)}
+                   >
+                     ×
+                   </button>
+                 </div>
+               ))}
+             </div>
+             <div className="field-hint"> </div>
+           </div>
+         </div>
+    
+         {/* Example Resource [0,∞] - Optional, multiple values */}
+         <div className="form-group">
+           <label htmlFor="exampleResource">
+             Example Resource <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+           </label>
+           <div className="tag-input-container">
+             <div className="tag-input-row">
+               <input
+          onBlur={validateRegularInput}             type="text"
+                 id="exampleResource"
+                 value={exampleResourceInput}
+                 onChange={(e) => setExampleResourceInput(e.target.value)}
+                 onKeyPress={(e) => handleKeyPress(e, 'exampleResource', exampleResourceInput, setExampleResourceInput)}
+                 
+               />
+               <button 
+                 type="button" 
+                 className="tag-add-button"
+                 onClick={() => handleAddTag('exampleResource', exampleResourceInput, setExampleResourceInput)}
+               >
+                 +
+               </button>
+             </div>
+             <div className="tag-list">
+               {formData.exampleResource.map((example, index) => (
+                 <div key={`example-resource-${index}`} className="tag-item">
+                   <span className="tag-text">{example}</span>
+                   <button 
+                     type="button"
+                     className="tag-remove"
+                     onClick={() => handleRemoveTag('exampleResource', index)}
+                   >
+                     ×
+                   </button>
+                 </div>
+               ))}
+             </div>
+             <div className="field-hint"> </div>
+           </div>
+         </div>
+    
+         {/* Access Statement [1] - Required, single value */}
+         <div className="form-group">
+           <label htmlFor="accessStatement">
+             Access Statement <span className="field-indicator required-indicator">required (IRI), 1 value only</span>
+           </label>
+           <textarea
+                id="accessStatement"
+                name="accessStatement"
+                value={formData.accessStatement}
+                onChange={(e) => {
+                  handleChange(e);
+                  setAccessStatementError('');
+                  setAccessStatementValid(false);
+                }}
+                onBlur={validateIriInput}
+                required
+                rows="3"
+                className={`${accessStatementError ? 'input-error' : ''} ${accessStatementValid ? 'input-valid' : ''}`}
+              ></textarea>
+            {accessStatementError && <div className="iri-error-message">{accessStatementError}</div>}
+
+         </div>
+    
+         {/* Source [0,∞] - Optional, multiple values */}
+         <div className="form-group">
+           <label htmlFor="source">
+             Source <span className="field-indicator optional-indicator">optional (IRI), multiple values allowed</span>
+           </label>
+           <div className="tag-input-container">
+             <div className="tag-input-row">
+             <input
+                  type="text"
+                  id="source"
+                  name="sourceInput"
+                  value={sourceInput}
+                  onChange={(e) => {
+                    setSourceInput(e.target.value);
+                    setSourceInputError('');
+                    setSourceInputValid(false);
+                  }}
+                  onBlur={validateIriInput}
+                  onKeyPress={(e) => handleKeyPress(e, 'source', sourceInput, setSourceInput, setSourceInputError)}
+                  className={`${sourceInputError ? 'tag-input-error' : ''} ${sourceInputValid ? 'tag-input-valid' : ''}`}
+            />
+            {sourceInputError && <div className="iri-error-message">{sourceInputError}</div>}
+
+                              <button 
+                 type="button" 
+                 className="tag-add-button"
+                 onClick={() => handleAddTag('source', sourceInput, setSourceInput)}
+               >
+                 +
+               </button>
+             </div>
+             <div className="tag-list">
+               {formData.source.map((src, index) => (
+                 <div key={`source-${index}`} className="tag-item">
+                   <span className="tag-text">{src}</span>
+                   <button 
+                     type="button"
+                     className="tag-remove"
+                     onClick={() => handleRemoveTag('source', index)}
+                   >
+                     ×
+                   </button>
+                 </div>
+               ))}
+             </div>
+             <div className="field-hint"> </div>
+           </div>
+         </div>
+    
+         {/* Name Space [0,∞] - Optional, multiple values */}
+         <div className="form-group">
+           <label htmlFor="nameSpace">
+             Name Space <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+           </label>
+           <div className="tag-input-container">
+             <div className="tag-input-row">
+               <input
+          onBlur={validateRegularInput}             type="text"
+                 id="nameSpace"
+                 value={nameSpaceInput}
+                 onChange={(e) => setNameSpaceInput(e.target.value)}
+                 onKeyPress={(e) => handleKeyPress(e, 'nameSpace', nameSpaceInput, setNameSpaceInput)}
+                 
+               />
+               <button 
+                 type="button" 
+                 className="tag-add-button"
+                 onClick={() => handleAddTag('nameSpace', nameSpaceInput, setNameSpaceInput)}
+               >
+                 +
+               </button>
+             </div>
+             <div className="tag-list">
+               {formData.nameSpace.map((ns, index) => (
+                 <div key={`namespace-${index}`} className="tag-item">
+                   <span className="tag-text">{ns}</span>
+                   <button 
+                     type="button"
+                     className="tag-remove"
+                     onClick={() => handleRemoveTag('nameSpace', index)}
+                   >
+                     ×
+                   </button>
+                 </div>
+               ))}
+             </div>
+             <div className="field-hint"> </div>
+           </div>
+         </div>
+       </form>
        </div>
+     
+     <div className="modal-footer">
+       <button 
+         className="cancel-button"
+         onClick={onClose}
+       >
+         Cancel
+       </button>
+    
+       <button 
+        className="save-draft-button"
+      onClick={handleSaveDraft}
+      >
+        Save Draft
+      </button>
+    
+       <button 
+         className="submit-button"
+         onClick={handleSubmit}
+         disabled={isSubmitting}
+       >
+         {isSubmitting ? 'Submitting...' : 'Submit'}
+       </button>
      </div>
-   </div>
- );
-}
+    </div>
+    </div>
+    );
+    }
+    
 
 export default ModalForm;
