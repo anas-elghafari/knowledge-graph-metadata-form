@@ -859,12 +859,14 @@ select {
   vertical-align: middle;
 }
 
+/* Required field indicators are red by default */
 .required-indicator {
   background-color: rgba(240, 80, 80, 0.15);
   color: #e57373;
   border: 1px solid rgba(240, 80, 80, 0.3);
 }
 
+/* Optional field indicators are gray by default */
 .optional-indicator {
   background-color: rgba(100, 100, 100, 0.15);
   color: #9e9e9e;
@@ -1534,25 +1536,51 @@ label[data-tooltip]:hover::before {
   Ensure validated inputs keep the dark background theme even when combined with Bootstrap or custom classes like .form-control.
   This selector increases specificity to override any background-color set by .form-control or similar classes.
 */
-.form-input-valid {
-  border-color: #28a745 !important;
-  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+/* Modify validation to affect the indicator tags instead of input borders */
+.form-input-valid, input.form-input-valid, textarea.form-input-valid,
+.form-control.form-input-valid, input.form-control.form-input-valid, textarea.form-control.form-input-valid,
+.tag-input-valid, .subfield-input.form-input-valid {
+  /* Remove previous border styling */
+  border-color: var(--dark-border) !important;
+  box-shadow: none !important;
   background-color: var(--dark-surface-lighter) !important;
 }
-input.form-input-valid,
-textarea.form-input-valid {
-  background-color: var(--dark-surface-lighter) !important;
+
+/* Target the field indicator in the same label as a valid input */
+label:has(+ input.form-input-valid) .field-indicator,
+label:has(+ textarea.form-input-valid) .field-indicator,
+label:has(+ select.form-input-valid) .field-indicator,
+label:has(+ .tag-input-container input.form-input-valid) .field-indicator,
+label:has(+ .tag-input-container input.tag-input-valid) .field-indicator,
+label:has(+ div input.form-input-valid) .field-indicator,
+label:has(+ div textarea.form-input-valid) .field-indicator,
+label:has(+ .form-control.form-input-valid) .field-indicator,
+label:has(+ div .form-control.form-input-valid) .field-indicator,
+/* Target for deeply nested structures */
+label:has(~ .form-input-valid) .field-indicator,
+/* Target for directly adjacent validation classes */
+label:has(+ .form-input-valid) .field-indicator {
+  background-color: rgba(40, 167, 69, 0.15) !important;
+  color: #4caf50 !important;
+  border: 1px solid rgba(40, 167, 69, 0.3) !important;
 }
-/* Extra specificity for .form-control.form-input-valid to prevent white backgrounds from .form-control overrides */
-.form-control.form-input-valid,
-input.form-control.form-input-valid,
-textarea.form-control.form-input-valid {
-  background-color: var(--dark-surface-lighter) !important;
-}
-.tag-input-valid {
-  border-color: #28a745 !important;
-  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
-  background-color: var(--dark-surface-lighter) !important;
+
+/* Target the field indicator in the same label as an invalid input */
+label:has(+ input.form-input-error) .field-indicator,
+label:has(+ textarea.form-input-error) .field-indicator,
+label:has(+ select.form-input-error) .field-indicator,
+label:has(+ .tag-input-container input.form-input-error) .field-indicator,
+label:has(+ div input.form-input-error) .field-indicator,
+label:has(+ div textarea.form-input-error) .field-indicator,
+label:has(+ .form-control.form-input-error) .field-indicator,
+label:has(+ div .form-control.form-input-error) .field-indicator,
+/* Target for deeply nested structures */
+label:has(~ .form-input-error) .field-indicator,
+/* Target for directly adjacent validation classes */
+label:has(+ .form-input-error) .field-indicator {
+  background-color: rgba(240, 80, 80, 0.15) !important;
+  color: #e57373 !important;
+  border: 1px solid rgba(240, 80, 80, 0.3) !important;
 }
 
 .tag-item-valid {
