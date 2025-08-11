@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import fieldInstructions from '../fieldInstructions';
 
 function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null }) {
   // Initial form state
   const initialFormState = {
-    identifier: [],
-    type: [],
+    identifier: [uuidv4()], // Auto-generate UUID
+    type: ['dcat:Dataset'], // Default value is dcat:Dataset
     title: '',
     description: '',
     
@@ -66,7 +67,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [formData, setFormData] = useState(initialFormData || initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
-  const [identifierInput, setIdentifierInput] = useState('');
+  // No longer need identifierInput state since it's auto-generated
   const [alternativeTitleInput, setAlternativeTitleInput] = useState('');
   const [acronymInput, setAcronymInput] = useState('');
   const [homepageURLInput, setHomepageURLInput] = useState('');
@@ -299,7 +300,7 @@ const handleCancelEditExampleResource = () => {
 
   const [distReleaseDateValid, setDistReleaseDateValid] = useState(false);
   const [distModificationDateValid, setDistModificationDateValid] = useState(false);
-  const [identifierInputValid, setIdentifierInputValid] = useState(false);
+  // No longer need identifierInputValid state since it's auto-generated
   const [alternativeTitleInputValid, setAlternativeTitleInputValid] = useState(false);
   const [distLicenseValid, setDistLicenseValid] = useState(false);
   const [distRightsValid, setDistRightsValid] = useState(false);
@@ -494,7 +495,7 @@ const handleCancelEditExampleResource = () => {
     
     const handleAddTag = (fieldName, inputValue, setInputFunc, setErrorFunc) => {
       if (setErrorFunc) setErrorFunc(''); // Clear previous error
-      if (fieldName === 'identifier') setIdentifierInputValid(false);
+      // No need to handle identifier field validation anymore
       if (fieldName === 'alternativeTitle') setAlternativeTitleInputValid(false);
     
       // Fields that require IRI validation - EXPANDED LIST
@@ -552,19 +553,30 @@ const handleCancelEditExampleResource = () => {
   
     const handleTypeChange = (value) => {
       setFormData(prevData => {
-        const currentTypes = prevData.type || [];
         let newTypes;
         
-        if (currentTypes.includes(value)) {
-          // Remove the value if it's already selected
-          newTypes = currentTypes.filter(type => type !== value);
+        // Always include dcat:Dataset as the base type
+        if (value === 'void:Dataset') {
+          // Toggle void:Dataset to indicate if it's an RDF dataset
+          if (prevData.type.includes('void:Dataset')) {
+            // Remove void:Dataset if already selected
+            newTypes = prevData.type.filter(type => type !== 'void:Dataset');
+          } else {
+            // Add void:Dataset to indicate it's an RDF dataset
+            newTypes = [...prevData.type, 'void:Dataset'];
+          }
         } else {
-          // Add the value if it's not selected
-          newTypes = [...currentTypes, value];
+          // For any other types, keep the current selection
+          newTypes = [...prevData.type];
         }
         
-        // Update validation state
-        setTypeValid(newTypes.length > 0);
+        // Ensure dcat:Dataset is always included
+        if (!newTypes.includes('dcat:Dataset')) {
+          newTypes = ['dcat:Dataset', ...newTypes];
+        }
+        
+        // Update validation state - always valid since dcat:Dataset is always included
+        setTypeValid(true);
         
         return {
           ...prevData,
@@ -814,12 +826,8 @@ const handleCancelEditExampleResource = () => {
     let updatedFormData = {...formData};
     
     // Handle all tag input fields
-    if (identifierInput.trim()) {
-      updatedFormData = {
-        ...updatedFormData,
-        identifier: [...updatedFormData.identifier, identifierInput.trim()]
-      };
-    }
+    // No longer need to check identifierInput since it's auto-generated
+    // identifier is already set with UUID
     
     
     if (alternativeTitleInput.trim()) {
@@ -1379,82 +1387,21 @@ const handleCancelEditExampleResource = () => {
         
         <form onSubmit={handleSubmit}>
           
-          {/* Identifier (now optional, multiple values) */}
+          {/* Identifier (auto-generated UUID) */}
           <div className="form-group">
             <label htmlFor="identifier">
-              Identifier <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+              Identifier <span className="field-indicator">auto-generated UUID</span>
             </label>
             <div className="tag-input-container">
-              <div className="tag-input-row">
-                <input
-                  type="text"
-                  id="identifier"
-                  value={identifierInput}
-                  onChange={(e) => {
-                    setIdentifierInput(e.target.value);
-                    setIdentifierInputValid(false);
-                  }}
-                  onBlur={() => {
-                    if (identifierInput.trim()) setIdentifierInputValid(true);
-                  }}
-                  onKeyPress={(e) => handleKeyPress(e, 'identifier', identifierInput, setIdentifierInput)}
-                  className={`tag-input ${identifierInputValid ? 'tag-input-valid' : ''}`}
-                />
-                <button 
-                  type="button" 
-                  className="tag-add-button"
-                  onClick={() => {
-                    handleAddTag('identifier', identifierInput, setIdentifierInput);
-                    setIdentifierInputValid(false);
-                  }}
-                >
-                  +
-                </button>
-              </div>
               <div className="tag-list">
                 {formData.identifier.map((id, index) => (
                   <div key={`identifier-${index}`} className="tag-item tag-item-valid">
                     <span className="tag-text">{id}</span>
-                    <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('identifier', index)}
-                    >
-                      ×
-                    </button>
+                    {/* No remove button since UUID is required */}
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="type">
-              Type <span className="field-indicator required-indicator">required</span>
-            </label>
-            <div className={`checkbox-group ${typeValid ? 'form-input-valid' : ''}`}>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="type"
-                  value="dcat:Dataset"
-                  checked={formData.type.includes('dcat:Dataset')}
-                  onChange={() => handleTypeChange('dcat:Dataset')}
-                  className="checkbox-input"
-                />
-                dcat:Dataset
-              </label>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="type"
-                  value="void:Dataset"
-                  checked={formData.type.includes('void:Dataset')}
-                  onChange={() => handleTypeChange('void:Dataset')}
-                  className="checkbox-input"
-                />
-                void:Dataset
-              </label>
+              <div className="field-hint">This identifier is automatically generated and cannot be edited</div>
             </div>
           </div>
           
@@ -1471,10 +1418,10 @@ const handleCancelEditExampleResource = () => {
               onChange={handleChange}
               className={`form-control ${titleValid ? 'form-input-valid' : ''}`}
               placeholder="Enter title"
-              required
             />
           </div>
           
+          {/* Alternative Title */}
           <div className="form-group">
             <label htmlFor="alternativeTitle">
               Alternative Title <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
@@ -1522,23 +1469,179 @@ const handleCancelEditExampleResource = () => {
               </div>
             </div>
           </div>
-          
+
+          {/* Acronym */}
+          <div className="form-group">
+            <label htmlFor="acronym">
+              Acronym <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <input
+                  type="text"
+                  id="acronym"
+                  value={acronymInput}
+                  onChange={(e) => {
+                    setAcronymInput(e.target.value);
+                    setAcronymInputValid(false);
+                  }}
+                  onBlur={() => setAcronymInputValid(!!acronymInput.trim())}
+                  onKeyPress={(e) => handleKeyPress(e, 'acronym', acronymInput, setAcronymInput)}
+                  className={`tag-input ${acronymInputValid ? 'tag-input-valid' : ''}`}
+                />
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('acronym', acronymInput, setAcronymInput)}
+                >
+                  +
+                </button>
+              </div>
+              <div className="tag-list">
+                {formData.acronym.map((acr, index) => (
+                  <div key={`acronym-${index}`} className="tag-item">
+                    <span className="tag-text">{acr}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('acronym', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Description */}
           <div className="form-group">
             <label htmlFor="description">
               Description <span className="field-indicator required-indicator">required, 1 value only</span>
             </label>
-            <input
-              type="text"
+            <textarea
               id="description"
               name="description"
               value={formData.description}
               onChange={handleChange}
               className={`form-control ${descriptionValid ? 'form-input-valid' : ''}`}
-              required
+              rows="4"
             />
           </div>
-          
+
+          {/* Language [1,∞] - Required, multiple values */}
+          <div className="form-group">
+            <label htmlFor="language">
+              Language <span className="field-indicator required-indicator">required, multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <input
+                  type="text"
+                  id="language"
+                  name="language"
+                  value={languageInput}
+                  onChange={(e) => setLanguageInput(e.target.value)}
+                  onBlur={validateRegularInput}
+                  onKeyPress={(e) => handleKeyPress(e, 'language', languageInput, setLanguageInput)}
+                  className={`tag-input ${languageInputValid ? 'form-input-valid' : ''}`}
+                />
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('language', languageInput, setLanguageInput)}
+                >
+                  +
+                </button>
+              </div>
+              <div className="tag-list">
+                {formData.language.map((lang, index) => (
+                  <div key={`language-${index}`} className="tag-item">
+                    <span className="tag-text">{lang}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('language', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Keywords [1,∞] - Required, multiple values */}
+          <div className="form-group">
+            <label htmlFor="keywords">
+              Keywords <span className="field-indicator required-indicator">required, multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <input
+                  type="text"
+                  id="keywords"
+                  name="keywords"
+                  value={keywordsInput}
+                  onChange={(e) => setKeywordsInput(e.target.value)}
+                  onBlur={validateRegularInput}
+                  onKeyPress={(e) => handleKeyPress(e, 'keywords', keywordsInput, setKeywordsInput)}
+                  className={`tag-input ${keywordsInputValid ? 'form-input-valid' : ''}`}
+                />
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('keywords', keywordsInput, setKeywordsInput)}
+                >
+                  +
+                </button>
+              </div>
+              <div className="tag-list">
+                {formData.keywords.map((keyword, index) => (
+                  <div key={`keyword-${index}`} className="tag-item">
+                    <span className="tag-text">{keyword}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('keywords', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Type */}
+          <div className="form-group">
+            <label htmlFor="type">
+              Type <span className="field-indicator required-indicator">required</span>
+            </label>
+            <div className={`checkbox-group ${typeValid ? 'form-input-valid' : ''}`}>
+              <div>
+                <input
+                  type="checkbox"
+                  name="type"
+                  id="typeDataset"
+                  checked={formData.type.includes('dcat:Dataset')}
+                  disabled={true} // Always checked and disabled since it's the default
+                />
+                <label htmlFor="typeDataset">dcat:Dataset (default)</label>
+              </div>
+              <div>
+                <input
+                  type="checkbox"
+                  name="type"
+                  id="typeVoidDataset"
+                  checked={formData.type.includes('void:Dataset')}
+                  onChange={() => handleTypeChange('void:Dataset')}
+                />
+                <label htmlFor="typeVoidDataset">RDF Dataset (void:Dataset)</label>
+              </div>
+            </div>
+          </div>
+
           {/* Date fields */}
           <div className="form-group">
             <label htmlFor="createdDate">

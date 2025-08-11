@@ -106,7 +106,7 @@ function App() {
             onClick={handleOpenModal}
             style={{ width: 'auto' }}
           >
-            Submit Metadata Form
+            Create Metadata
           </button>
         </div>
         <DataTable submissions={submissions} />
