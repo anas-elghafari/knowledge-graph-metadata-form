@@ -1325,6 +1325,73 @@ label[data-tooltip]:hover::before {
   }
 }
 
+/* AI Suggestion Tooltips */
+.ai-suggestion-tooltip {
+  display: inline-block;
+  font-size: 16px;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  position: relative;
+}
+
+.ai-suggestion-tooltip:hover {
+  transform: scale(1.2);
+}
+
+.ai-suggestion-tooltip[data-ai-tooltip] {
+  position: relative;
+}
+
+.ai-suggestion-tooltip[data-ai-tooltip]:hover::before {
+  content: attr(data-ai-tooltip);
+  position: absolute;
+  z-index: 102;
+  bottom: 100%;
+  left: 0;
+  width: 250px;
+  background-color: #2d3748;
+  color: #e2e8f0;
+  text-align: left;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #4299e1;
+  box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+  font-size: 0.85rem;
+  font-weight: normal;
+  line-height: 1.4;
+  white-space: normal;
+  pointer-events: none;
+}
+
+/* AI Toggle in Modal Footer */
+.ai-toggle-container {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
+}
+
+.ai-toggle-label {
+  display: flex;
+  align-items: center;
+  color: var(--dark-text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin: 0;
+}
+
+.ai-toggle-checkbox {
+  margin-right: 8px;
+  transform: scale(1.2);
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 
 .floating-message {
   position: fixed;

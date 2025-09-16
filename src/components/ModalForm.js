@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import fieldInstructions from '../fieldInstructions';
+import { getFieldSuggestions } from '../services/openai';
 
 function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null }) {
   // Initial form state
@@ -52,7 +53,31 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
 
   const [formData, setFormData] = useState(initialFormData || initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
   const [message, setMessage] = useState('');
+  // State for AI suggestions
+  const [showAISuggestions, setShowAISuggestions] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState({});
+  const [loadingSuggestions, setLoadingSuggestions] = useState({});
+
+  // Function to get AI suggestion for a field
+  const getAISuggestion = async (fieldName) => {
+    try {
+      setLoadingSuggestions(prev => ({ ...prev, [fieldName]: true }));
+      
+      // Create context from current form data
+      const context = formData.title || formData.description || 'Dataset metadata form';
+      
+      const suggestion = await getFieldSuggestions(fieldName, context);
+      setAiSuggestions(prev => ({ ...prev, [fieldName]: suggestion }));
+    } catch (error) {
+      console.error(`Error getting AI suggestion for ${fieldName}:`, error);
+      setAiSuggestions(prev => ({ ...prev, [fieldName]: 'Error getting suggestion' }));
+    } finally {
+      setLoadingSuggestions(prev => ({ ...prev, [fieldName]: false }));
+    }
+  };
+
   // No longer need identifierInput state since it's auto-generated
   const [alternativeTitleInput, setAlternativeTitleInput] = useState('');
   const [acronymInput, setAcronymInput] = useState('');
@@ -397,13 +422,50 @@ const handleCancelEditExampleResource = () => {
       // Get the 'for' attribute which connects to the input ID
       const fieldId = label.getAttribute('for');
       
-      // If we have instructions for this field, add the tooltip
+      // If we have instructions for this field, add the instruction tooltip
       if (fieldId && fieldInstructions[fieldId]) {
         label.setAttribute('data-tooltip', fieldInstructions[fieldId]);
         label.setAttribute('tabindex', '0'); // Make focusable for accessibility
       }
+
+      // Handle AI suggestion tooltips
+      if (showAISuggestions && fieldId) {
+        // Remove existing AI tooltip if any
+        const existingAITooltip = label.querySelector('.ai-suggestion-tooltip');
+        if (existingAITooltip) {
+          existingAITooltip.remove();
+        }
+
+        // Create AI suggestion tooltip
+        const aiTooltip = document.createElement('span');
+        aiTooltip.className = 'ai-suggestion-tooltip';
+        aiTooltip.innerHTML = loadingSuggestions[fieldId] ? '🤖⏳' : '🤖';
+        aiTooltip.title = aiSuggestions[fieldId] || 'Click to get AI suggestion';
+        aiTooltip.style.cursor = 'pointer';
+        aiTooltip.style.marginLeft = '8px';
+        
+        // Add click handler to get AI suggestion
+        aiTooltip.addEventListener('click', () => {
+          if (!loadingSuggestions[fieldId]) {
+            getAISuggestion(fieldId);
+          }
+        });
+
+        // Set AI suggestion tooltip attributes
+        if (aiSuggestions[fieldId]) {
+          aiTooltip.setAttribute('data-ai-tooltip', aiSuggestions[fieldId]);
+        }
+
+        label.appendChild(aiTooltip);
+      } else {
+        // Remove AI tooltips when disabled
+        const existingAITooltip = label.querySelector('.ai-suggestion-tooltip');
+        if (existingAITooltip) {
+          existingAITooltip.remove();
+        }
+      }
     });
-  }, []);
+  }, [showAISuggestions, aiSuggestions, loadingSuggestions]);
 
 
   useEffect(() => {
@@ -3849,6 +3911,18 @@ const handleCancelEditExampleResource = () => {
        </div>
      
      <div className="modal-footer">
+       <div className="ai-toggle-container">
+         <label className="ai-toggle-label">
+           <input
+             type="checkbox"
+             checked={showAISuggestions}
+             onChange={(e) => setShowAISuggestions(e.target.checked)}
+             className="ai-toggle-checkbox"
+           />
+           Show AI Suggestions
+         </label>
+       </div>
+       
        <button 
          className="cancel-button"
          onClick={onClose}
