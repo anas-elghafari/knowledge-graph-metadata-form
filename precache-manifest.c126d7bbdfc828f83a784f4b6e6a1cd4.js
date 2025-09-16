@@ -1,11 +1,11 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "aa5f6c14f002dc47cd6d9b30a251f101",
+    "revision": "dbaab650758581baa3d8b0fe54c22f1c",
     "url": "/knowledge-graph-metadata-form/index.html"
   },
   {
-    "revision": "8a28d66709a5a96d0b61",
-    "url": "/knowledge-graph-metadata-form/static/css/main.f6f466fb.chunk.css"
+    "revision": "fcf72b8bd93db09f320b",
+    "url": "/knowledge-graph-metadata-form/static/css/main.bed29b99.chunk.css"
   },
   {
     "revision": "32da0bfa6e2116a30dab",
@@ -16,8 +16,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/knowledge-graph-metadata-form/static/js/3.68d536b4.chunk.js"
   },
   {
-    "revision": "8a28d66709a5a96d0b61",
-    "url": "/knowledge-graph-metadata-form/static/js/main.55354315.chunk.js"
+    "revision": "fcf72b8bd93db09f320b",
+    "url": "/knowledge-graph-metadata-form/static/js/main.9aa6a9a3.chunk.js"
   },
   {
     "revision": "e872abdd3a28965e5a96",
