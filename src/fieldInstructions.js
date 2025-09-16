@@ -66,9 +66,12 @@ const fieldInstructions = {
     "distLicense": " ... ",
     "distMediaType": " ... ",
     "distPackagingFormat": " ... ",
+    "linkedResourceTarget": "...",
+    "linkedResourceTriples": "...",
     "distRights": " ... ",
-    "distSpatialResolution": " ... ",
+    "distSpatialResolution": "Specify the spatial resolution of this distribution in meters.",
     "distTemporalResolution": " ... ",
+    "distIssued": "The date when this distribution was issued or published.",
     "exampleResourceAccessURL": " ... ",
     "exampleResourceDescription": " ... ",
     "exampleResourceMediaType": " ... ",
@@ -96,6 +99,12 @@ const fieldInstructions = {
     "sparqlStatus": " ... ",
     "sparqlTitle": " ... ",
     "vocabulariesUsedInput": " ... ",
+    
+    // Role form fields
+    "roleType": "Select the type of role this person or organization plays in relation to the knowledge graph (Creator, Publisher, or Funder).",
+    "roleAgent": "The IRI (Internationalized Resource Identifier) that uniquely identifies the person or organization in this role.",
+    "roleGivenName": "The given name (first name) of the person in this role.",
+    "roleMbox": "The email address of the person or organization in this role.",
   };
   
   export default fieldInstructions;

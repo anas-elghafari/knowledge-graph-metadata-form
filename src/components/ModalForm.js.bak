@@ -6,7 +6,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   // Initial form state
   const initialFormState = {
     identifier: [uuidv4()], // Auto-generate UUID
-    type: ['dcat:Dataset', 'void:Dataset'], // Both types checked by default
+    type: [], // Type field starts empty and requires user selection
     title: '',
     description: '',
     
@@ -20,7 +20,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     homepageURL: [],
     otherPages: [],
     
-    // Roles array (replaces individual role objects)
+    // Roles array - replaces individual role fields
     roles: [],
     
     // Other fields
@@ -66,24 +66,15 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [publicationReferencesInput, setPublicationReferencesInput] = useState('');
   const [languageInput, setLanguageInput] = useState('');
   const [iriTemplateInput, setIriTemplateInput] = useState('');
-  // Linked Resources collection state (similar to example resources)
-  const emptyLinkedResource = {
-    target: '',
-    triples: ''
-  };
-  const [currentLinkedResource, setCurrentLinkedResource] = useState(emptyLinkedResource);
-  const [linkedResources, setLinkedResources] = useState([]);
-  const [editingLinkedResourceIdx, setEditingLinkedResourceIdx] = useState(null);
-  const [linkedResourceTargetValid, setLinkedResourceTargetValid] = useState(false);
-  const [linkedResourceTriplesValid, setLinkedResourceTriplesValid] = useState(false);
+  const [linkedResourcesInput, setLinkedResourcesInput] = useState('');
   const [exampleResourceInput, setExampleResourceInput] = useState('');
   const [sourceInput, setSourceInput] = useState('');
   const [nameSpaceInput, setNameSpaceInput] = useState('');
   const [imageFileName, setImageFileName] = useState('');
-  // Role editing state (similar to distribution editing)
+  // Current role being edited
   const [currentRole, setCurrentRole] = useState({
-    roleType: 'resourceProvider',
-    inputMode: 'agentIRI', // 'agentIRI' or 'nameEmail'
+    roleType: 'Creator', // Default role type
+    inputType: 'agentIRI', // 'agentIRI' or 'nameEmail'
     agent: '',
     givenName: '',
     mbox: ''
@@ -114,8 +105,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     spatialResolution: '',
     temporalResolution: '',
     releaseDate: '',
-    modificationDate: '',
-    issued: ''
+    modificationDate: ''
   });
 
   const [vocabulariesUsedInput, setVocabulariesUsedInput] = useState('');
@@ -236,46 +226,9 @@ const handleAddExampleResource = () => {
     updated[editingExampleResourceIdx] = currentExampleResource;
     setExampleResources(updated);
   } else {
-    // Add new
-    setExampleResources([...exampleResources, currentExampleResource]);
+    setExampleResources(prev => [...prev, currentExampleResource]);
   }
-  setCurrentExampleResource(emptyExampleResource);
-  setEditingExampleResourceIdx(null);
-};
-
-// Linked Resource handlers
-const handleCurrentLinkedResourceChange = (field, value) => {
-  setCurrentLinkedResource(prev => ({ ...prev, [field]: value }));
-};
-
-const handleAddLinkedResource = () => {
-  if (editingLinkedResourceIdx !== null) {
-    // Save edits
-    const updated = [...linkedResources];
-    updated[editingLinkedResourceIdx] = currentLinkedResource;
-    setLinkedResources(updated);
-  } else {
-    // Add new
-    setLinkedResources([...linkedResources, currentLinkedResource]);
-  }
-  setCurrentLinkedResource(emptyLinkedResource);
-  setEditingLinkedResourceIdx(null);
-};
-
-const handleEditLinkedResource = (idx) => {
-  setCurrentLinkedResource(linkedResources[idx]);
-  setEditingLinkedResourceIdx(idx);
-};
-
-const handleRemoveLinkedResource = (idx) => {
-  const updated = linkedResources.filter((_, i) => i !== idx);
-  setLinkedResources(updated);
-  if (editingLinkedResourceIdx === idx) {
-    setCurrentLinkedResource(emptyLinkedResource);
-    setEditingLinkedResourceIdx(null);
-  } else if (editingLinkedResourceIdx > idx) {
-    setEditingLinkedResourceIdx(editingLinkedResourceIdx - 1);
-  }
+  resetExampleResourceForm();
 };
 
 const handleEditExampleResource = (idx) => {
@@ -324,7 +277,7 @@ const handleCancelEditExampleResource = () => {
   // Valid states for other fields
   const [titleValid, setTitleValid] = useState(false);
   const [descriptionValid, setDescriptionValid] = useState(false);
-  const [typeValid, setTypeValid] = useState(true); // Valid by default since both types are pre-selected
+  const [typeValid, setTypeValid] = useState(false);
   const [licenseValid, setLicenseValid] = useState(false);
   const [versionValid, setVersionValid] = useState(true); // Version validation state
   const [accessStatementValid, setAccessStatementValid] = useState(false);
@@ -332,6 +285,7 @@ const handleCancelEditExampleResource = () => {
   const [nameSpaceInputValid, setNameSpaceInputValid] = useState(false);
   const [languageInputValid, setLanguageInputValid] = useState(false);
   const [iriTemplateInputValid, setIriTemplateInputValid] = useState(false);
+  const [linkedResourcesInputValid, setLinkedResourcesInputValid] = useState(false);
   const [restAPIInputValid, setRestAPIInputValid] = useState(false);
   const [exampleQueriesInputValid, setExampleQueriesInputValid] = useState(false);
 
@@ -350,32 +304,6 @@ const handleCancelEditExampleResource = () => {
   useEffect(() => {
       if (initialFormData) {
         setFormData(initialFormData);
-        
-        // Handle loading custom license input from draft
-        if (initialFormData.customLicenseInput) {
-          setCustomLicenseInput(initialFormData.customLicenseInput);
-        }
-        
-        // If license starts with "Other-", extract the custom part and set dropdown to "Other"
-        if (initialFormData.license && initialFormData.license.startsWith('Other-')) {
-          const customPart = initialFormData.license.substring(6); // Remove "Other-" prefix
-          setCustomLicenseInput(customPart);
-          setFormData(prev => ({
-            ...prev,
-            license: 'Other'
-          }));
-        }
-        
-        // Load collection data from draft
-        if (initialFormData.sparqlEndpoint) {
-          setSparqlEndpoints(initialFormData.sparqlEndpoint);
-        }
-        if (initialFormData.exampleResource) {
-          setExampleResources(initialFormData.exampleResource);
-        }
-        if (initialFormData.linkedResources) {
-          setLinkedResources(initialFormData.linkedResources);
-        }
       }
     }, [initialFormData]);
 
@@ -536,18 +464,13 @@ const handleCancelEditExampleResource = () => {
     const [licenseError, setLicenseError] = useState('');
     const [accessStatementError, setAccessStatementError] = useState('');
     const [currentRoleAgentError, setCurrentRoleAgentError] = useState('');
-    const [currentRoleMboxError, setCurrentRoleMboxError] = useState('');
     const [distDownloadURLError, setDistDownloadURLError] = useState('');
     const [distAccessURLError, setDistAccessURLError] = useState('');
-    
-    // State for custom license input
-    const [customLicenseInput, setCustomLicenseInput] = useState('');
     
     // Valid states for new IRI fields
     const [vocabulariesUsedInputValid, setVocabulariesUsedInputValid] = useState(false);
     const [metadataSchemaInputValid, setMetadataSchemaInputValid] = useState(false);
     const [currentRoleAgentValid, setCurrentRoleAgentValid] = useState(false);
-    const [currentRoleMboxValid, setCurrentRoleMboxValid] = useState(false);
     const [distDownloadURLValid, setDistDownloadURLValid] = useState(false);
     const [distAccessURLValid, setDistAccessURLValid] = useState(false);
     
@@ -612,11 +535,6 @@ const handleCancelEditExampleResource = () => {
     };
   
     const handleTypeChange = (value) => {
-      // Prevent unchecking dcat:Dataset - it's always required
-      if (value === 'dcat:Dataset') {
-        return;
-      }
-      
       setFormData(prevData => {
         const currentTypes = prevData.type || [];
         let newTypes;
@@ -641,89 +559,79 @@ const handleCancelEditExampleResource = () => {
 
 
   // Handle current role field changes
-  const handleCurrentRoleChange = (field, value) => {
-    setCurrentRole(prevRole => ({
-      ...prevRole,
-      [field]: value
-    }));
-  };
-
-  // Reset current role form
-  const resetCurrentRoleForm = () => {
+  const handleRoleChange = (field, value) => {
     setCurrentRole({
-      roleType: 'resourceProvider',
-      inputMode: 'agentIRI',
+      ...currentRole,
+      [field]: value
+    });
+  };
+  
+  // Handle role input type toggle
+  const handleRoleInputTypeToggle = (newInputType) => {
+    setCurrentRole({
+      ...currentRole,
+      inputType: newInputType,
+      // Clear fields when switching
+      agent: newInputType === 'agentIRI' ? currentRole.agent : '',
+      givenName: newInputType === 'nameEmail' ? currentRole.givenName : '',
+      mbox: newInputType === 'nameEmail' ? currentRole.mbox : ''
+    });
+    
+    // Reset validation
+    setCurrentRoleAgentError('');
+    setCurrentRoleAgentValid(false);
+  };
+  
+  // Validate a role before adding it
+  const validateRole = (role) => {
+    if (role.inputType === 'agentIRI') {
+      return role.agent && role.agent.trim() !== '';
+    } else {
+      return role.givenName && role.givenName.trim() !== '' && 
+             role.mbox && role.mbox.trim() !== '';
+    }
+  };
+  
+  // Add a role
+  const handleAddRole = () => {
+    if (!validateRole(currentRole)) {
+      setMessage('Please fill in all required fields for the role');
+      return;
+    }
+    
+    setFormData({
+      ...formData,
+      roles: [...formData.roles, {...currentRole}]
+    });
+    
+    // Reset the current role form
+    setCurrentRole({
+      roleType: 'Creator',
+      inputType: 'agentIRI',
       agent: '',
       givenName: '',
       mbox: ''
     });
-    setCurrentRoleAgentError('');
-    setCurrentRoleAgentValid(false);
-    setCurrentRoleMboxError('');
-    setCurrentRoleMboxValid(false);
-  };
-
-  // Validate a role before adding it
-  const validateRole = (role) => {
-    if (role.inputMode === 'agentIRI') {
-      if (!role.agent.trim()) {
-        return { isValid: false, error: 'Agent IRI is required.' };
-      }
-      const iriError = isValidIriString(role.agent.trim());
-      if (iriError) {
-        return { isValid: false, error: `Invalid IRI: ${iriError}` };
-      }
-      return { isValid: true };
-    } else {
-      if (!role.givenName.trim()) {
-        return { isValid: false, error: 'Given Name is required.' };
-      }
-      if (!role.mbox.trim()) {
-        return { isValid: false, error: 'Email address is required.' };
-      }
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(role.mbox.trim())) {
-        return { isValid: false, error: 'Please enter a valid email address.' };
-      }
-      return { isValid: true };
-    }
-  };
-
-  // Add a role
-  const handleAddRole = () => {
-    const validation = validateRole(currentRole);
-    if (!validation.isValid) {
-      setMessage(validation.error);
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-
-    // Create role object without inputMode, only store actual field values
-    const newRole = {
-      roleType: currentRole.roleType,
-      agent: currentRole.agent || '',
-      givenName: currentRole.givenName || '',
-      mbox: currentRole.mbox || '',
-      id: Date.now() // Simple ID for React keys
-    };
-
-    setFormData({
-      ...formData,
-      roles: [...formData.roles, newRole]
-    });
-
-    resetCurrentRoleForm();
+    
     setMessage('Role added successfully');
     setTimeout(() => setMessage(''), 2000);
   };
-
+  
   // Remove a role
   const handleRemoveRole = (index) => {
-    const newRoles = formData.roles.filter((_, i) => i !== index);
+    const newRoles = [...formData.roles];
+    newRoles.splice(index, 1);
     setFormData({
       ...formData,
       roles: newRoles
     });
+  };
+  
+  // Edit a role
+  const handleEditRole = (index) => {
+    setCurrentRole({...formData.roles[index]});
+    handleRemoveRole(index);
+    document.querySelector('.role-form').scrollIntoView({ behavior: 'smooth' });
   };
   
   // Handle adding a date tag
@@ -898,6 +806,7 @@ const handleCancelEditExampleResource = () => {
       'keywords': setKeywordsInputValid,
       'language': setLanguageInputValid,
       'iriTemplate': setIriTemplateInputValid,
+      'linkedResources': setLinkedResourcesInputValid,
       'nameSpace': setNameSpaceInputValid,
       'vocabulariesUsed': setVocabulariesUsedInputValid,
       'metadataSchema': setMetadataSchemaInputValid,
@@ -919,9 +828,7 @@ const handleCancelEditExampleResource = () => {
     'exampleResourceTitle': setExampleResourceTitleValid,
     'exampleResourceMediaType': setExampleResourceMediaTypeValid,
     'exampleResourceDescription': setExampleResourceDescriptionValid,
-    'exampleResourceStatus': setExampleResourceStatusValid,
-    'linkedResourceTarget': setLinkedResourceTargetValid,
-    'linkedResourceTriples': setLinkedResourceTriplesValid
+    'exampleResourceStatus': setExampleResourceStatusValid
     };
     
     const setValidFunc = validSetters[name];
@@ -930,26 +837,6 @@ const handleCancelEditExampleResource = () => {
     // Set valid if field has content
     setValidFunc(value && value.trim().length > 0);
 };
-
-  // Email validation function for mbox field
-  const validateEmailInput = (e) => {
-    const { value } = e.target;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
-    if (!value || value.trim() === '') {
-      setCurrentRoleMboxError('');
-      setCurrentRoleMboxValid(false);
-      return;
-    }
-    
-    if (emailRegex.test(value.trim())) {
-      setCurrentRoleMboxError('');
-      setCurrentRoleMboxValid(true);
-    } else {
-      setCurrentRoleMboxError('Please enter a valid email address');
-      setCurrentRoleMboxValid(false);
-    }
-  };
   
   const handleRemoveTag = (fieldName, index) => {
     const newTags = [...formData[fieldName]];
@@ -1074,6 +961,12 @@ const handleCancelEditExampleResource = () => {
       };
     }
     
+    if (linkedResourcesInput.trim()) {
+      updatedFormData = {
+        ...updatedFormData,
+        linkedResources: [...updatedFormData.linkedResources, linkedResourcesInput.trim()]
+      };
+    }
     
     if (exampleResourceInput.trim()) {
       updatedFormData = {
@@ -1129,14 +1022,25 @@ const handleCancelEditExampleResource = () => {
     const currDist = currentDistribution;
     if (currDist.title || currDist.description || currDist.mediaType || 
         currDist.downloadURL || currDist.accessURL) {
-      // Only add the distribution if it passes full validation
-      const validation = validateDistribution(currDist);
-      if (validation.isValid) {
-        updatedFormData = {
-          ...updatedFormData,
-          distributions: [...updatedFormData.distributions, {...currDist}]
-        };
-      }
+      // Check if current distribution is partially filled and valid
+    const currDist = currentDistribution;
+    if (validateDistribution(currDist)) {
+      // Only add the distribution if it has the required fields
+      updatedFormData = {
+        ...updatedFormData,
+        distributions: [...updatedFormData.distributions, {...currDist}]
+      };
+    }
+    
+    // Check if current role is partially filled and valid
+    const currRole = currentRole;
+    if (validateRole(currRole)) {
+      // Only add the role if it has the required fields
+      updatedFormData = {
+        ...updatedFormData,
+        roles: [...updatedFormData.roles, {...currRole}]
+      };
+    }  }
     }
     
     // Update the state with all changes
@@ -1155,54 +1059,14 @@ const handleCancelEditExampleResource = () => {
 
   // Validate a distribution before adding it
   const validateDistribution = (dist) => {
-    // Check required fields
-    if (!dist.title || !dist.description || !dist.mediaType || 
-        !dist.downloadURL || !dist.accessURL) {
-      return { isValid: false, error: 'Please fill in all required fields for the distribution' };
-    }
-
-    // Validate required IRI fields
-    const downloadURLError = isValidIriString(dist.downloadURL);
-    if (downloadURLError) {
-      return { isValid: false, error: `Invalid Download URL: ${downloadURLError}` };
-    }
-
-    const accessURLError = isValidIriString(dist.accessURL);
-    if (accessURLError) {
-      return { isValid: false, error: `Invalid Access URL: ${accessURLError}` };
-    }
-
-    // Validate optional IRI fields (only if they have values)
-    if (dist.accessService && dist.accessService.trim()) {
-      const accessServiceError = isValidIriString(dist.accessService);
-      if (accessServiceError) {
-        return { isValid: false, error: `Invalid Access Service: ${accessServiceError}` };
-      }
-    }
-
-    if (dist.hasPolicy && dist.hasPolicy.trim()) {
-      const hasPolicyError = isValidIriString(dist.hasPolicy);
-      if (hasPolicyError) {
-        return { isValid: false, error: `Invalid Has Policy: ${hasPolicyError}` };
-      }
-    }
-
-    if (dist.license && dist.license.trim()) {
-      const licenseError = isValidIriString(dist.license);
-      if (licenseError) {
-        return { isValid: false, error: `Invalid License: ${licenseError}` };
-      }
-    }
-
-    return { isValid: true };
+    return dist.title && dist.description && dist.mediaType && 
+           dist.downloadURL && dist.accessURL;
   };
 
   // Add a distribution
   const handleAddDistribution = () => {
-    const validation = validateDistribution(currentDistribution);
-    if (!validation.isValid) {
-      setMessage(validation.error);
-      setTimeout(() => setMessage(''), 5000);
+    if (!validateDistribution(currentDistribution)) {
+      setMessage('Please fill in all required fields for the distribution');
       return;
     }
     
@@ -1228,8 +1092,7 @@ const handleCancelEditExampleResource = () => {
       spatialResolution: '',
       temporalResolution: '',
       releaseDate: '',
-      modificationDate: '',
-      issued: ''
+      modificationDate: ''
     });
 
     setMessage('Distribution added successfully');
@@ -1353,6 +1216,43 @@ const handleCancelEditExampleResource = () => {
       validateDateInput(syntheticEvent);
     }, 0);
   };
+
+
+  const formatDatesForSubmission = (formData) => {
+    const updatedForm = { ...formData };
+    
+    // Format single date fields
+    if (updatedForm.createdDate) {
+      updatedForm.createdDate = convertToISODate(updatedForm.createdDate);
+    }
+    
+    if (updatedForm.publishedDate) {
+      updatedForm.publishedDate = convertToISODate(updatedForm.publishedDate);
+    }
+    
+    // Format date arrays
+    if (updatedForm.modifiedDate && updatedForm.modifiedDate.length > 0) {
+      updatedForm.modifiedDate = updatedForm.modifiedDate.map(date => 
+        convertToISODate(date)
+      );
+    }
+    
+    // Format dates in distributions
+    if (updatedForm.distributions && updatedForm.distributions.length > 0) {
+      updatedForm.distributions = updatedForm.distributions.map(dist => {
+        const newDist = { ...dist };
+        if (newDist.releaseDate) {
+          newDist.releaseDate = convertToISODate(newDist.releaseDate);
+        }
+        if (newDist.modificationDate) {
+          newDist.modificationDate = convertToISODate(newDist.modificationDate);
+        }
+        return newDist;
+      });
+    }
+    
+    return updatedForm;
+  };
   
   
   const handleSubmit = async (e) => {
@@ -1420,24 +1320,17 @@ const handleCancelEditExampleResource = () => {
       return;
     }
     
-    // Sync SPARQL endpoints, Example Resources, and Linked Resources before submission
+    // Sync SPARQL endpoints and Example Resources before submission
     updatedForm.sparqlEndpoint = sparqlEndpoints;
     updatedForm.exampleResource = exampleResources;
-    updatedForm.linkedResources = linkedResources;
 
     // Proceed with submission
     setIsSubmitting(true);
     setMessage('');
     
-    // Handle custom license formatting
-    let finalFormData = { ...updatedForm };
-    if (updatedForm.license === 'Other' && customLicenseInput.trim()) {
-      finalFormData.license = `Other-${customLicenseInput.trim()}`;
-    }
-    
     try {
       // Submit form data to parent component
-      const result = await onSubmit(finalFormData);
+      const result = await onSubmit(updatedForm);
       
       if (result.success) {
         setMessage('Form submitted successfully!');
@@ -1471,27 +1364,16 @@ const handleCancelEditExampleResource = () => {
     // First add any pending tag inputs
     const updatedForm = addPendingTagInputs();
     
-    // Handle custom license formatting for drafts
-    let finalFormData = { ...updatedForm };
-    if (updatedForm.license === 'Other' && customLicenseInput.trim()) {
-      finalFormData.license = `Other-${customLicenseInput.trim()}`;
-    }
     
-    // Sync collections before saving draft
-    finalFormData.sparqlEndpoint = sparqlEndpoints;
-    finalFormData.exampleResource = exampleResources;
-    finalFormData.linkedResources = linkedResources;
-    
-    const existingDraftId = finalFormData.draftId || null;
+    const existingDraftId = updatedForm.draftId || null;
     const draftId = existingDraftId || `draft-${Date.now()}`;
     const draft = {
       id: draftId,
-      name: finalFormData.title || 'Untitled Draft',
+      name: updatedForm.title || 'Untitled Draft',
       date: new Date().toISOString(),
       formData: {
-        ...finalFormData,
-        draftId: draftId, // Store the draft ID in the form data
-        customLicenseInput: customLicenseInput // Also save the custom license input separately for editing
+        ...updatedForm,
+        draftId: draftId // Store the draft ID in the form data
       }
     };
     
@@ -1785,16 +1667,15 @@ const handleCancelEditExampleResource = () => {
               Type <span className="field-indicator required-indicator">required</span>
             </label>
             <div className={`checkbox-group ${typeValid ? 'form-input-valid' : ''}`}>
-              <div className="checkbox-item">
+              <div>
                 <input
                   type="checkbox"
                   name="type"
                   id="typeDataset"
                   checked={formData.type.includes('dcat:Dataset')}
                   onChange={() => handleTypeChange('dcat:Dataset')}
-                  disabled
                 />
-                <label htmlFor="typeDataset">dcat:Dataset <span className="required-indicator">(required)</span></label>
+                <label htmlFor="typeDataset">dcat:Dataset</label>
               </div>
               <div>
                 <input
@@ -2317,22 +2198,18 @@ const handleCancelEditExampleResource = () => {
             <h3 className="section-title">Roles</h3>
             <div className="field-indicator optional-indicator">optional, multiple submissions allowed</div>
           </div>
-
+          
           {/* Display existing roles */}
           <div className="roles-list">
             {formData.roles.map((role, index) => (
-              <div key={`role-${role.id || index}`} className="distribution-item">
-                <div className="distribution-header">
-                  <div className="distribution-title">{role.roleType}</div>
-                  <div className="distribution-actions">
+              <div key={`role-${index}`} className="role-item">
+                <div className="role-header">
+                  <div className="role-title">Role: {role.roleType}</div>
+                  <div className="role-actions">
                     <button 
                       type="button"
                       className="edit-button"
-                      onClick={() => {
-                        setCurrentRole({...role});
-                        handleRemoveRole(index);
-                        document.querySelector('.role-form').scrollIntoView({ behavior: 'smooth' });
-                      }}
+                      onClick={() => handleEditRole(index)}
                     >
                       Edit
                     </button>
@@ -2345,19 +2222,19 @@ const handleCancelEditExampleResource = () => {
                     </button>
                   </div>
                 </div>
-                <div className="distribution-preview">
-                  {role.agent ? (
-                    <div className="distribution-field">
+                <div className="role-preview">
+                  {role.inputType === 'agentIRI' ? (
+                    <div className="role-field">
                       <span className="field-label">Agent:</span>
                       <span className="field-value">{role.agent}</span>
                     </div>
                   ) : (
                     <>
-                      <div className="distribution-field">
+                      <div className="role-field">
                         <span className="field-label">Given Name:</span>
                         <span className="field-value">{role.givenName}</span>
                       </div>
-                      <div className="distribution-field">
+                      <div className="role-field">
                         <span className="field-label">Mbox:</span>
                         <span className="field-value">{role.mbox}</span>
                       </div>
@@ -2367,9 +2244,13 @@ const handleCancelEditExampleResource = () => {
               </div>
             ))}
           </div>
-
+          
           {/* Role Form */}
           <div className="role-form">
+            <div className="role-form-header">
+              <h4>Add New Role</h4>
+            </div>
+            
             {/* Role Type Dropdown */}
             <div className="form-group">
               <label htmlFor="roleType">
@@ -2378,126 +2259,86 @@ const handleCancelEditExampleResource = () => {
               <select
                 id="roleType"
                 value={currentRole.roleType}
-                onChange={(e) => handleCurrentRoleChange('roleType', e.target.value)}
+                onChange={(e) => handleRoleChange('roleType', e.target.value)}
                 className="subfield-input"
               >
-                <option value="resourceProvider">resourceProvider</option>
-                <option value="custodian">custodian</option>
-                <option value="owner">owner</option>
-                <option value="user">user</option>
-                <option value="distributor">distributor</option>
-                <option value="originator">originator</option>
-                <option value="pointOfContact">pointOfContact</option>
-                <option value="principalInvestigator">principalInvestigator</option>
-                <option value="processor">processor</option>
-                <option value="publisher">publisher</option>
-                <option value="author">author</option>
-                <option value="sponsor">sponsor</option>
-                <option value="coAuthor">coAuthor</option>
-                <option value="collaborator">collaborator</option>
-                <option value="editor">editor</option>
-                <option value="mediator">mediator</option>
-                <option value="rightsHolder">rightsHolder</option>
-                <option value="contributor">contributor</option>
-                <option value="funder">funder</option>
-                <option value="stakeholder">stakeholder</option>
+                <option value="Creator">Creator</option>
+                <option value="Publisher">Publisher</option>
+                <option value="Funder">Funder</option>
               </select>
             </div>
-
-            {/* Toggle between Agent IRI and Name + mBox */}
+            
+            {/* Toggle between Agent IRI and Name+mBox */}
             <div className="toggle-container">
               <div className="toggle-switch-container">
-                <label className={`toggle-option ${currentRole.inputMode === 'agentIRI' ? 'active' : 'inactive'}`}>
+                <label className={`toggle-option ${currentRole.inputType === 'agentIRI' ? 'active' : 'inactive'}`}>
                   Agent IRI available
                 </label>
                 <label className="toggle-switch">
                   <input
                     type="checkbox"
-                    checked={currentRole.inputMode === 'nameEmail'}
+                    checked={currentRole.inputType === 'nameEmail'}
                     onChange={(e) => {
-                      const newMode = e.target.checked ? 'nameEmail' : 'agentIRI';
-                      handleCurrentRoleChange('inputMode', newMode);
-                      
-                      // Clear fields when switching
-                      if (newMode === 'agentIRI') {
-                        handleCurrentRoleChange('givenName', '');
-                        handleCurrentRoleChange('mbox', '');
-                        setCurrentRoleMboxError('');
-                        setCurrentRoleMboxValid(false);
-                      } else {
-                        handleCurrentRoleChange('agent', '');
-                        setCurrentRoleAgentError('');
-                        setCurrentRoleAgentValid(false);
-                      }
+                      const newInputType = e.target.checked ? 'nameEmail' : 'agentIRI';
+                      handleRoleInputTypeToggle(newInputType);
                     }}
                   />
-                  <span className={`slider ${currentRole.inputMode === 'nameEmail' ? 'active' : ''}`}></span>
+                  <span className={`slider ${currentRole.inputType === 'nameEmail' ? 'active' : ''}`}></span>
                 </label>
-                <label className={`toggle-option ${currentRole.inputMode === 'nameEmail' ? 'active' : 'inactive'}`}>
+                <label className={`toggle-option ${currentRole.inputType === 'nameEmail' ? 'active' : 'inactive'}`}>
                   Name + mBox
                 </label>
               </div>
             </div>
             
-            {/* Role Fields */}
+            {/* Role Fields based on toggle selection */}
             <div className="role-fields">
-              {currentRole.inputMode === 'agentIRI' ? (
-                <div className="form-group">
-                  <label htmlFor="roleAgent" className="subfield-label">
-                    Agent <span className="field-indicator required-indicator">required (IRI)</span>
-                  </label>
+              {currentRole.inputType === 'agentIRI' ? (
+                <div className="role-field">
+                  <label htmlFor="currentRoleAgent" className="subfield-label">Agent</label>
                   <input
                     onBlur={validateIriInput}
                     type="text"
-                    id="roleAgent"
+                    id="currentRoleAgent"
                     name="currentRoleAgent"
                     value={currentRole.agent}
                     onChange={(e) => {
-                      handleCurrentRoleChange('agent', e.target.value);
+                      handleRoleChange('agent', e.target.value);
                       setCurrentRoleAgentError('');
                       setCurrentRoleAgentValid(false);
                     }}
                     className={`subfield-input ${currentRoleAgentError ? 'input-error' : ''} ${currentRoleAgentValid ? 'input-valid' : ''}`}
                   />
                   {currentRoleAgentError && <div className="iri-error-message">{currentRoleAgentError}</div>}
-                </div> 
+                </div>
               ) : (
                 <>
-                  <div className="form-group">
-                    <label htmlFor="roleGivenName" className="subfield-label">
-                      Given Name <span className="field-indicator required-indicator">required</span>
-                    </label>
+                  <div className="role-field">
+                    <label htmlFor="currentRoleGivenName" className="subfield-label">Given Name</label>
                     <input
                       onBlur={validateRegularInput}
                       type="text"
-                      id="roleGivenName"
+                      id="currentRoleGivenName"
                       value={currentRole.givenName}
-                      onChange={(e) => handleCurrentRoleChange('givenName', e.target.value)}
+                      onChange={(e) => handleRoleChange('givenName', e.target.value)}
                       className="subfield-input"
                     />
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="roleMbox" className="subfield-label">
-                      Mbox <span className="field-indicator required-indicator">required</span>
-                    </label>
+                  <div className="role-field">
+                    <label htmlFor="currentRoleMbox" className="subfield-label">Mbox</label>
                     <input
-                      onBlur={validateEmailInput}
+                      onBlur={validateRegularInput}
                       type="email"
-                      id="roleMbox"
+                      id="currentRoleMbox"
                       value={currentRole.mbox}
-                      onChange={(e) => {
-                        handleCurrentRoleChange('mbox', e.target.value);
-                        setCurrentRoleMboxError('');
-                        setCurrentRoleMboxValid(false);
-                      }}
-                      className={`subfield-input ${currentRoleMboxError ? 'input-error' : ''} ${currentRoleMboxValid ? 'input-valid' : ''}`}
+                      onChange={(e) => handleRoleChange('mbox', e.target.value)}
+                      className="subfield-input"
                     />
-                    {currentRoleMboxError && <div className="iri-error-message">{currentRoleMboxError}</div>}
                   </div>
                 </>
               )}
             </div>
-
+            
             {/* Add Role Button */}
             <div className="form-group">
               <button 
@@ -2606,7 +2447,7 @@ const handleCancelEditExampleResource = () => {
                  )}
                  {dist.spatialResolution && (
                    <div className="distribution-field">
-                     <span className="field-label">Spatial Resolution In Meters:</span>
+                     <span className="field-label">Spatial Resolution:</span>
                      <span className="field-value">{dist.spatialResolution}</span>
                    </div>
                  )}
@@ -2630,12 +2471,6 @@ const handleCancelEditExampleResource = () => {
                    <div className="distribution-field">
                      <span className="field-label">Modification Date:</span>
                      <span className="field-value">{formatDate(dist.modificationDate)}</span>
-                   </div>
-                 )}
-                 {dist.issued && (
-                   <div className="distribution-field">
-                     <span className="field-label">Issued:</span>
-                     <span className="field-value">{dist.issued}</span>
                    </div>
                  )}
                </div>
@@ -2831,7 +2666,7 @@ const handleCancelEditExampleResource = () => {
            </div>
            <div className="form-group">
              <label htmlFor="distSpatialResolution">
-               Spatial Resolution In Meters <span className="field-indicator optional-indicator">optional</span>
+               Spatial Resolution <span className="field-indicator optional-indicator">optional</span>
              </label>
              <input
                type="text"
@@ -2909,20 +2744,6 @@ const handleCancelEditExampleResource = () => {
               />
             </div>
             {distModificationDateError && <div className="date-error-message">{distModificationDateError}</div>}
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="distIssued">
-              Issued <span className="field-indicator optional-indicator">optional</span>
-            </label>
-            <input
-              type="text"
-              id="distIssued"
-              name="distIssued"
-              value={currentDistribution.issued}
-              onChange={(e) => handleDistributionChange('issued', e.target.value)}
-              className="subfield-input"
-            />
           </div>
     
            
@@ -3571,94 +3392,46 @@ const handleCancelEditExampleResource = () => {
            </div>
          </div>
     
-         {/* Linked Resources [0,∞] - Optional, collection with target and triples */}
+         {/* Linked Resources [0,∞] - Optional, multiple values */}
          <div className="form-group">
-           <label>
+           <label htmlFor="linkedResources">
              Linked Resources <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
            </label>
-           
-           {/* Display existing Linked Resources */}
-           <div className="distributions-list">
-             {linkedResources.map((resource, idx) => (
-               <div key={`linked-resource-${idx}`} className="distribution-item">
-                 <div className="distribution-header">
-                   <div className="distribution-title">{resource.target || '(no target)'}</div>
-                   <div className="distribution-actions">
-                     <button 
-                       type="button" 
-                       className="edit-button"
-                       onClick={() => handleEditLinkedResource(idx)}
-                     >
-                       Edit
-                     </button>
-                     <button 
-                       type="button" 
-                       className="remove-button"
-                       onClick={() => handleRemoveLinkedResource(idx)}
-                     >
-                       Remove
-                     </button>
-                   </div>
-                 </div>
-                 <div className="distribution-details">
-                   <div><strong>Target:</strong> {resource.target}</div>
-                   <div><strong>Triples:</strong> {resource.triples}</div>
-                 </div>
-               </div>
-             ))}
-           </div>
-           
-           {/* Linked Resource Form */}
-           <div className="distribution-form">
-             <div className="form-group">
-               <label htmlFor="linkedResourceTarget">
-                 Target <span className="field-indicator optional-indicator">optional</span>
-               </label>
-               <input
-                 type="text"
-                 id="linkedResourceTarget"
-                 name="linkedResourceTarget"
-                 value={currentLinkedResource.target}
-                 onChange={e => handleCurrentLinkedResourceChange('target', e.target.value)}
-                 onBlur={validateRegularInput}
-                 className={`subfield-input ${linkedResourceTargetValid ? 'form-input-valid' : ''}`}
-               />
-             </div>
-             <div className="form-group">
-               <label htmlFor="linkedResourceTriples">
-                 Triples <span className="field-indicator optional-indicator">optional</span>
-               </label>
-               <input
-                 type="text"
-                 id="linkedResourceTriples"
-                 name="linkedResourceTriples"
-                 value={currentLinkedResource.triples}
-                 onChange={e => handleCurrentLinkedResourceChange('triples', e.target.value)}
-                 onBlur={validateRegularInput}
-                 className={`subfield-input ${linkedResourceTriplesValid ? 'form-input-valid' : ''}`}
-               />
-             </div>
-             <div className="button-row">
+           <div className="tag-input-container">
+             <div className="tag-input-row">
+                <input
+                  type="text"
+                  id="linkedResources"
+                  name="linkedResources"
+                  value={linkedResourcesInput}
+                  onChange={(e) => setLinkedResourcesInput(e.target.value)}
+                  onBlur={validateRegularInput}
+                  onKeyPress={(e) => handleKeyPress(e, 'linkedResources', linkedResourcesInput, setLinkedResourcesInput)}
+                  className={`tag-input ${linkedResourcesInputValid ? 'form-input-valid' : ''}`}
+                />
                <button 
                  type="button" 
-                 className="add-button"
-                 onClick={handleAddLinkedResource}
+                 className="tag-add-button"
+                 onClick={() => handleAddTag('linkedResources', linkedResourcesInput, setLinkedResourcesInput)}
                >
-                 {editingLinkedResourceIdx !== null ? 'Save Changes' : 'Add Another LinkSet'}
+                 +
                </button>
-               {editingLinkedResourceIdx !== null && (
-                 <button 
-                   type="button" 
-                   className="cancel-button"
-                   onClick={() => {
-                     setCurrentLinkedResource(emptyLinkedResource);
-                     setEditingLinkedResourceIdx(null);
-                   }}
-                 >
-                   Cancel
-                 </button>
-               )}
              </div>
+             <div className="tag-list">
+               {formData.linkedResources.map((resource, index) => (
+                 <div key={`linked-resource-${index}`} className="tag-item">
+                   <span className="tag-text">{resource}</span>
+                   <button 
+                     type="button"
+                     className="tag-remove"
+                     onClick={() => handleRemoveTag('linkedResources', index)}
+                   >
+                     ×
+                   </button>
+                 </div>
+               ))}
+             </div>
+             <div className="field-hint"> </div>
            </div>
          </div>
     
@@ -3780,67 +3553,23 @@ const handleCancelEditExampleResource = () => {
           {/* License for Metadata */}
           <div className="form-group">
             <label htmlFor="license">
-              Metadata License <span className="field-indicator required-indicator">required, 1 value only</span>
+              Metadata License <span className="field-indicator required-indicator">required (IRI), 1 value only</span>
             </label>
-            <select
+            <input
+               type="text"
                id="license"
                name="license"
                value={formData.license}
                onChange={(e) => {
                  handleChange(e);
                  setLicenseError('');
-                 setLicenseValid(true);
+                 setLicenseValid(false);
                }}
+               onBlur={validateIriInput}
                required
                className={`form-control ${licenseValid ? 'form-input-valid' : ''} ${licenseError ? 'form-input-error' : ''}`}
-             >
-               <option value="">Select a license...</option>
-               <option value="https://opensource.org/licenses/MIT">MIT License</option>
-               <option value="https://opensource.org/licenses/Apache-2.0">Apache License 2.0</option>
-               <option value="https://opensource.org/licenses/GPL-3.0">GNU General Public License v3.0</option>
-               <option value="https://opensource.org/licenses/GPL-2.0">GNU General Public License v2.0</option>
-               <option value="https://opensource.org/licenses/LGPL-3.0">GNU Lesser General Public License v3.0</option>
-               <option value="https://opensource.org/licenses/BSD-3-Clause">BSD 3-Clause License</option>
-               <option value="https://opensource.org/licenses/BSD-2-Clause">BSD 2-Clause License</option>
-               <option value="https://opensource.org/licenses/ISC">ISC License</option>
-               <option value="https://www.boost.org/LICENSE_1_0.txt">Boost Software License</option>
-               <option value="https://opensource.org/licenses/Zlib">Zlib License</option>
-               <option value="http://www.wtfpl.net/">WTFPL (Do What The F* You Want To Public License)</option>
-               <option value="https://opensource.org/licenses/AGPL-3.0">GNU Affero General Public License (AGPL) v3.0</option>
-               <option value="https://opensource.org/licenses/MPL-2.0">Mozilla Public License (MPL) 2.0</option>
-               <option value="https://opensource.org/licenses/EPL-1.0">Eclipse Public License (EPL)</option>
-               <option value="https://opensource.org/licenses/EUPL-1.1">European Union Public License (EUPL)</option>
-               <option value="https://opensource.org/licenses/MS-PL">Microsoft Public License (Ms-PL)</option>
-               <option value="https://opensource.org/licenses/MS-RL">Microsoft Reciprocal License (Ms-RL)</option>
-               <option value="https://opensource.org/licenses/CDDL-1.0">Common Development and Distribution License (CDDL)</option>
-               <option value="https://opensource.org/licenses/Artistic-2.0">Artistic License 2.0</option>
-               <option value="https://opensource.org/licenses/AFL-3.0">Academic Free License (AFL)</option>
-               <option value="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0</option>
-               <option value="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0</option>
-               <option value="https://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0</option>
-               <option value="https://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0</option>
-               <option value="https://creativecommons.org/publicdomain/zero/1.0/">Creative Commons Zero (Public Domain)</option>
-               <option value="https://unlicense.org/">The Unlicense</option>
-               <option value="Other">Other (specify below)</option>
-             </select>
+             />
              {licenseError && <div className="iri-error-message">{licenseError}</div>}
-             
-             {/* Conditional input field for "Other" license */}
-             {formData.license === 'Other' && (
-               <div className="custom-license-input" style={{marginTop: '10px'}}>
-                 <input
-                   type="text"
-                   id="customLicense"
-                   name="customLicense"
-                   placeholder="Enter custom license name or URL..."
-                   value={customLicenseInput}
-                   onChange={(e) => setCustomLicenseInput(e.target.value)}
-                   className="form-control"
-                   style={{fontSize: '14px'}}
-                 />
-               </div>
-             )}
-             
              <div className="field-hint">This license applies to the metadata record itself, not the dataset content</div>
           </div>
         </form>
@@ -3868,11 +3597,10 @@ const handleCancelEditExampleResource = () => {
        >
          {isSubmitting ? 'Submitting...' : 'Submit'}
        </button>
-     </div>
+      </div>
     </div>
-    </div>
-    );
-    }
-    
+  </div>
+  );
+}
 
 export default ModalForm;

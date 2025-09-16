@@ -1588,6 +1588,31 @@ label:has(+ .form-input-error) .field-indicator {
   box-shadow: 0 0 0 0.1rem rgba(40, 167, 69, 0.15) !important;
 }
 
+.uuid-display {
+  font-family: monospace;
+  background-color: var(--dark-surface-lighter);
+  padding: 10px 15px;
+  border-radius: 4px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: 16px;
+  margin: 5px 0;
+  color: var(--success-green);
+  border-left: 4px solid var(--success-green);
+}
+
+.version-id-display {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--dark-text-secondary);
+  margin-top: 4px;
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
 
 .toggle-container input[type="checkbox"] {
   position: relative;
