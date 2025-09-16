@@ -241,4 +241,4 @@ Consider:
   }
 };
 
-export { getFieldSuggestions, getBulkFieldSuggestions };
+export { getBulkFieldSuggestions };
