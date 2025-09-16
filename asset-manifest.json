@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/knowledge-graph-metadata-form/static/css/main.bed29b99.chunk.css",
-    "main.js": "/knowledge-graph-metadata-form/static/js/main.473a9fce.chunk.js",
-    "main.js.map": "/knowledge-graph-metadata-form/static/js/main.473a9fce.chunk.js.map",
+    "main.js": "/knowledge-graph-metadata-form/static/js/main.fd32a3f2.chunk.js",
+    "main.js.map": "/knowledge-graph-metadata-form/static/js/main.fd32a3f2.chunk.js.map",
     "runtime~main.js": "/knowledge-graph-metadata-form/static/js/runtime~main.bf9071f5.js",
     "runtime~main.js.map": "/knowledge-graph-metadata-form/static/js/runtime~main.bf9071f5.js.map",
     "static/js/2.26f645dc.chunk.js": "/knowledge-graph-metadata-form/static/js/2.26f645dc.chunk.js",
@@ -10,7 +10,7 @@
     "static/js/3.68d536b4.chunk.js": "/knowledge-graph-metadata-form/static/js/3.68d536b4.chunk.js",
     "static/js/3.68d536b4.chunk.js.map": "/knowledge-graph-metadata-form/static/js/3.68d536b4.chunk.js.map",
     "index.html": "/knowledge-graph-metadata-form/index.html",
-    "precache-manifest.4bac3a5878823c16096e12299655c4ce.js": "/knowledge-graph-metadata-form/precache-manifest.4bac3a5878823c16096e12299655c4ce.js",
+    "precache-manifest.2d024df15eabab6a3eab883a007184c5.js": "/knowledge-graph-metadata-form/precache-manifest.2d024df15eabab6a3eab883a007184c5.js",
     "service-worker.js": "/knowledge-graph-metadata-form/service-worker.js",
     "static/css/main.bed29b99.chunk.css.map": "/knowledge-graph-metadata-form/static/css/main.bed29b99.chunk.css.map"
   }
