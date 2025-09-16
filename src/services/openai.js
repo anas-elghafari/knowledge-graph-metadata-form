@@ -23,12 +23,17 @@ const suggestionSchema = {
           explanation: {
             type: "string",
             description: "Brief explanation of why this suggestion is appropriate"
+          },
+          confidence: {
+            type: "string",
+            enum: ["high", "medium", "low"],
+            description: "Confidence level for this suggestion"
           }
         },
-        required: ["value", "explanation"]
+        required: ["value", "explanation", "confidence"]
       },
       minItems: 1,
-      maxItems: 3
+      maxItems: 5
     },
     fieldType: {
       type: "string",
@@ -42,25 +47,39 @@ const suggestionSchema = {
  * Get AI suggestions for a form field with structured output
  * @param {string} fieldName - The field name
  * @param {string} context - Context about the dataset
+ * @param {string} cheatSheetContent - Optional cheat sheet content to help generate better suggestions
  * @returns {Promise<string>} - Formatted AI response
  */
-export const getFieldSuggestions = async (fieldName, context) => {
+export const getFieldSuggestions = async (fieldName, context, cheatSheetContent = '') => {
   try {
     // Debug: Check if API key is available
     const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
     console.log('API Key available:', !!apiKey);
     console.log('API Key starts with:', apiKey ? apiKey.substring(0, 10) + '...' : 'undefined');
     
-    const prompt = `You are helping fill out metadata for a knowledge graph dataset. 
+    let prompt = `You are helping fill out metadata for a knowledge graph dataset. 
     
 Field: "${fieldName}"
 Dataset Context: "${context}"
 
-Provide 1-3 appropriate suggestions for this field. Consider:
+${cheatSheetContent ? `
+Reference Information (Cheat Sheet):
+${cheatSheetContent}
+
+Use the above reference information to provide more accurate and relevant suggestions.
+` : ''}
+
+Provide 1-5 appropriate suggestions for this field, ordered by likelihood of being correct (most likely first). Consider:
 - The field name and its likely purpose in metadata
 - The dataset context provided
 - Best practices for knowledge graph metadata
-- Be specific and actionable`;
+${cheatSheetContent ? '- The reference information provided in the cheat sheet' : ''}
+- Be specific and actionable
+
+For each suggestion, provide:
+1. The actual value/content
+2. A brief explanation of why it's appropriate
+3. A confidence level (high/medium/low)`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -84,10 +103,16 @@ Provide 1-3 appropriate suggestions for this field. Consider:
 
     const result = JSON.parse(response.choices[0].message.content);
     
-    // Format the structured response for display
-    const formattedSuggestions = result.suggestions.map((suggestion, index) => 
-      `${index + 1}. ${suggestion.value}\n   ${suggestion.explanation}`
-    ).join('\n\n');
+    // Format the structured response for display as bullet points
+    const formattedSuggestions = result.suggestions
+      .sort((a, b) => {
+        // Sort by confidence: high > medium > low
+        const confidenceOrder = { high: 3, medium: 2, low: 1 };
+        return confidenceOrder[b.confidence] - confidenceOrder[a.confidence];
+      })
+      .map((suggestion, index) => 
+        `• ${suggestion.value}\n  ${suggestion.explanation} (${suggestion.confidence} confidence)`
+      ).join('\n\n');
 
     return formattedSuggestions;
 

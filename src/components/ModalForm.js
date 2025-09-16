@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import fieldInstructions from '../fieldInstructions';
 import { getFieldSuggestions } from '../services/openai';
 
-function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null }) {
+function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null, cheatSheetContent = '' }) {
   // Initial form state
   const initialFormState = {
     identifier: [uuidv4()], // Auto-generate UUID
@@ -68,7 +68,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       // Create context from current form data
       const context = formData.title || formData.description || 'Dataset metadata form';
       
-      const suggestion = await getFieldSuggestions(fieldName, context);
+      const suggestion = await getFieldSuggestions(fieldName, context, cheatSheetContent);
       setAiSuggestions(prev => ({ ...prev, [fieldName]: suggestion }));
     } catch (error) {
       console.error(`Error getting AI suggestion for ${fieldName}:`, error);

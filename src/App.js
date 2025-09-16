@@ -9,9 +9,12 @@ function App() {
   const [submissions, setSubmissions] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [draftToLoad, setDraftToLoad] = useState(null);
+  const [cheatSheetFile, setCheatSheetFile] = useState(null);
+  const [cheatSheetContent, setCheatSheetContent] = useState('');
   
   // Create a ref for the SavedDrafts component
   const savedDraftsRef = useRef(null);
+  const fileInputRef = useRef(null);
   
   // Load any saved submissions from localStorage on component mount
   useEffect(() => {
@@ -38,6 +41,24 @@ function App() {
     setShowModal(true);
   };
   
+  // Handle file upload for cheat sheet
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setCheatSheetFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCheatSheetContent(e.target.result);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Handle upload button click
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
   // Handle drafts being saved
   const handleDraftSaved = () => {
     // Refresh the saved drafts display
@@ -98,6 +119,27 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>Knowledge Graph Metadata</h1>
+        <div className="header-controls">
+          <button 
+            className="upload-button"
+            onClick={handleUploadClick}
+            title="Upload cheat sheet to help AI generate better suggestions"
+          >
+            📄 Upload Cheat Sheet
+          </button>
+          {cheatSheetFile && (
+            <span className="file-indicator">
+              ✅ {cheatSheetFile.name}
+            </span>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.md,.doc,.docx,.pdf"
+            onChange={handleFileUpload}
+            style={{ display: 'none' }}
+          />
+        </div>
       </header>
       <main>
         <div className="form-container">
@@ -125,6 +167,7 @@ function App() {
             onClose={handleCloseModal}
             initialFormData={draftToLoad}
             onDraftSaved={handleDraftSaved}
+            cheatSheetContent={cheatSheetContent}
           />
         )}
       </main>
