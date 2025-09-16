@@ -1,4 +1,6 @@
-# Getting Started with Create React App
+# Knowledge Graph Metadata Form
+
+A React-based form for collecting and managing knowledge graph metadata with AI-powered field suggestions.
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
