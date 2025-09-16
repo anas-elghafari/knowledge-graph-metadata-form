@@ -13,9 +13,6 @@ This guide explains how to set up automated deployment to GitHub Pages with secu
 - **Name**: `REACT_APP_OPENAI_API_KEY`
 - **Value**: `[Your OpenAI API key here]`
 
-- **Name**: `REACT_APP_API_URL`
-- **Value**: `http://localhost:5000/api`
-
 ## Step 2: Enable GitHub Pages
 
 1. Go to **Settings** → **Pages**
