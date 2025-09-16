@@ -31,8 +31,9 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: CI=false npm run build
+        run: npm run build
         env:
+          CI: false
           REACT_APP_OPENAI_API_KEY: ${{ secrets.REACT_APP_OPENAI_API_KEY }}
 
       - name: Setup Pages
