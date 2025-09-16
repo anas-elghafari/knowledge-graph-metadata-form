@@ -143,4 +143,102 @@ For each suggestion, provide:
   }
 };
 
-export default { getFieldSuggestions };
+// Define schema for bulk field suggestions
+const bulkSuggestionSchema = {
+  type: "object",
+  properties: {
+    fieldSuggestions: {
+      type: "object",
+      additionalProperties: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            value: {
+              type: "string",
+              description: "The suggested value for the field"
+            },
+            explanation: {
+              type: "string", 
+              description: "Brief explanation of why this suggestion is appropriate"
+            },
+            confidence: {
+              type: "string",
+              enum: ["high", "medium", "low"],
+              description: "Confidence level for this suggestion"
+            }
+          },
+          required: ["value", "explanation", "confidence"]
+        }
+      }
+    }
+  },
+  required: ["fieldSuggestions"]
+};
+
+// Function to get bulk suggestions for all fields at once
+export const getBulkFieldSuggestions = async (fieldDefinitions, cheatSheetContent) => {
+  try {
+    const fieldDescriptions = fieldDefinitions.map(field => 
+      `- ${field.name}: ${field.instruction || 'No specific instruction provided'}`
+    ).join('\n');
+
+    const prompt = `You are helping fill out metadata for a knowledge graph dataset using the provided cheat sheet content.
+
+Field Definitions:
+${fieldDescriptions}
+
+Reference Information (Cheat Sheet):
+${cheatSheetContent}
+
+Based on the cheat sheet content, provide 1-3 appropriate suggestions for each field, ordered by likelihood of being correct (most likely first). For each suggestion, provide:
+1. The actual value/content
+2. A brief explanation of why it's appropriate based on the cheat sheet
+3. A confidence level (high/medium/low)
+
+Consider:
+- The field name and its likely purpose in metadata
+- The specific content and context from the cheat sheet
+- Best practices for knowledge graph metadata
+- Be specific and actionable based on the cheat sheet content`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. Analyze the provided cheat sheet content and provide structured, helpful suggestions for each metadata field based on that content." },
+        { role: "user", content: prompt }
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "bulk_field_suggestions",
+          schema: bulkSuggestionSchema
+        }
+      },
+      max_tokens: 2000,
+      temperature: 0.7
+    });
+
+    const result = JSON.parse(response.choices[0].message.content);
+    
+    // Format suggestions for each field
+    const formattedSuggestions = {};
+    Object.entries(result.fieldSuggestions).forEach(([fieldName, suggestions]) => {
+      formattedSuggestions[fieldName] = suggestions
+        .sort((a, b) => {
+          const confidenceOrder = { high: 3, medium: 2, low: 1 };
+          return confidenceOrder[b.confidence] - confidenceOrder[a.confidence];
+        })
+        .map((suggestion, index) => 
+          `• ${suggestion.value}\n  ${suggestion.explanation} (${suggestion.confidence} confidence)`
+        ).join('\n\n');
+    });
+
+    return formattedSuggestions;
+  } catch (error) {
+    console.error('Error getting bulk field suggestions:', error);
+    throw error;
+  }
+};
+
+export { getFieldSuggestions, getBulkFieldSuggestions };

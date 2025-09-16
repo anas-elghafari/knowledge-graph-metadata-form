@@ -410,6 +410,34 @@ select {
   flex-shrink: 0;
 }
 
+.modal-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.processing-indicator {
+  color: #ffa500;
+  font-size: 0.9rem;
+  font-weight: 500;
+  animation: pulse 1.5s ease-in-out infinite alternate;
+}
+
+.suggestions-ready-indicator {
+  color: #28a745;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .modal-header h2 {
   margin: 0;
   font-size: 1.5rem;

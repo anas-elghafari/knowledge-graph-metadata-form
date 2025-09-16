@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import fieldInstructions from '../fieldInstructions';
-import { getFieldSuggestions } from '../services/openai';
+import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
 
-function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null, cheatSheetContent = '' }) {
+function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null }) {
   // Initial form state
   const initialFormState = {
     identifier: [uuidv4()], // Auto-generate UUID
@@ -59,6 +59,12 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [showAISuggestions, setShowAISuggestions] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [loadingSuggestions, setLoadingSuggestions] = useState({});
+  
+  // Cheat sheet upload state
+  const [cheatSheetFile, setCheatSheetFile] = useState(null);
+  const [cheatSheetContent, setCheatSheetContent] = useState('');
+  const [processingCheatSheet, setProcessingCheatSheet] = useState(false);
+  const [bulkSuggestionsReady, setBulkSuggestionsReady] = useState(false);
 
   // Function to get AI suggestion for a field
   const getAISuggestion = async (fieldName) => {
@@ -76,6 +82,70 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     } finally {
       setLoadingSuggestions(prev => ({ ...prev, [fieldName]: false }));
     }
+  };
+
+  // Handle file upload for cheat sheet
+  const handleCheatSheetUpload = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setCheatSheetFile(file);
+      setProcessingCheatSheet(true);
+      setBulkSuggestionsReady(false);
+      
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const content = e.target.result;
+        setCheatSheetContent(content);
+        
+        // Process bulk suggestions
+        await processBulkSuggestions(content);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Process bulk AI suggestions for all fields
+  const processBulkSuggestions = async (cheatSheetContent) => {
+    try {
+      // Define all the fields we want suggestions for
+      const fieldDefinitions = [
+        { name: 'title', instruction: fieldInstructions.title },
+        { name: 'description', instruction: fieldInstructions.description },
+        { name: 'alternativeTitle', instruction: fieldInstructions.alternativeTitle },
+        { name: 'acronym', instruction: fieldInstructions.acronym },
+        { name: 'homepageURL', instruction: fieldInstructions.homepageURL },
+        { name: 'otherPages', instruction: fieldInstructions.otherPages },
+        { name: 'createdDate', instruction: fieldInstructions.createdDate },
+        { name: 'modifiedDate', instruction: fieldInstructions.modifiedDate },
+        { name: 'publishedDate', instruction: fieldInstructions.publishedDate },
+        { name: 'primaryReferenceDoc', instruction: fieldInstructions.primaryReferenceDoc },
+        { name: 'keywords', instruction: fieldInstructions.keywords },
+        { name: 'themes', instruction: fieldInstructions.themes },
+        { name: 'spatialCoverage', instruction: fieldInstructions.spatialCoverage },
+        { name: 'temporalCoverage', instruction: fieldInstructions.temporalCoverage },
+        { name: 'language', instruction: fieldInstructions.language },
+        { name: 'conformsTo', instruction: fieldInstructions.conformsTo },
+        { name: 'accessRights', instruction: fieldInstructions.accessRights },
+        { name: 'provenance', instruction: fieldInstructions.provenance },
+        { name: 'qualifiedRelation', instruction: fieldInstructions.qualifiedRelation }
+      ];
+
+      const bulkSuggestions = await getBulkFieldSuggestions(fieldDefinitions, cheatSheetContent);
+      
+      // Update AI suggestions state with bulk results
+      setAiSuggestions(prev => ({ ...prev, ...bulkSuggestions }));
+      
+      setProcessingCheatSheet(false);
+      setBulkSuggestionsReady(true);
+    } catch (error) {
+      console.error('Error processing bulk suggestions:', error);
+      setProcessingCheatSheet(false);
+    }
+  };
+
+  // Handle upload button click
+  const handleUploadClick = () => {
+    cheatSheetInputRef.current?.click();
   };
 
   // No longer need identifierInput state since it's auto-generated
@@ -115,6 +185,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   });
 
   const fileInputRef = useRef(null);
+  const cheatSheetInputRef = useRef(null);
 
   const [createdDateError, setCreatedDateError] = useState('');
   const [publishedDateError, setPublishedDateError] = useState('');
@@ -1611,7 +1682,41 @@ const handleCancelEditExampleResource = () => {
     )}
       <div className={`modal-header`}>
         <h2>Knowledge Graph Metadata</h2>
-        <button className={`modal-close-button`} onClick={onClose}>×</button>
+        <div className="modal-header-controls">
+          {showAISuggestions && (
+            <>
+              <button 
+                className="upload-button"
+                onClick={handleUploadClick}
+                title="Upload cheat sheet to help AI generate better suggestions"
+              >
+                📄 Upload Cheat Sheet
+              </button>
+              {cheatSheetFile && (
+                <span className="file-indicator">
+                  ✅ {cheatSheetFile.name}
+                </span>
+              )}
+              {processingCheatSheet && (
+                <div className="processing-indicator">
+                  🔄 Processing cheat sheet...
+                </div>
+              )}
+              {bulkSuggestionsReady && (
+                <div className="suggestions-ready-indicator">
+                  ✨ AI suggestions populated!
+                </div>
+              )}
+              <input
+                ref={cheatSheetInputRef}
+                type="file"
+                onChange={handleCheatSheetUpload}
+                style={{ display: 'none' }}
+              />
+            </>
+          )}
+          <button className={`modal-close-button`} onClick={onClose}>×</button>
+        </div>
       </div>
       
       <div className={`modal-body`} onClick={(e) => e.stopPropagation()}>
