@@ -3584,25 +3584,27 @@ const handleCancelEditExampleResource = () => {
                  <div className="distribution-header">
                    <div className="distribution-title">{resource.target || '(no target)'}</div>
                    <div className="distribution-actions">
-                     <button 
-                       type="button" 
+                     <button
+                       type="button"
                        className="edit-button"
                        onClick={() => handleEditLinkedResource(idx)}
+                       aria-label="Edit Linked Resource"
                      >
                        Edit
                      </button>
-                     <button 
-                       type="button" 
-                       className="remove-button"
+                     <button
+                       type="button"
+                       className="tag-remove"
                        onClick={() => handleRemoveLinkedResource(idx)}
+                       aria-label="Remove Linked Resource"
                      >
-                       Remove
+                       ×
                      </button>
                    </div>
                  </div>
                  <div className="distribution-details">
-                   <div><strong>Target:</strong> {resource.target}</div>
-                   <div><strong>Triples:</strong> {resource.triples}</div>
+                   <div><strong>void:target:</strong> {resource.target}</div>
+                   <div><strong>void:triples:</strong> {resource.triples}</div>
                  </div>
                </div>
              ))}
@@ -3612,7 +3614,7 @@ const handleCancelEditExampleResource = () => {
            <div className="distribution-form">
              <div className="form-group">
                <label htmlFor="linkedResourceTarget">
-                 Target <span className="field-indicator optional-indicator">optional</span>
+                 void:target <span className="field-indicator optional-indicator">optional</span>
                </label>
                <input
                  type="text"
@@ -3626,7 +3628,7 @@ const handleCancelEditExampleResource = () => {
              </div>
              <div className="form-group">
                <label htmlFor="linkedResourceTriples">
-                 Triples <span className="field-indicator optional-indicator">optional</span>
+                 void:triples <span className="field-indicator optional-indicator">optional</span>
                </label>
                <input
                  type="text"
