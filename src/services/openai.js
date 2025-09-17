@@ -241,4 +241,3 @@ Consider:
   }
 };
 
-export { getBulkFieldSuggestions };
