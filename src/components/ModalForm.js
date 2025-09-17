@@ -1684,7 +1684,7 @@ const handleCancelEditExampleResource = () => {
 
   return (
     <div className={`modal-overlay`}>
-    <div className={`modal-content`} onClick={e => e.stopPropagation()}>
+    <div className={`modal-content ${showAISuggestions ? 'with-ai-panel' : ''}`} onClick={e => e.stopPropagation()}>
     
     {message && (
       <div className={`floating-message`}>
