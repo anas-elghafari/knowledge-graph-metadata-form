@@ -191,10 +191,11 @@ IMPORTANT INSTRUCTIONS:
 - For each field, scan the cheat sheet thoroughly to find relevant information
 - If the cheat sheet mentions specific datasets, organizations, people, URLs, or technical details, use those exact values
 - Prioritize information that appears explicitly in the cheat sheet over general knowledge
+- SPECIAL CASE: If a field contains "NS" (not supplied), return empty suggestions with explanation that the field exists but has no value provided
 
 FIELD NAME MATCHING:
 - Field names in the form may NOT match exactly with names in the cheat sheet
-- Look for variations in capitalization, spacing, and wording. 
+- Look for variations in capitalization, spacing, and slightly different wording or phrasing. 
 
 RESPONSE FORMAT:
 You must return a JSON object with "fieldSuggestions" containing each field. For each field, provide either:
@@ -229,12 +230,18 @@ EXAMPLES OF FIELD MATCHING:
 - "homepageURL" field → look for "Homepage", "Website", "URL", "Link", "Home Page", etc.
 - "keywords" field → look for "Keywords", "Tags", "Subject", "Topics", "Terms", etc.
 - "language" field → look for "Language", "Languages", "Lang", "Linguistic Coverage", etc.
-- "createdDate" field → look for "Created", "Creation Date", "Date Created", "Start Date", etc.`;
+- "createdDate" field → look for "Created", "Creation Date", "Date Created", "Start Date", etc.
+
+HANDLING "NS" VALUES:
+- If you find a field in the cheat sheet but its value is "NS" (not supplied), return:
+  {
+    "noSuggestionsReason": "Field found in cheat sheet but marked as 'NS' (not supplied) - no value provided"
+  }`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. Your PRIMARY task is to extract specific information from the provided cheat sheet content. NEVER use generic suggestions - only use actual data found in the cheat sheet. Use semantic matching to find relevant data even when field names don't match exactly - look for variations in capitalization, spacing, and wording. For each suggestion, provide both the value and a brief explanation of why you suggested it based on the cheat sheet content." },
+        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. Your PRIMARY task is to extract specific information from the provided cheat sheet content. NEVER use generic suggestions - only use actual data found in the cheat sheet. Use semantic matching to find relevant data even when field names don't match exactly - look for variations in capitalization, spacing, and wording. IMPORTANT: If a field value is 'NS' (not supplied), return empty suggestions with explanation that the field exists but no value is provided. For each suggestion, provide both the value and a brief explanation of why you suggested it based on the cheat sheet content." },
         { role: "user", content: prompt }
       ],
       response_format: {

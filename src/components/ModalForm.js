@@ -2431,50 +2431,6 @@ const handleCancelEditExampleResource = () => {
             </div>
           </div>
     
-          {/* Acronym */}
-          <div className="form-group">
-            <label htmlFor="acronym">
-              Acronym <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-            </label>
-            <div className="tag-input-container">
-              <div className="tag-input-row">
-              <input
-                  type="text"
-                  id="acronym"
-                  value={acronymInput}
-                  onChange={(e) => {
-                    setAcronymInput(e.target.value);
-                    setAcronymInputValid(false);
-                  }}
-                  onBlur={() => setAcronymInputValid(!!acronymInput.trim())}
-                  onKeyPress={(e) => handleKeyPress(e, 'acronym', acronymInput, setAcronymInput)}
-                  className={`tag-input ${acronymInputValid ? 'tag-input-valid' : ''}`}
-              />
-              <button 
-                  type="button" 
-                  className="tag-add-button"
-                  onClick={() => handleAddTag('acronym', acronymInput, setAcronymInput)}
-              >
-                  +
-              </button>
-              </div>
-              <div className="tag-list">
-                {formData.acronym.map((acr, index) => (
-                  <div key={`acronym-${index}`} className="tag-item">
-                    <span className="tag-text">{acr}</span>
-                    <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('acronym', index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div className="field-hint"> </div>
-            </div>
-          </div>
           
           {/* Homepage URL (optional, multiple values allowed, IRIs) */}
           <div className="form-group">
