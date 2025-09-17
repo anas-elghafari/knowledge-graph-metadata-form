@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import fieldInstructions from '../fieldInstructions';
 import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
 
-function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null }) {
+function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null, aiEnabledByDefault = false }) {
   // Initial form state
   const initialFormState = {
     identifier: [uuidv4()], // Auto-generate UUID
@@ -56,7 +56,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState('');
   // State for AI suggestions
-  const [showAISuggestions, setShowAISuggestions] = useState(false);
+  const [showAISuggestions, setShowAISuggestions] = useState(aiEnabledByDefault);
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [loadingSuggestions, setLoadingSuggestions] = useState({});
   const [activeField, setActiveField] = useState(null);
@@ -4130,13 +4130,23 @@ const handleCancelEditExampleResource = () => {
                   </div>
                 )}
                 
-                {activeField && aiSuggestions[activeField] && !loadingSuggestions[activeField] && (
+                {activeField && activeField !== 'waiting-for-cheatsheet' && !loadingSuggestions[activeField] && (
                   <div className="ai-suggestions-list">
                     <div className="suggestions-header">
                       Ranked by confidence (most likely first):
                     </div>
                     {(() => {
                       const suggestionText = aiSuggestions[activeField];
+                      
+                      // Handle case where no suggestions exist for this field
+                      if (!suggestionText) {
+                        return (
+                          <div className="no-answers-found">
+                            <div className="no-answers-title">No answers found for this field</div>
+                            <div className="no-answers-explanation">No suggestions were generated for this field from the cheat sheet.</div>
+                          </div>
+                        );
+                      }
                       
                       // Handle "no suggestions" case
                       if (!suggestionText.includes('•')) {
@@ -4213,7 +4223,7 @@ const handleCancelEditExampleResource = () => {
       </div>
      
       <div className="modal-footer">
-       <div className="ai-toggle-container">
+       <div className="ai-toggle-container" style={{ display: 'none' }}>
          <label className="ai-toggle-label">
            <input
              type="checkbox"

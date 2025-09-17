@@ -9,6 +9,7 @@ function App() {
   const [submissions, setSubmissions] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [draftToLoad, setDraftToLoad] = useState(null);
+  const [aiEnabledByDefault, setAiEnabledByDefault] = useState(false);
   
   // Create a ref for the SavedDrafts component
   const savedDraftsRef = useRef(null);
@@ -52,11 +53,19 @@ function App() {
     setDraftToLoad(null); // Reset any loaded draft
     setShowModal(true);
   };
+
+  // Handle opening the modal with AI enabled by default
+  const handleOpenModalWithAI = () => {
+    setDraftToLoad(null); // Reset any loaded draft
+    setAiEnabledByDefault(true);
+    setShowModal(true);
+  };
   
   // Handle closing the modal
   const handleCloseModal = () => {
     setShowModal(false);
     setDraftToLoad(null); // Reset the loaded draft when closing
+    setAiEnabledByDefault(false); // Reset AI default state when closing
   };
   
   // Handle form submission
@@ -109,6 +118,13 @@ function App() {
           >
             Create Metadata - Form/Manual
           </button>
+          <button 
+            className="submit-button" 
+            onClick={handleOpenModalWithAI}
+            style={{ width: 'auto', marginTop: '10px' }}
+          >
+            Create Metadata - AI Assisted
+          </button>
         </div>
         <DataTable submissions={submissions} />
         
@@ -126,6 +142,7 @@ function App() {
             onClose={handleCloseModal}
             initialFormData={draftToLoad}
             onDraftSaved={handleDraftSaved}
+            aiEnabledByDefault={aiEnabledByDefault}
           />
         )}
       </main>
