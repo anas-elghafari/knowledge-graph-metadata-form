@@ -105,10 +105,17 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     }
   };
 
-  // Handle file upload for cheat sheet
+  // Handle file upload for cheat sheet (CSV only)
   const handleCheatSheetUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
+      // Check if it's a CSV file
+      if (!file.name.endsWith('.csv')) {
+        alert('Please upload a CSV file only.');
+        event.target.value = ''; // Clear the input
+        return;
+      }
+      
       setCheatSheetFile(file);
       setProcessingCheatSheet(true);
       setBulkSuggestionsReady(false);
@@ -116,11 +123,14 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       const reader = new FileReader();
       reader.onload = async (e) => {
         const content = e.target.result;
+        console.log('CSV content loaded:', content.substring(0, 500) + '...');
+        
         setCheatSheetContent(content);
         
         // Process bulk suggestions
         await processBulkSuggestions(content);
       };
+      
       reader.readAsText(file);
     }
   };
@@ -156,12 +166,58 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       // Update AI suggestions state with bulk results
       setAiSuggestions(prev => ({ ...prev, ...bulkSuggestions }));
       
+      // Auto-populate fields with top suggestions
+      autoPopulateFieldsFromSuggestions(bulkSuggestions);
+      
       setProcessingCheatSheet(false);
       setBulkSuggestionsReady(true);
     } catch (error) {
       console.error('Error processing bulk suggestions:', error);
       setProcessingCheatSheet(false);
     }
+  };
+
+  // Auto-populate fields with top suggestions from bulk results
+  const autoPopulateFieldsFromSuggestions = (bulkSuggestions) => {
+    console.log('Auto-populating fields with suggestions:', bulkSuggestions);
+    const updatedFormData = { ...formData };
+    
+    Object.entries(bulkSuggestions).forEach(([fieldName, suggestionText]) => {
+      console.log(`Processing field ${fieldName} with text:`, suggestionText);
+      
+      // Skip auto-population if this is a "no suggestions" message
+      if (suggestionText.includes('No suitable suggestions') || suggestionText.includes('noSuggestionsReason')) {
+        console.log(`Skipping auto-population for ${fieldName} - no suggestions available`);
+        return;
+      }
+      
+      // Extract the first suggestion value from the formatted text
+      const firstSuggestionMatch = suggestionText.match(/• (.+?)\n/);
+      if (firstSuggestionMatch) {
+        const topSuggestion = firstSuggestionMatch[1].trim();
+        console.log(`Extracted top suggestion for ${fieldName}:`, topSuggestion);
+        
+        // Handle different field types
+        if (fieldName === 'title' || fieldName === 'description') {
+          updatedFormData[fieldName] = topSuggestion;
+        } else if (fieldName === 'createdDate' || fieldName === 'publishedDate') {
+          updatedFormData[fieldName] = topSuggestion;
+        } else if (Array.isArray(formData[fieldName])) {
+          // For array fields, add to the array if not already present
+          if (!updatedFormData[fieldName].includes(topSuggestion)) {
+            updatedFormData[fieldName] = [...updatedFormData[fieldName], topSuggestion];
+          }
+        } else {
+          // For other fields, set directly
+          updatedFormData[fieldName] = topSuggestion;
+        }
+      } else {
+        console.log(`No suggestion match found for ${fieldName}`);
+      }
+    });
+    
+    console.log('Updated form data:', updatedFormData);
+    setFormData(updatedFormData);
   };
 
   // Handle upload button click
@@ -536,10 +592,14 @@ const handleCancelEditExampleResource = () => {
         aiTooltip.style.cursor = 'pointer';
         aiTooltip.style.marginLeft = '8px';
         
-        // Add click handler to get AI suggestion
+        // Add click handler to show pre-fetched AI suggestion
         aiTooltip.addEventListener('click', () => {
-          if (!loadingSuggestions[fieldId]) {
-            getAISuggestion(fieldId);
+          // If we have bulk suggestions ready, use them directly
+          if (bulkSuggestionsReady) {
+            setActiveField(fieldId);
+          } else if (!bulkSuggestionsReady) {
+            // Show waiting message if no cheat sheet has been processed
+            setActiveField('waiting-for-cheatsheet');
           }
         });
 
@@ -549,15 +609,28 @@ const handleCancelEditExampleResource = () => {
         }
 
         label.appendChild(aiTooltip);
+        
+        // Add focus event listener to input field for auto-triggering AI suggestions
+        const inputField = label.parentElement.querySelector('input, textarea, select');
+        if (inputField) {
+          inputField.addEventListener('focus', () => {
+            // Auto-trigger AI suggestions when field is focused
+            if (bulkSuggestionsReady) {
+              setActiveField(fieldId);
+            } else if (!bulkSuggestionsReady) {
+              setActiveField('waiting-for-cheatsheet');
+            }
+          });
+        }
       } else {
-        // Remove AI tooltips when disabled
-        const existingAITooltip = label.querySelector('.ai-suggestion-tooltip');
-        if (existingAITooltip) {
-          existingAITooltip.remove();
+        // Remove AI tooltip if it exists
+        const existingTooltip = label.querySelector('.ai-suggestion-tooltip');
+        if (existingTooltip) {
+          existingTooltip.remove();
         }
       }
     });
-  }, [showAISuggestions, aiSuggestions, loadingSuggestions]);
+  }, [showAISuggestions, aiSuggestions, loadingSuggestions, bulkSuggestionsReady]);
 
 
   useEffect(() => {
@@ -1731,6 +1804,7 @@ const handleCancelEditExampleResource = () => {
               <input
                 ref={cheatSheetInputRef}
                 type="file"
+                accept=".csv"
                 onChange={handleCheatSheetUpload}
                 style={{ display: 'none' }}
               />
@@ -4061,19 +4135,69 @@ const handleCancelEditExampleResource = () => {
                     <div className="suggestions-header">
                       Ranked by confidence (most likely first):
                     </div>
-                    {aiSuggestions[activeField].split('\n').filter(line => line.trim().startsWith('•')).map((suggestion, index) => {
-                      const value = suggestion.replace('•', '').trim();
-                      return (
-                        <button
-                          key={index}
-                          className="suggestion-item"
-                          onClick={() => populateFieldWithSuggestion(activeField, value)}
-                          type="button"
-                        >
-                          {value}
-                        </button>
-                      );
-                    })}
+                    {(() => {
+                      const suggestionText = aiSuggestions[activeField];
+                      
+                      // Handle "no suggestions" case
+                      if (!suggestionText.includes('•')) {
+                        return (
+                          <div className="no-answers-found">
+                            <div className="no-answers-title">No answers found for this field</div>
+                            <div className="no-answers-explanation">{suggestionText}</div>
+                          </div>
+                        );
+                      }
+                      
+                      // Parse suggestions with explanations
+                      const suggestions = [];
+                      const lines = suggestionText.split('\n');
+                      let currentSuggestion = null;
+                      
+                      lines.forEach(line => {
+                        if (line.trim().startsWith('•')) {
+                          if (currentSuggestion) {
+                            suggestions.push(currentSuggestion);
+                          }
+                          currentSuggestion = {
+                            value: line.replace('•', '').trim(),
+                            explanation: ''
+                          };
+                        } else if (currentSuggestion && line.trim()) {
+                          currentSuggestion.explanation += (currentSuggestion.explanation ? ' ' : '') + line.trim();
+                        }
+                      });
+                      
+                      if (currentSuggestion) {
+                        suggestions.push(currentSuggestion);
+                      }
+                      
+                      return suggestions.map((suggestion, index) => (
+                        <div key={index} className="suggestion-card">
+                          <button
+                            className="suggestion-value"
+                            onClick={() => populateFieldWithSuggestion(activeField, suggestion.value)}
+                            type="button"
+                          >
+                            {suggestion.value}
+                          </button>
+                          {suggestion.explanation && (
+                            <div className="suggestion-explanation">
+                              {suggestion.explanation}
+                            </div>
+                          )}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+                
+                {activeField === 'waiting-for-cheatsheet' && (
+                  <div className="waiting-for-cheatsheet-message">
+                    <div className="waiting-icon">📋</div>
+                    <div className="waiting-text">
+                      <strong>Waiting for cheat sheet</strong>
+                      <p>Please upload a relevant cheat sheet to get AI suggestions for your fields.</p>
+                    </div>
                   </div>
                 )}
                 
@@ -4086,8 +4210,9 @@ const handleCancelEditExampleResource = () => {
             </div>
           )}
         </div>
+      </div>
      
-     <div className="modal-footer">
+      <div className="modal-footer">
        <div className="ai-toggle-container">
          <label className="ai-toggle-label">
            <input
@@ -4121,7 +4246,8 @@ const handleCancelEditExampleResource = () => {
        >
          {isSubmitting ? 'Submitting...' : 'Submit'}
        </button>
-     </div>
+      </div>
+    </div>
     </div>
   );
 }

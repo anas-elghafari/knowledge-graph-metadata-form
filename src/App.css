@@ -403,7 +403,7 @@ select {
 .modal-content-wrapper {
   display: flex;
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .form-panel {
@@ -419,6 +419,10 @@ select {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: sticky;
+  top: 20px;
+  height: calc(100vh - 40px);
+  align-self: flex-start;
 }
 
 .ai-panel-header {
@@ -463,29 +467,99 @@ select {
   gap: 8px;
 }
 
-.suggestion-item {
+.suggestion-card {
   background-color: var(--dark-surface);
   border: 1px solid var(--dark-border);
-  color: var(--dark-text);
-  padding: 12px;
-  border-radius: 6px;
-  text-align: left;
-  cursor: pointer;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
   transition: all 0.2s ease;
-  font-size: 0.9rem;
-  line-height: 1.4;
 }
 
-.suggestion-item:hover {
-  background-color: var(--button-hover);
-  border-color: var(--button-bg);
-  transform: translateY(-1px);
+.suggestion-card:hover {
+  border-color: var(--primary-blue);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+  transform: translateY(-2px);
+}
+
+.suggestion-value {
+  width: 100%;
+  background-color: var(--dark-surface-lighter);
+  border: none;
+  color: var(--dark-text);
+  padding: 16px 20px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--dark-border);
+}
+
+.suggestion-value:hover {
+  background-color: var(--primary-blue);
+  color: white;
+}
+
+.suggestion-explanation {
+  padding: 12px 20px;
+  color: var(--dark-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  font-style: italic;
+  background-color: var(--dark-surface);
+}
+
+.no-answers-found {
+  background-color: var(--dark-surface);
+  border: 1px solid var(--dark-border);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+}
+
+.no-answers-title {
+  color: var(--dark-text);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.no-answers-explanation {
+  color: var(--dark-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  font-style: italic;
 }
 
 .ai-panel-placeholder {
   text-align: center;
   color: var(--dark-text-secondary);
   padding: 40px 20px;
+  font-style: italic;
+}
+
+.waiting-for-cheatsheet-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--dark-text-secondary);
+}
+
+.waiting-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.waiting-text strong {
+  color: var(--dark-text);
+  font-size: 1.1rem;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.waiting-text p {
+  margin: 0;
+  line-height: 1.5;
   font-style: italic;
 }
 
@@ -552,7 +626,7 @@ select {
 
 .modal-body {
   padding: 24px;
-  overflow: hidden;
+  overflow-y: auto;
   max-height: calc(90vh - 130px);
   overscroll-behavior: contain;
 }

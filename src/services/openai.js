@@ -14,9 +14,23 @@ const suggestionSchema = {
     suggestions: {
       type: "array",
       items: {
-        type: "string",
-        description: "A candidate value for the field"
+        type: "object",
+        properties: {
+          value: {
+            type: "string",
+            description: "A candidate value for the field"
+          },
+          explanation: {
+            type: "string",
+            description: "Short explanation of why this value was suggested"
+          }
+        },
+        required: ["value", "explanation"]
       }
+    },
+    noSuggestionsReason: {
+      type: "string",
+      description: "Explanation for why no suggestions were found (only if suggestions array is empty)"
     }
   },
   required: ["suggestions"]
@@ -31,12 +45,8 @@ const suggestionSchema = {
  */
 export const getFieldSuggestions = async (fieldName, context, cheatSheetContent = '') => {
   try {
-    // Debug: Check if API key is available
-    const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
-    console.log('API Key available:', !!apiKey);
-    console.log('API Key starts with:', apiKey ? apiKey.substring(0, 10) + '...' : 'undefined');
-    
-    let prompt = `You are helping fill out metadata for a knowledge graph dataset. 
+     
+    let prompt = `You are helping fill out metadata form based on a provided cheat sheet.
     
 Field: "${fieldName}"
 Dataset Context: "${context}"
@@ -47,23 +57,25 @@ ${cheatSheetContent}
 Use the above reference information to provide more accurate and relevant suggestions.
 ` : ''}
 
-Provide 1-5 candidate values for this field, ordered by likelihood of being correct (most likely first). Return only the actual values that could be entered into the field - no explanations, no descriptions, just the values themselves.
+Provide 1 to 3 candidate values for this field, ordered by likelihood of being correct (most likely first).
+For each suggestion, provide both the value and a short explanation of why you suggested it.
 
-If you cannot find good candidates or do not understand the field/question, return an empty list.
+If you cannot find good candidates, provide a "noSuggestionsReason" explaining why:
+- Does the field name not appear in the cheat sheet?
+- Does the field name appear but without a valid value?
+- Is the cheat sheet data unclear or incomplete for this field?
 
 Consider:
-- The field name and its likely purpose in metadata
-- The dataset context provided
-- Best practices for knowledge graph metadata
-${cheatSheetContent ? '- The reference information provided in the cheat sheet' : ''}
-- Be specific and actionable`;
+- the cheat sheet provided is a spreadsheet of 3 columns
+- The field names are in the first column in cheatsheet  
+- The values (answers to be filled in) are in the third column in cheatsheet`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { 
           role: "system", 
-          content: "You are an expert in knowledge graph metadata and data cataloging. Provide only candidate values that can be directly entered into form fields - no explanations or descriptions." 
+          content: "Your task is to fill a metadata form based on cheat sheet data. For each suggestion, provide both the value and a brief explanation of why you suggested it based on the cheat sheet content." 
         },
         { role: "user", content: prompt }
       ],
@@ -74,19 +86,21 @@ ${cheatSheetContent ? '- The reference information provided in the cheat sheet' 
           schema: suggestionSchema
         }
       },
-      max_tokens: 300,
+      max_tokens: 1000,
       temperature: 0.7
     });
 
     const result = JSON.parse(response.choices[0].message.content);
     
+    console.log('Individual suggestion result:', result);
+    
     if (!result.suggestions || result.suggestions.length === 0) {
-      return 'No suitable suggestions found for this field.';
+      return result.noSuggestionsReason || 'No suitable suggestions found for this field.';
     }
     
     const formattedSuggestions = result.suggestions
-      .map((suggestion, index) => `• ${suggestion}`)
-      .join('\n');
+      .map((suggestion, index) => `• ${suggestion.value}\n  ${suggestion.explanation}`)
+      .join('\n\n');
     
     return `Ranked by confidence (most likely first):\n\n${formattedSuggestions}`;
 
@@ -124,11 +138,31 @@ const bulkSuggestionSchema = {
     fieldSuggestions: {
       type: "object",
       additionalProperties: {
-        type: "array",
-        items: {
-          type: "string",
-          description: "A candidate value for the field"
-        }
+        type: "object",
+        properties: {
+          suggestions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                value: {
+                  type: "string",
+                  description: "A candidate value for the field"
+                },
+                explanation: {
+                  type: "string",
+                  description: "Short explanation of why this value was suggested"
+                }
+              },
+              required: ["value", "explanation"]
+            }
+          },
+          noSuggestionsReason: {
+            type: "string",
+            description: "Explanation for why no suggestions were found (only if suggestions array is empty)"
+          }
+        },
+        required: ["suggestions"]
       }
     }
   },
@@ -142,28 +176,65 @@ export const getBulkFieldSuggestions = async (fieldDefinitions, cheatSheetConten
       `- ${field.name}: ${field.instruction || 'No specific instruction provided'}`
     ).join('\n');
 
-    const prompt = `You are helping fill out metadata for a knowledge graph dataset using the provided cheat sheet content.
+    const prompt = `You are helping fill out metadata for a knowledge graph dataset. The cheat sheet provided below contains ALL the information you need to generate accurate suggestions.
 
 Field Definitions:
 ${fieldDescriptions}
 
-Reference Information (Cheat Sheet):
+CRITICAL REFERENCE INFORMATION (Cheat Sheet):
 ${cheatSheetContent}
 
-Based on the cheat sheet content, provide 1-3 candidate values for each field, ordered by likelihood of being correct (most likely first). Return only the actual values that could be entered into each field - no explanations, no descriptions, just the values themselves.
+IMPORTANT INSTRUCTIONS:
+- The cheat sheet above is your PRIMARY and MOST IMPORTANT source of information
+- Extract specific values, names, URLs, dates, and details DIRECTLY from the cheat sheet content
+- Do NOT use generic or placeholder suggestions - use ACTUAL data from the cheat sheet
+- For each field, scan the cheat sheet thoroughly to find relevant information
+- If the cheat sheet mentions specific datasets, organizations, people, URLs, or technical details, use those exact values
+- Prioritize information that appears explicitly in the cheat sheet over general knowledge
 
-If you cannot find good candidates for a field or do not understand the field/question, return an empty list for that field.
+FIELD NAME MATCHING:
+- Field names in the form may NOT match exactly with names in the cheat sheet
+- Look for variations in capitalization, spacing, and wording. 
+
+RESPONSE FORMAT:
+You must return a JSON object with "fieldSuggestions" containing each field. For each field, provide either:
+1. An object with "suggestions" array (each item has "value" and "explanation")
+2. An object with "noSuggestionsReason" string if no suggestions found. In the case of no suggestions, provide a short explanation of why (e.g. "Field name from form has no match, even fuzzy matching failed")
+
+Example:
+{
+  "fieldSuggestions": {
+    "title": {
+      "suggestions": [
+        {"value": "QuoteKG Dataset", "explanation": "Found in cheat sheet as main dataset name"}
+      ]
+    },
+    "someField": {
+      "noSuggestionsReason": "Field name does not appear in the cheat sheet"
+    }
+  }
+}
+
+Based on the cheat sheet content, provide 1-3 candidate values for each field, ordered by likelihood of being correct (most likely first).
 
 Consider:
 - The field name and its likely purpose in metadata
 - The specific content and context from the cheat sheet
-- Best practices for knowledge graph metadata
-- Be specific and actionable based on the cheat sheet content`;
+- Be specific and actionable based on the cheat sheet content
+- Match field concepts semantically, not just by exact text matching
+
+EXAMPLES OF FIELD MATCHING:
+- "title" field → look for "Title", "Dataset Name", "Name", "Project Title", etc.
+- "description" field → look for "Description", "Summary", "Abstract", "Overview", etc.
+- "homepageURL" field → look for "Homepage", "Website", "URL", "Link", "Home Page", etc.
+- "keywords" field → look for "Keywords", "Tags", "Subject", "Topics", "Terms", etc.
+- "language" field → look for "Language", "Languages", "Lang", "Linguistic Coverage", etc.
+- "createdDate" field → look for "Created", "Creation Date", "Date Created", "Start Date", etc.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. Provide only candidate values that can be directly entered into form fields - no explanations or descriptions." },
+        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. Your PRIMARY task is to extract specific information from the provided cheat sheet content. NEVER use generic suggestions - only use actual data found in the cheat sheet. Use semantic matching to find relevant data even when field names don't match exactly - look for variations in capitalization, spacing, and wording. For each suggestion, provide both the value and a brief explanation of why you suggested it based on the cheat sheet content." },
         { role: "user", content: prompt }
       ],
       response_format: {
@@ -179,15 +250,22 @@ Consider:
 
     const result = JSON.parse(response.choices[0].message.content);
     
+    console.log('Bulk suggestion result:', result);
+    
     // Format suggestions for each field
     const formattedSuggestions = {};
-    Object.entries(result.fieldSuggestions).forEach(([fieldName, suggestions]) => {
-      if (!suggestions || suggestions.length === 0) {
-        formattedSuggestions[fieldName] = 'No suitable suggestions found for this field.';
+    Object.entries(result.fieldSuggestions).forEach(([fieldName, fieldData]) => {
+      console.log(`Processing field ${fieldName}:`, fieldData);
+      
+      // Handle case where fieldData is a string (noSuggestionsReason)
+      if (typeof fieldData === 'string') {
+        formattedSuggestions[fieldName] = fieldData;
+      } else if (!fieldData.suggestions || fieldData.suggestions.length === 0) {
+        formattedSuggestions[fieldName] = fieldData.noSuggestionsReason || 'No suitable suggestions found for this field.';
       } else {
-        const suggestionList = suggestions
-          .map((suggestion, index) => `• ${suggestion}`)
-          .join('\n');
+        const suggestionList = fieldData.suggestions
+          .map((suggestion, index) => `• ${suggestion.value}\n  ${suggestion.explanation}`)
+          .join('\n\n');
         formattedSuggestions[fieldName] = `Ranked by confidence (most likely first):\n\n${suggestionList}`;
       }
     });
