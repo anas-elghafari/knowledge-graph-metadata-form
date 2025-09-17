@@ -14,33 +14,12 @@ const suggestionSchema = {
     suggestions: {
       type: "array",
       items: {
-        type: "object",
-        properties: {
-          value: {
-            type: "string",
-            description: "The suggested value for the field"
-          },
-          explanation: {
-            type: "string",
-            description: "Brief explanation of why this suggestion is appropriate"
-          },
-          confidence: {
-            type: "string",
-            enum: ["high", "medium", "low"],
-            description: "Confidence level for this suggestion"
-          }
-        },
-        required: ["value", "explanation", "confidence"]
-      },
-      minItems: 1,
-      maxItems: 5
-    },
-    fieldType: {
-      type: "string",
-      description: "Type of field being suggested for"
+        type: "string",
+        description: "A candidate value for the field"
+      }
     }
   },
-  required: ["suggestions", "fieldType"]
+  required: ["suggestions"]
 };
 
 /**
@@ -62,31 +41,29 @@ export const getFieldSuggestions = async (fieldName, context, cheatSheetContent 
 Field: "${fieldName}"
 Dataset Context: "${context}"
 
-${cheatSheetContent ? `
-Reference Information (Cheat Sheet):
+${cheatSheetContent ? `Reference Information (Cheat Sheet):
 ${cheatSheetContent}
 
 Use the above reference information to provide more accurate and relevant suggestions.
 ` : ''}
 
-Provide 1-5 appropriate suggestions for this field, ordered by likelihood of being correct (most likely first). Consider:
+Provide 1-5 candidate values for this field, ordered by likelihood of being correct (most likely first). Return only the actual values that could be entered into the field - no explanations, no descriptions, just the values themselves.
+
+If you cannot find good candidates or do not understand the field/question, return an empty list.
+
+Consider:
 - The field name and its likely purpose in metadata
 - The dataset context provided
 - Best practices for knowledge graph metadata
 ${cheatSheetContent ? '- The reference information provided in the cheat sheet' : ''}
-- Be specific and actionable
-
-For each suggestion, provide:
-1. The actual value/content
-2. A brief explanation of why it's appropriate
-3. A confidence level (high/medium/low)`;
+- Be specific and actionable`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { 
           role: "system", 
-          content: "You are an expert in knowledge graph metadata and data cataloging. Provide structured, helpful suggestions for metadata fields." 
+          content: "You are an expert in knowledge graph metadata and data cataloging. Provide only candidate values that can be directly entered into form fields - no explanations or descriptions." 
         },
         { role: "user", content: prompt }
       ],
@@ -103,18 +80,15 @@ For each suggestion, provide:
 
     const result = JSON.parse(response.choices[0].message.content);
     
-    // Format the structured response for display as bullet points
+    if (!result.suggestions || result.suggestions.length === 0) {
+      return 'No suitable suggestions found for this field.';
+    }
+    
     const formattedSuggestions = result.suggestions
-      .sort((a, b) => {
-        // Sort by confidence: high > medium > low
-        const confidenceOrder = { high: 3, medium: 2, low: 1 };
-        return confidenceOrder[b.confidence] - confidenceOrder[a.confidence];
-      })
-      .map((suggestion, index) => 
-        `• ${suggestion.value}\n  ${suggestion.explanation} (${suggestion.confidence} confidence)`
-      ).join('\n\n');
-
-    return formattedSuggestions;
+      .map((suggestion, index) => `• ${suggestion}`)
+      .join('\n');
+    
+    return `Ranked by confidence (most likely first):\n\n${formattedSuggestions}`;
 
   } catch (error) {
     console.error('Detailed error getting field suggestions:', {
@@ -152,23 +126,8 @@ const bulkSuggestionSchema = {
       additionalProperties: {
         type: "array",
         items: {
-          type: "object",
-          properties: {
-            value: {
-              type: "string",
-              description: "The suggested value for the field"
-            },
-            explanation: {
-              type: "string", 
-              description: "Brief explanation of why this suggestion is appropriate"
-            },
-            confidence: {
-              type: "string",
-              enum: ["high", "medium", "low"],
-              description: "Confidence level for this suggestion"
-            }
-          },
-          required: ["value", "explanation", "confidence"]
+          type: "string",
+          description: "A candidate value for the field"
         }
       }
     }
@@ -191,10 +150,9 @@ ${fieldDescriptions}
 Reference Information (Cheat Sheet):
 ${cheatSheetContent}
 
-Based on the cheat sheet content, provide 1-3 appropriate suggestions for each field, ordered by likelihood of being correct (most likely first). For each suggestion, provide:
-1. The actual value/content
-2. A brief explanation of why it's appropriate based on the cheat sheet
-3. A confidence level (high/medium/low)
+Based on the cheat sheet content, provide 1-3 candidate values for each field, ordered by likelihood of being correct (most likely first). Return only the actual values that could be entered into each field - no explanations, no descriptions, just the values themselves.
+
+If you cannot find good candidates for a field or do not understand the field/question, return an empty list for that field.
 
 Consider:
 - The field name and its likely purpose in metadata
@@ -205,7 +163,7 @@ Consider:
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. Analyze the provided cheat sheet content and provide structured, helpful suggestions for each metadata field based on that content." },
+        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. Provide only candidate values that can be directly entered into form fields - no explanations or descriptions." },
         { role: "user", content: prompt }
       ],
       response_format: {
@@ -224,14 +182,14 @@ Consider:
     // Format suggestions for each field
     const formattedSuggestions = {};
     Object.entries(result.fieldSuggestions).forEach(([fieldName, suggestions]) => {
-      formattedSuggestions[fieldName] = suggestions
-        .sort((a, b) => {
-          const confidenceOrder = { high: 3, medium: 2, low: 1 };
-          return confidenceOrder[b.confidence] - confidenceOrder[a.confidence];
-        })
-        .map((suggestion, index) => 
-          `• ${suggestion.value}\n  ${suggestion.explanation} (${suggestion.confidence} confidence)`
-        ).join('\n\n');
+      if (!suggestions || suggestions.length === 0) {
+        formattedSuggestions[fieldName] = 'No suitable suggestions found for this field.';
+      } else {
+        const suggestionList = suggestions
+          .map((suggestion, index) => `• ${suggestion}`)
+          .join('\n');
+        formattedSuggestions[fieldName] = `Ranked by confidence (most likely first):\n\n${suggestionList}`;
+      }
     });
 
     return formattedSuggestions;
@@ -240,4 +198,3 @@ Consider:
     throw error;
   }
 };
-

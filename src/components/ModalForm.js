@@ -59,6 +59,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [showAISuggestions, setShowAISuggestions] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [loadingSuggestions, setLoadingSuggestions] = useState({});
+  const [activeField, setActiveField] = useState(null);
   
   // Cheat sheet upload state
   const [cheatSheetFile, setCheatSheetFile] = useState(null);
@@ -70,6 +71,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const getAISuggestion = async (fieldName) => {
     try {
       setLoadingSuggestions(prev => ({ ...prev, [fieldName]: true }));
+      setActiveField(fieldName);
       
       // Create context from current form data
       const context = formData.title || formData.description || 'Dataset metadata form';
@@ -81,6 +83,25 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       setAiSuggestions(prev => ({ ...prev, [fieldName]: 'Error getting suggestion' }));
     } finally {
       setLoadingSuggestions(prev => ({ ...prev, [fieldName]: false }));
+    }
+  };
+
+  // Function to populate field with selected suggestion
+  const populateFieldWithSuggestion = (fieldName, value) => {
+    // Handle different field types
+    if (fieldName === 'title' || fieldName === 'description') {
+      setFormData(prev => ({ ...prev, [fieldName]: value }));
+    } else if (fieldName === 'createdDate' || fieldName === 'publishedDate') {
+      setFormData(prev => ({ ...prev, [fieldName]: value }));
+    } else if (Array.isArray(formData[fieldName])) {
+      // For array fields, add to the array if not already present
+      setFormData(prev => ({
+        ...prev,
+        [fieldName]: prev[fieldName].includes(value) ? prev[fieldName] : [...prev[fieldName], value]
+      }));
+    } else {
+      // For other fields, set directly
+      setFormData(prev => ({ ...prev, [fieldName]: value }));
     }
   };
 
@@ -1719,9 +1740,11 @@ const handleCancelEditExampleResource = () => {
         </div>
       </div>
       
-      <div className={`modal-body`} onClick={(e) => e.stopPropagation()}>
+      <div className={`modal-body ${showAISuggestions ? 'with-ai-panel' : ''}`} onClick={(e) => e.stopPropagation()}>
         
-        <form onSubmit={handleSubmit}>
+        <div className="modal-content-wrapper">
+          <div className="form-panel">
+            <form onSubmit={handleSubmit}>
           
           {/* Identifier (auto-generated UUID) */}
           <div className="form-group">
@@ -4012,8 +4035,57 @@ const handleCancelEditExampleResource = () => {
              
              <div className="field-hint">This license applies to the metadata record itself, not the dataset content</div>
           </div>
-        </form>
-       </div>
+            </form>
+          </div>
+          
+          {showAISuggestions && (
+            <div className="ai-suggestions-panel">
+              <div className="ai-panel-header">
+                <h3>AI Suggestions</h3>
+                {activeField && (
+                  <div className="active-field-indicator">
+                    Field: <strong>{activeField}</strong>
+                  </div>
+                )}
+              </div>
+              
+              <div className="ai-panel-content">
+                {activeField && loadingSuggestions[activeField] && (
+                  <div className="ai-loading">
+                    🤖⏳ Loading suggestions...
+                  </div>
+                )}
+                
+                {activeField && aiSuggestions[activeField] && !loadingSuggestions[activeField] && (
+                  <div className="ai-suggestions-list">
+                    <div className="suggestions-header">
+                      Ranked by confidence (most likely first):
+                    </div>
+                    {aiSuggestions[activeField].split('\n').filter(line => line.trim().startsWith('•')).map((suggestion, index) => {
+                      const value = suggestion.replace('•', '').trim();
+                      return (
+                        <button
+                          key={index}
+                          className="suggestion-item"
+                          onClick={() => populateFieldWithSuggestion(activeField, value)}
+                          type="button"
+                        >
+                          {value}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {!activeField && (
+                  <div className="ai-panel-placeholder">
+                    Click the 🤖 icon next to any field to get AI suggestions
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
      
      <div className="modal-footer">
        <div className="ai-toggle-container">

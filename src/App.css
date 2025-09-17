@@ -387,14 +387,106 @@ select {
 .modal-content {
   background-color: var(--dark-surface);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  margin: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content.with-ai-panel {
+  max-width: 1200px;
+}
+
+.modal-content-wrapper {
+  display: flex;
+  flex: 1;
   overflow: hidden;
+}
+
+.form-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 12px;
+}
+
+.ai-suggestions-panel {
+  width: 350px;
+  background-color: var(--dark-bg);
+  border-left: 1px solid var(--dark-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ai-panel-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--dark-border);
+  background-color: var(--dark-surface);
+}
+
+.ai-panel-header h3 {
+  margin: 0 0 8px 0;
+  color: var(--dark-text);
+  font-size: 1.1rem;
+}
+
+.active-field-indicator {
+  color: var(--dark-text-secondary);
+  font-size: 0.9rem;
+}
+
+.ai-panel-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.ai-loading {
+  text-align: center;
+  color: var(--dark-text-secondary);
+  padding: 20px;
+}
+
+.suggestions-header {
+  color: var(--dark-text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+  font-style: italic;
+}
+
+.ai-suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.suggestion-item {
+  background-color: var(--dark-surface);
+  border: 1px solid var(--dark-border);
+  color: var(--dark-text);
+  padding: 12px;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.suggestion-item:hover {
+  background-color: var(--button-hover);
+  border-color: var(--button-bg);
+  transform: translateY(-1px);
+}
+
+.ai-panel-placeholder {
+  text-align: center;
+  color: var(--dark-text-secondary);
+  padding: 40px 20px;
+  font-style: italic;
 }
 
 .large-modal .modal-content {
@@ -460,9 +552,13 @@ select {
 
 .modal-body {
   padding: 24px;
-  overflow-y: auto;
+  overflow: hidden;
   max-height: calc(90vh - 130px);
   overscroll-behavior: contain;
+}
+
+.modal-body.with-ai-panel {
+  padding: 24px;
 }
 
 .large-modal .modal-body {
