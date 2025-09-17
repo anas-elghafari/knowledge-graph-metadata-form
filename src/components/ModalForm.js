@@ -4123,9 +4123,8 @@ const handleCancelEditExampleResource = () => {
        </button>
      </div>
     </div>
-    </div>
-    );
-    }
+  );
+}
     
 
 export default ModalForm;
