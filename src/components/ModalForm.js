@@ -1892,7 +1892,18 @@ const handleCancelEditExampleResource = () => {
     }
     
     // Add validation errors to the form data (always include, even if empty)
-    finalFormData._validationErrors = validationErrors;
+    // Place at top level for visibility
+    finalFormData.VALIDATION_ERRORS = validationErrors;
+    finalFormData._metadata = {
+      ...finalFormData._metadata,
+      hasValidationErrors: (missingFields.length > 0 || invalidDates.length > 0),
+      submissionMode: forceSubmit ? 'FORCED_SUBMISSION' : 'NORMAL_SUBMISSION'
+    };
+    
+    // Log validation errors for debugging
+    if (forceSubmit) {
+      console.log('FORCED SUBMISSION - Validation errors recorded:', validationErrors);
+    }
     
     try {
       // Submit form data to parent component
@@ -2048,7 +2059,7 @@ const handleCancelEditExampleResource = () => {
                 )}
                 {/* Debug - remove later */}
                 <div style={{fontSize: '10px', color: '#999'}}>
-                  Debug: processingDuration={processingDuration}, bulkSuggestionsReady={bulkSuggestionsReady ? 'true' : 'false'}
+                  Debug: processingDuration={processingDuration}, bulkSuggestionsReady={bulkSuggestionsReady ? 'true' : 'false'}, processingStartTime={processingStartTime}
                 </div>
               </div>
               <input
