@@ -265,15 +265,30 @@ HANDLING "NS" VALUES:
           schema: bulkSuggestionSchema
         }
       },
-      max_tokens: 2000,
+      max_tokens: 4000,
       temperature: 0.7
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const rawContent = response.choices[0].message.content;
+    console.log('Raw AI response:', rawContent);
     
-    console.log('Bulk suggestion result:', result);
-    
-    return result;
+    try {
+      const result = JSON.parse(rawContent);
+      console.log('Bulk suggestion result:', result);
+      return result;
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('Raw content that failed to parse:', rawContent);
+      
+      // Return a fallback structure
+      return {
+        fieldSuggestions: {
+          error: {
+            noSuggestionsReason: "AI response was not valid JSON. Please try again."
+          }
+        }
+      };
+    }
   } catch (error) {
     console.error('Error getting bulk field suggestions:', error);
     throw error;
