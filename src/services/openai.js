@@ -195,7 +195,35 @@ IMPORTANT INSTRUCTIONS:
 
 FIELD NAME MATCHING:
 - Field names in the form may NOT match exactly with names in the cheat sheet
-- Look for variations in capitalization, spacing, and slightly different wording or phrasing. 
+- Look for variations in capitalization, spacing, and slightly different wording or phrasing.
+
+SPECIAL HANDLING FOR ROLES FIELD:
+- Match role-related fields in cheat sheet to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder
+- Examples: "publishedBy" or "publisher" in sheet → "publisher" role type, "fundedBy" → "funder" role type
+- For roles field, return special format:
+  {
+    "suggestions": [
+      {
+        "value": "publisher",
+        "explanation": "Found publisher info in cheat sheet",
+        "roleData": {
+          "roleType": "publisher",
+          "mode": "iri", // or "name_mbox"
+          "iri": "https://example.org/publisher", // if mode is "iri"
+          "name": "Publisher Name", // if mode is "name_mbox"
+          "email": "contact@publisher.org" // if mode is "name_mbox" and email available
+        }
+      }
+    ]
+  }
+- Use "iri" mode when the value is a valid IRI/URL, use "name_mbox" mode when it's a name/text
+
+SPECIAL HANDLING FOR LICENSE FIELD:
+- For license field, the available options will be provided in the field instruction
+- Match license names (MIT, Apache, GPL, BSD, Creative Commons, etc.) to the corresponding URLs
+- If the cheat sheet contains a license URL directly, extract and match it exactly to one of the available options
+- Look for URLs in the cheat sheet content even if surrounded by other text (e.g., "Licensed under https://opensource.org/licenses/MIT for open use")
+- Return only URLs that exactly match the available dropdown options 
 
 RESPONSE FORMAT:
 You must return a JSON object with "fieldSuggestions" containing each field. For each field, provide either:
@@ -216,21 +244,7 @@ Example:
   }
 }
 
-Based on the cheat sheet content, provide 1-3 candidate values for each field, ordered by likelihood of being correct (most likely first).
-
-Consider:
-- The field name and its likely purpose in metadata
-- The specific content and context from the cheat sheet
-- Be specific and actionable based on the cheat sheet content
-- Match field concepts semantically, not just by exact text matching
-
-EXAMPLES OF FIELD MATCHING:
-- "title" field → look for "Title", "Dataset Name", "Name", "Project Title", etc.
-- "description" field → look for "Description", "Summary", "Abstract", "Overview", etc.
-- "homepageURL" field → look for "Homepage", "Website", "URL", "Link", "Home Page", etc.
-- "keywords" field → look for "Keywords", "Tags", "Subject", "Topics", "Terms", etc.
-- "language" field → look for "Language", "Languages", "Lang", "Linguistic Coverage", etc.
-- "createdDate" field → look for "Created", "Creation Date", "Date Created", "Start Date", etc.
+Provide 1-4 candidate values for each field, ordered by likelihood of being correct.
 
 HANDLING "NS" VALUES:
 - If you find a field in the cheat sheet but its value is "NS" (not supplied), return:

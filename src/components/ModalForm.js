@@ -138,42 +138,110 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   // Process bulk AI suggestions for all fields
   const processBulkSuggestions = async (cheatSheetContent) => {
     try {
-      // Define all the fields we want suggestions for
-      const fieldDefinitions = [
-        { name: 'title', instruction: fieldInstructions.title },
-        { name: 'description', instruction: fieldInstructions.description },
-        { name: 'alternativeTitle', instruction: fieldInstructions.alternativeTitle },
-        { name: 'acronym', instruction: fieldInstructions.acronym },
-        { name: 'homepageURL', instruction: fieldInstructions.homepageURL },
-        { name: 'otherPages', instruction: fieldInstructions.otherPages },
-        { name: 'createdDate', instruction: fieldInstructions.createdDate },
-        { name: 'modifiedDate', instruction: fieldInstructions.modifiedDate },
-        { name: 'publishedDate', instruction: fieldInstructions.publishedDate },
-        { name: 'primaryReferenceDoc', instruction: fieldInstructions.primaryReferenceDoc },
-        { name: 'keywords', instruction: fieldInstructions.keywords },
-        { name: 'themes', instruction: fieldInstructions.themes },
-        { name: 'spatialCoverage', instruction: fieldInstructions.spatialCoverage },
-        { name: 'temporalCoverage', instruction: fieldInstructions.temporalCoverage },
-        { name: 'language', instruction: fieldInstructions.language },
-        { name: 'conformsTo', instruction: fieldInstructions.conformsTo },
-        { name: 'accessRights', instruction: fieldInstructions.accessRights },
-        { name: 'provenance', instruction: fieldInstructions.provenance },
-        { name: 'qualifiedRelation', instruction: fieldInstructions.qualifiedRelation }
-      ];
-
-      const bulkSuggestions = await getBulkFieldSuggestions(fieldDefinitions, cheatSheetContent);
+      setLoadingSuggestions(true);
+      console.log('Processing bulk suggestions with cheat sheet content');
       
-      // Update AI suggestions state with bulk results
-      setAiSuggestions(prev => ({ ...prev, ...bulkSuggestions }));
+      // Dynamically construct field definitions from form data and field instructions
+      const fieldDefinitions = [];
+      
+      // Get all simple string/text fields from formData
+      Object.keys(formData).forEach(fieldName => {
+        const fieldValue = formData[fieldName];
+        const instruction = fieldInstructions[fieldName];
+        
+        // Include fields that are strings, empty arrays, or have instructions
+        // Exclude complex objects and arrays that already have values
+        if (instruction && (
+          typeof fieldValue === 'string' || 
+          (Array.isArray(fieldValue) && fieldValue.length === 0)
+        )) {
+          fieldDefinitions.push({
+            name: fieldName,
+            instruction: instruction
+          });
+        }
+      });
+      
+      // Add special case for roles field
+      fieldDefinitions.push({
+        name: 'roles',
+        instruction: 'Roles and responsibilities for this dataset (e.g., creator, publisher, funder)'
+      });
+      
+      // Add special case for license field with available options
+      if (formData.license === '') {
+        const licenseOptions = [
+          'https://opensource.org/licenses/MIT',
+          'https://opensource.org/licenses/Apache-2.0',
+          'https://opensource.org/licenses/GPL-3.0',
+          'https://opensource.org/licenses/GPL-2.0',
+          'https://opensource.org/licenses/LGPL-3.0',
+          'https://opensource.org/licenses/BSD-3-Clause',
+          'https://opensource.org/licenses/BSD-2-Clause',
+          'https://opensource.org/licenses/ISC',
+          'https://www.boost.org/LICENSE_1_0.txt',
+          'https://opensource.org/licenses/Zlib',
+          'http://www.wtfpl.net/',
+          'https://opensource.org/licenses/AGPL-3.0',
+          'https://opensource.org/licenses/MPL-2.0',
+          'https://opensource.org/licenses/EPL-1.0',
+          'https://opensource.org/licenses/EUPL-1.1',
+          'https://opensource.org/licenses/MS-PL',
+          'https://opensource.org/licenses/MS-RL',
+          'https://opensource.org/licenses/CDDL-1.0',
+          'https://opensource.org/licenses/Artistic-2.0',
+          'https://opensource.org/licenses/AFL-3.0',
+          'https://creativecommons.org/licenses/by/4.0/',
+          'https://creativecommons.org/licenses/by-sa/4.0/',
+          'https://creativecommons.org/licenses/by-nc/4.0/',
+          'https://creativecommons.org/licenses/by-nc-sa/4.0/',
+          'https://creativecommons.org/publicdomain/zero/1.0/',
+          'https://unlicense.org/'
+        ];
+        
+        fieldDefinitions.push({
+          name: 'license',
+          instruction: `License for the metadata. Available options: ${licenseOptions.join(', ')}. Match license names (MIT, Apache, GPL, etc.) or extract exact URLs from cheat sheet content.`
+        });
+      }
+      
+      console.log('Dynamic field definitions:', fieldDefinitions);
+      
+      const bulkResponse = await getBulkFieldSuggestions(fieldDefinitions, cheatSheetContent);
+      console.log('Bulk response received:', bulkResponse);
+      
+      const formattedSuggestions = {};
+      const bulkSuggestionTexts = {};
+      
+      Object.entries(bulkResponse.fieldSuggestions).forEach(([fieldName, fieldData]) => {
+        if (fieldData.suggestions && fieldData.suggestions.length > 0) {
+          // Format suggestions with explanations
+          const suggestionText = fieldData.suggestions.map(suggestion => 
+            `• ${suggestion.value}\n  ${suggestion.explanation}`
+          ).join('\n\n');
+          
+          formattedSuggestions[fieldName] = suggestionText;
+          bulkSuggestionTexts[fieldName] = suggestionText;
+          
+          // Store raw response data for special field processing (like roles)
+          formattedSuggestions[fieldName + '_raw'] = fieldData;
+        } else if (fieldData.noSuggestionsReason) {
+          const noSuggestionText = `No suitable suggestions found.\n${fieldData.noSuggestionsReason}`;
+          formattedSuggestions[fieldName] = noSuggestionText;
+          bulkSuggestionTexts[fieldName] = noSuggestionText;
+        }
+      });
+      
+      console.log('Formatted suggestions:', formattedSuggestions);
+      setAiSuggestions(formattedSuggestions);
       
       // Auto-populate fields with top suggestions
-      autoPopulateFieldsFromSuggestions(bulkSuggestions);
+      autoPopulateFieldsFromSuggestions(bulkSuggestionTexts);
       
-      setProcessingCheatSheet(false);
-      setBulkSuggestionsReady(true);
     } catch (error) {
       console.error('Error processing bulk suggestions:', error);
-      setProcessingCheatSheet(false);
+    } finally {
+      setLoadingSuggestions(false);
     }
   };
 
@@ -188,6 +256,63 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       // Skip auto-population if this is a "no suggestions" message
       if (suggestionText.includes('No suitable suggestions') || suggestionText.includes('noSuggestionsReason')) {
         console.log(`Skipping auto-population for ${fieldName} - no suggestions available`);
+        return;
+      }
+      
+      // Special handling for roles field
+      if (fieldName === 'roles') {
+        try {
+          // Parse the suggestion text to extract roleData
+          const suggestionMatch = suggestionText.match(/• (.+?)\n/);
+          if (suggestionMatch) {
+            // Try to extract roleData from the raw AI response
+            const rawResponse = aiSuggestions[fieldName + '_raw']; // We'll need to store this
+            if (rawResponse && rawResponse.suggestions && rawResponse.suggestions[0].roleData) {
+              const roleData = rawResponse.suggestions[0].roleData;
+              const newRole = {
+                roleType: roleData.roleType,
+                agentType: roleData.mode === 'iri' ? 'Agent' : 'name_mbox',
+                agent: roleData.mode === 'iri' ? roleData.iri : '',
+                name: roleData.mode === 'name_mbox' ? roleData.name : '',
+                mbox: roleData.mode === 'name_mbox' ? (roleData.email || '') : ''
+              };
+              updatedFormData.roles = [...updatedFormData.roles, newRole];
+            }
+          }
+        } catch (error) {
+          console.error('Error processing roles field:', error);
+        }
+        return;
+      }
+      
+      // Special handling for license field
+      if (fieldName === 'license') {
+        const firstSuggestionMatch = suggestionText.match(/• (.+?)\n/);
+        if (firstSuggestionMatch) {
+          const licenseValue = firstSuggestionMatch[1].trim();
+          updatedFormData.license = licenseValue;
+          console.log(`Set license to: ${licenseValue}`);
+        }
+        return;
+      }
+      
+      // Special handling for multi-value fields
+      const multiValueFields = ['vocabulariesUsedInput', 'keywords', 'categoryInput', 'language'];
+      if (multiValueFields.includes(fieldName)) {
+        const firstSuggestionMatch = suggestionText.match(/• (.+?)\n/);
+        if (firstSuggestionMatch) {
+          const suggestionValue = firstSuggestionMatch[1].trim();
+          // Split comma-separated values and clean them up
+          const values = suggestionValue.split(',').map(val => val.trim()).filter(val => val.length > 0);
+          
+          if (values.length > 0) {
+            // Add all values to the existing array, avoiding duplicates
+            const currentValues = updatedFormData[fieldName] || [];
+            const newValues = values.filter(val => !currentValues.includes(val));
+            updatedFormData[fieldName] = [...currentValues, ...newValues];
+            console.log(`Added multi-values to ${fieldName}:`, newValues);
+          }
+        }
         return;
       }
       
@@ -4017,32 +4142,32 @@ const handleCancelEditExampleResource = () => {
                className={`form-control ${licenseValid ? 'form-input-valid' : ''} ${licenseError ? 'form-input-error' : ''}`}
              >
                <option value="">Select a license...</option>
-               <option value="https://opensource.org/licenses/MIT">MIT License</option>
-               <option value="https://opensource.org/licenses/Apache-2.0">Apache License 2.0</option>
-               <option value="https://opensource.org/licenses/GPL-3.0">GNU General Public License v3.0</option>
-               <option value="https://opensource.org/licenses/GPL-2.0">GNU General Public License v2.0</option>
-               <option value="https://opensource.org/licenses/LGPL-3.0">GNU Lesser General Public License v3.0</option>
-               <option value="https://opensource.org/licenses/BSD-3-Clause">BSD 3-Clause License</option>
-               <option value="https://opensource.org/licenses/BSD-2-Clause">BSD 2-Clause License</option>
-               <option value="https://opensource.org/licenses/ISC">ISC License</option>
-               <option value="https://www.boost.org/LICENSE_1_0.txt">Boost Software License</option>
-               <option value="https://opensource.org/licenses/Zlib">Zlib License</option>
-               <option value="http://www.wtfpl.net/">WTFPL (Do What The F* You Want To Public License)</option>
-               <option value="https://opensource.org/licenses/AGPL-3.0">GNU Affero General Public License (AGPL) v3.0</option>
-               <option value="https://opensource.org/licenses/MPL-2.0">Mozilla Public License (MPL) 2.0</option>
-               <option value="https://opensource.org/licenses/EPL-1.0">Eclipse Public License (EPL)</option>
-               <option value="https://opensource.org/licenses/EUPL-1.1">European Union Public License (EUPL)</option>
-               <option value="https://opensource.org/licenses/MS-PL">Microsoft Public License (Ms-PL)</option>
-               <option value="https://opensource.org/licenses/MS-RL">Microsoft Reciprocal License (Ms-RL)</option>
-               <option value="https://opensource.org/licenses/CDDL-1.0">Common Development and Distribution License (CDDL)</option>
-               <option value="https://opensource.org/licenses/Artistic-2.0">Artistic License 2.0</option>
-               <option value="https://opensource.org/licenses/AFL-3.0">Academic Free License (AFL)</option>
-               <option value="https://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0</option>
-               <option value="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0</option>
-               <option value="https://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0</option>
-               <option value="https://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0</option>
-               <option value="https://creativecommons.org/publicdomain/zero/1.0/">Creative Commons Zero (Public Domain)</option>
-               <option value="https://unlicense.org/">The Unlicense</option>
+               <option value="https://opensource.org/licenses/MIT">https://opensource.org/licenses/MIT</option>
+               <option value="https://opensource.org/licenses/Apache-2.0">https://opensource.org/licenses/Apache-2.0</option>
+               <option value="https://opensource.org/licenses/GPL-3.0">https://opensource.org/licenses/GPL-3.0</option>
+               <option value="https://opensource.org/licenses/GPL-2.0">https://opensource.org/licenses/GPL-2.0</option>
+               <option value="https://opensource.org/licenses/LGPL-3.0">https://opensource.org/licenses/LGPL-3.0</option>
+               <option value="https://opensource.org/licenses/BSD-3-Clause">https://opensource.org/licenses/BSD-3-Clause</option>
+               <option value="https://opensource.org/licenses/BSD-2-Clause">https://opensource.org/licenses/BSD-2-Clause</option>
+               <option value="https://opensource.org/licenses/ISC">https://opensource.org/licenses/ISC</option>
+               <option value="https://www.boost.org/LICENSE_1_0.txt">https://www.boost.org/LICENSE_1_0.txt</option>
+               <option value="https://opensource.org/licenses/Zlib">https://opensource.org/licenses/Zlib</option>
+               <option value="http://www.wtfpl.net/">http://www.wtfpl.net/</option>
+               <option value="https://opensource.org/licenses/AGPL-3.0">https://opensource.org/licenses/AGPL-3.0</option>
+               <option value="https://opensource.org/licenses/MPL-2.0">https://opensource.org/licenses/MPL-2.0</option>
+               <option value="https://opensource.org/licenses/EPL-1.0">https://opensource.org/licenses/EPL-1.0</option>
+               <option value="https://opensource.org/licenses/EUPL-1.1">https://opensource.org/licenses/EUPL-1.1</option>
+               <option value="https://opensource.org/licenses/MS-PL">https://opensource.org/licenses/MS-PL</option>
+               <option value="https://opensource.org/licenses/MS-RL">https://opensource.org/licenses/MS-RL</option>
+               <option value="https://opensource.org/licenses/CDDL-1.0">https://opensource.org/licenses/CDDL-1.0</option>
+               <option value="https://opensource.org/licenses/Artistic-2.0">https://opensource.org/licenses/Artistic-2.0</option>
+               <option value="https://opensource.org/licenses/AFL-3.0">https://opensource.org/licenses/AFL-3.0</option>
+               <option value="https://creativecommons.org/licenses/by/4.0/">https://creativecommons.org/licenses/by/4.0/</option>
+               <option value="https://creativecommons.org/licenses/by-sa/4.0/">https://creativecommons.org/licenses/by-sa/4.0/</option>
+               <option value="https://creativecommons.org/licenses/by-nc/4.0/">https://creativecommons.org/licenses/by-nc/4.0/</option>
+               <option value="https://creativecommons.org/licenses/by-nc-sa/4.0/">https://creativecommons.org/licenses/by-nc-sa/4.0/</option>
+               <option value="https://creativecommons.org/publicdomain/zero/1.0/">https://creativecommons.org/publicdomain/zero/1.0/</option>
+               <option value="https://unlicense.org/">https://unlicense.org/</option>
                <option value="Other">Other (specify below)</option>
              </select>
              {licenseError && <div className="iri-error-message">{licenseError}</div>}
