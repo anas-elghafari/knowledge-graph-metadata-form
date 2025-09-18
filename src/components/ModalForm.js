@@ -279,6 +279,9 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       // Auto-populate fields with top suggestions
       autoPopulateFieldsFromSuggestions(bulkSuggestionTexts);
       
+      // Mark bulk suggestions as ready
+      setBulkSuggestionsReady(true);
+      
     } catch (error) {
       console.error('Error processing bulk suggestions:', error);
     } finally {
@@ -308,22 +311,35 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       // Special handling for roles field
       if (fieldName === 'roles') {
         try {
-          // Parse the suggestion text to extract roleData
-          const suggestionMatch = suggestionText.match(/• (.+?)\n/);
-          if (suggestionMatch) {
-            // Try to extract roleData from the raw AI response
-            const rawResponse = aiSuggestions[fieldName + '_raw']; // We'll need to store this
-            if (rawResponse && rawResponse.suggestions && rawResponse.suggestions[0].roleData) {
-              const roleData = rawResponse.suggestions[0].roleData;
-              const newRole = {
-                roleType: roleData.roleType,
-                agentType: roleData.mode === 'iri' ? 'Agent' : 'name_mbox',
-                agent: roleData.mode === 'iri' ? roleData.iri : '',
-                name: roleData.mode === 'name_mbox' ? roleData.name : '',
-                mbox: roleData.mode === 'name_mbox' ? (roleData.email || '') : ''
-              };
-              updatedFormData.roles = [...updatedFormData.roles, newRole];
-            }
+          // Get the raw AI response data for roles
+          const rawResponse = aiSuggestions[fieldName + '_raw'];
+          if (rawResponse && rawResponse.suggestions) {
+            // Process all role suggestions
+            rawResponse.suggestions.forEach(suggestion => {
+              if (suggestion.roleData) {
+                const roleData = suggestion.roleData;
+                const newRole = {
+                  roleType: roleData.roleType,
+                  agent: roleData.mode === 'iri' ? (roleData.iri || '') : '',
+                  givenName: roleData.mode === 'name_mbox' ? (roleData.name || '') : '',
+                  mbox: roleData.mode === 'name_mbox' ? (roleData.email || '') : ''
+                };
+                
+                // Add role to form data, avoiding duplicates
+                const existingRoles = updatedFormData.roles || [];
+                const isDuplicate = existingRoles.some(existing => 
+                  existing.roleType === newRole.roleType &&
+                  existing.agent === newRole.agent &&
+                  existing.givenName === newRole.givenName &&
+                  existing.mbox === newRole.mbox
+                );
+                
+                if (!isDuplicate) {
+                  updatedFormData.roles = [...existingRoles, newRole];
+                  console.log(`Added role: ${roleData.roleType}`, newRole);
+                }
+              }
+            });
           }
         } catch (error) {
           console.error('Error processing roles field:', error);
@@ -768,8 +784,8 @@ const handleCancelEditExampleResource = () => {
           // If we have bulk suggestions ready, use them directly
           if (bulkSuggestionsReady) {
             setActiveField(fieldId);
-          } else if (!bulkSuggestionsReady) {
-            // Show waiting message if no cheat sheet has been processed
+          } else if (!cheatSheetFile) {
+            // Show waiting message if no cheat sheet has been uploaded
             setActiveField('waiting-for-cheatsheet');
           }
         });
@@ -788,7 +804,7 @@ const handleCancelEditExampleResource = () => {
             // Auto-trigger AI suggestions when field is focused
             if (bulkSuggestionsReady) {
               setActiveField(fieldId);
-            } else if (!bulkSuggestionsReady) {
+            } else if (!cheatSheetFile) {
               setActiveField('waiting-for-cheatsheet');
             }
           });

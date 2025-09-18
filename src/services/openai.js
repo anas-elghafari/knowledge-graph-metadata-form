@@ -152,6 +152,34 @@ const bulkSuggestionSchema = {
                 explanation: {
                   type: "string",
                   description: "Short explanation of why this value was suggested"
+                },
+                roleData: {
+                  type: "object",
+                  description: "Special data for roles field only",
+                  properties: {
+                    roleType: {
+                      type: "string",
+                      description: "The role type (e.g., publisher, funder, creator)"
+                    },
+                    mode: {
+                      type: "string",
+                      enum: ["iri", "name_mbox"],
+                      description: "Whether to use IRI or name+email"
+                    },
+                    iri: {
+                      type: "string",
+                      description: "IRI when mode is 'iri'"
+                    },
+                    name: {
+                      type: "string", 
+                      description: "Name when mode is 'name_mbox'"
+                    },
+                    email: {
+                      type: "string",
+                      description: "Email when mode is 'name_mbox'"
+                    }
+                  },
+                  required: ["roleType", "mode"]
                 }
               },
               required: ["value", "explanation"]
@@ -198,25 +226,30 @@ FIELD NAME MATCHING:
 - Look for variations in capitalization, spacing, and slightly different wording or phrasing.
 
 SPECIAL HANDLING FOR ROLES FIELD:
-- Match role-related fields in cheat sheet to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder
-- Examples: "publishedBy" or "publisher" in sheet → "publisher" role type, "fundedBy" → "funder" role type
-- For roles field, return special format:
+- Look for role-related fields in cheat sheet and map them to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder
+- Common mappings:
+  * "publishedBy", "publisher", "published by" → "publisher"
+  * "fundedBy", "funder", "funded by", "funding" → "funder" 
+  * "createdBy", "creator", "created by", "author" → "author"
+  * "maintainedBy", "maintainer" → "custodian"
+  * "ownedBy", "owner" → "owner"
+- For roles field, ALWAYS include roleData:
   {
     "suggestions": [
       {
         "value": "publisher",
-        "explanation": "Found publisher info in cheat sheet",
+        "explanation": "Found 'published by XYZ Organization' in cheat sheet",
         "roleData": {
           "roleType": "publisher",
-          "mode": "iri", // or "name_mbox"
-          "iri": "https://example.org/publisher", // if mode is "iri"
-          "name": "Publisher Name", // if mode is "name_mbox"
-          "email": "contact@publisher.org" // if mode is "name_mbox" and email available
+          "mode": "name_mbox", // prefer "name_mbox" unless clear IRI is provided
+          "name": "XYZ Organization", // extract the actual name/organization
+          "email": "contact@xyz.org" // if email is available, otherwise omit
         }
       }
     ]
   }
-- Use "iri" mode when the value is a valid IRI/URL, use "name_mbox" mode when it's a name/text
+- Extract actual names/organizations from the cheat sheet, don't use generic placeholders
+- Use "name_mbox" mode unless you find a clear IRI/URL for the entity
 
 SPECIAL HANDLING FOR LICENSE FIELD:
 - For license field, the available options will be provided in the field instruction
