@@ -266,7 +266,7 @@ HANDLING "NS" VALUES:
         }
       },
       max_tokens: 4000,
-      temperature: 0.7
+      temperature: 0.2
     });
 
     const rawContent = response.choices[0].message.content;
