@@ -213,6 +213,12 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       const formattedSuggestions = {};
       const bulkSuggestionTexts = {};
       
+      // Check if the response has the expected structure
+      if (!bulkResponse || !bulkResponse.fieldSuggestions) {
+        console.error('Invalid bulk response structure:', bulkResponse);
+        return;
+      }
+      
       Object.entries(bulkResponse.fieldSuggestions).forEach(([fieldName, fieldData]) => {
         if (fieldData.suggestions && fieldData.suggestions.length > 0) {
           // Format suggestions with explanations

@@ -291,7 +291,7 @@ HANDLING "NS" VALUES:
       }
     });
 
-    return formattedSuggestions;
+    return { fieldSuggestions: result.fieldSuggestions };
   } catch (error) {
     console.error('Error getting bulk field suggestions:', error);
     throw error;
