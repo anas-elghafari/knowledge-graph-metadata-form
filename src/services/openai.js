@@ -233,23 +233,34 @@ SPECIAL HANDLING FOR ROLES FIELD:
   * "createdBy", "creator", "created by", "author" → "author"
   * "maintainedBy", "maintainer" → "custodian"
   * "ownedBy", "owner" → "owner"
-- For roles field, ALWAYS include roleData:
+- IMPORTANT: Create separate suggestions for EACH role type found, even if multiple roles exist
+- Handle comma-separated values: if you find "Published by: Org A, Org B, Org C", create separate roleData for each
+- For roles field, return multiple suggestions with roleData:
   {
     "suggestions": [
       {
-        "value": "publisher",
+        "value": "publisher: XYZ Organization",
         "explanation": "Found 'published by XYZ Organization' in cheat sheet",
         "roleData": {
           "roleType": "publisher",
-          "mode": "name_mbox", // prefer "name_mbox" unless clear IRI is provided
-          "name": "XYZ Organization", // extract the actual name/organization
-          "email": "contact@xyz.org" // if email is available, otherwise omit
+          "mode": "name_mbox",
+          "name": "XYZ Organization"
+        }
+      },
+      {
+        "value": "funder: ABC Foundation", 
+        "explanation": "Found 'funded by ABC Foundation' in cheat sheet",
+        "roleData": {
+          "roleType": "funder",
+          "mode": "name_mbox", 
+          "name": "ABC Foundation"
         }
       }
     ]
   }
 - Extract actual names/organizations from the cheat sheet, don't use generic placeholders
 - Use "name_mbox" mode unless you find a clear IRI/URL for the entity
+- If multiple entities for same role type, put them in comma-separated format in the name field
 
 SPECIAL HANDLING FOR LICENSE FIELD:
 - For license field, the available options will be provided in the field instruction

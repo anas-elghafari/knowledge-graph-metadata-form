@@ -310,36 +310,82 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       
       // Special handling for roles field
       if (fieldName === 'roles') {
+        console.log('Processing roles field...', suggestionText);
         try {
           // Get the raw AI response data for roles
           const rawResponse = aiSuggestions[fieldName + '_raw'];
+          console.log('Raw roles response:', rawResponse);
+          
           if (rawResponse && rawResponse.suggestions) {
             // Process all role suggestions
             rawResponse.suggestions.forEach(suggestion => {
+              console.log('Processing role suggestion:', suggestion);
+              
               if (suggestion.roleData) {
                 const roleData = suggestion.roleData;
-                const newRole = {
-                  roleType: roleData.roleType,
-                  agent: roleData.mode === 'iri' ? (roleData.iri || '') : '',
-                  givenName: roleData.mode === 'name_mbox' ? (roleData.name || '') : '',
-                  mbox: roleData.mode === 'name_mbox' ? (roleData.email || '') : ''
+                
+                // Handle comma-separated values in role data
+                const processRole = (name, email = '') => {
+                  const newRole = {
+                    roleType: roleData.roleType,
+                    agent: roleData.mode === 'iri' ? (roleData.iri || '') : '',
+                    givenName: roleData.mode === 'name_mbox' ? name.trim() : '',
+                    mbox: roleData.mode === 'name_mbox' ? email.trim() : ''
+                  };
+                  
+                  // Add role to form data, avoiding duplicates
+                  const existingRoles = updatedFormData.roles || [];
+                  const isDuplicate = existingRoles.some(existing => 
+                    existing.roleType === newRole.roleType &&
+                    existing.agent === newRole.agent &&
+                    existing.givenName === newRole.givenName &&
+                    existing.mbox === newRole.mbox
+                  );
+                  
+                  if (!isDuplicate) {
+                    updatedFormData.roles = [...(updatedFormData.roles || []), newRole];
+                    console.log(`Added role: ${roleData.roleType}`, newRole);
+                  }
                 };
                 
-                // Add role to form data, avoiding duplicates
-                const existingRoles = updatedFormData.roles || [];
-                const isDuplicate = existingRoles.some(existing => 
-                  existing.roleType === newRole.roleType &&
-                  existing.agent === newRole.agent &&
-                  existing.givenName === newRole.givenName &&
-                  existing.mbox === newRole.mbox
-                );
-                
-                if (!isDuplicate) {
-                  updatedFormData.roles = [...existingRoles, newRole];
-                  console.log(`Added role: ${roleData.roleType}`, newRole);
+                if (roleData.mode === 'name_mbox' && roleData.name) {
+                  // Handle comma-separated names
+                  const names = smartCommaSplit(roleData.name);
+                  const emails = roleData.email ? smartCommaSplit(roleData.email) : [''];
+                  
+                  names.forEach((name, index) => {
+                    const email = emails[index] || emails[0] || '';
+                    processRole(name, email);
+                  });
+                } else if (roleData.mode === 'iri' && roleData.iri) {
+                  // Handle comma-separated IRIs
+                  const iris = smartCommaSplit(roleData.iri);
+                  iris.forEach(iri => {
+                    const newRole = {
+                      roleType: roleData.roleType,
+                      agent: iri.trim(),
+                      givenName: '',
+                      mbox: ''
+                    };
+                    
+                    const existingRoles = updatedFormData.roles || [];
+                    const isDuplicate = existingRoles.some(existing => 
+                      existing.roleType === newRole.roleType &&
+                      existing.agent === newRole.agent
+                    );
+                    
+                    if (!isDuplicate) {
+                      updatedFormData.roles = [...(updatedFormData.roles || []), newRole];
+                      console.log(`Added IRI role: ${roleData.roleType}`, newRole);
+                    }
+                  });
                 }
+              } else {
+                console.log('No roleData found in suggestion:', suggestion);
               }
             });
+          } else {
+            console.log('No suggestions found in raw response for roles');
           }
         } catch (error) {
           console.error('Error processing roles field:', error);
