@@ -681,6 +681,31 @@ select {
   font-family: 'Courier New', monospace;
 }
 
+.force-submit-container {
+  margin-top: 4px;
+  text-align: center;
+}
+
+.force-submit-link {
+  background: none;
+  border: none;
+  color: #6c757d;
+  font-size: 10px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+
+.force-submit-link:hover {
+  color: #495057;
+}
+
+.force-submit-link:disabled {
+  color: #adb5bd;
+  cursor: not-allowed;
+}
+
 @keyframes pulse {
   from {
     opacity: 0.6;

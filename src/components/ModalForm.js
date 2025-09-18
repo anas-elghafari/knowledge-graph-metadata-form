@@ -1801,7 +1801,7 @@ const handleCancelEditExampleResource = () => {
   };
   
   
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, forceSubmit = false) => {
     e.preventDefault();
     
     const updatedForm = addPendingTagInputs();
@@ -1860,11 +1860,21 @@ const handleCancelEditExampleResource = () => {
       errorMessage += `The following dates are invalid:\n${invalidDates.join('\n')}`;
     }
 
-    if (errorMessage) {
+    // Handle validation errors based on submission mode
+    if (errorMessage && !forceSubmit) {
       setMessage(errorMessage);
       setIsSubmitting(false);
       return;
     }
+    
+    // For forced submission, collect validation errors to include in the data
+    const validationErrors = {
+      missingFields: missingFields,
+      invalidDates: invalidDates,
+      errorMessage: errorMessage,
+      submissionMode: forceSubmit ? 'forced' : 'normal',
+      submissionTimestamp: new Date().toISOString()
+    };
     
     // Sync SPARQL endpoints, Example Resources, and Linked Resources before submission
     updatedForm.sparqlEndpoint = sparqlEndpoints;
@@ -1880,6 +1890,9 @@ const handleCancelEditExampleResource = () => {
     if (updatedForm.license === 'Other' && customLicenseInput.trim()) {
       finalFormData.license = `Other-${customLicenseInput.trim()}`;
     }
+    
+    // Add validation errors to the form data (always include, even if empty)
+    finalFormData._validationErrors = validationErrors;
     
     try {
       // Submit form data to parent component
@@ -1901,6 +1914,11 @@ const handleCancelEditExampleResource = () => {
       setIsSubmitting(false);
     }
 };
+
+  // Handle forced submission
+  const handleForceSubmit = async (e) => {
+    await handleSubmit(e, true);
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -4435,6 +4453,17 @@ const handleCancelEditExampleResource = () => {
        >
          {isSubmitting ? 'Submitting...' : 'Submit'}
        </button>
+       
+       <div className="force-submit-container">
+         <button 
+           className="force-submit-link"
+           onClick={handleForceSubmit}
+           disabled={isSubmitting}
+           type="button"
+         >
+           force submit
+         </button>
+       </div>
       </div>
       
       {/* Processing Overlay */}
