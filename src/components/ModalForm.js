@@ -309,7 +309,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       }
       
       // Special handling for multi-value fields
-      const multiValueFields = ['vocabulariesUsedInput', 'keywords', 'categoryInput', 'language'];
+      const multiValueFields = ['vocabulariesUsed', 'keywords', 'category', 'language'];
       if (multiValueFields.includes(fieldName)) {
         const firstSuggestionMatch = suggestionText.match(/• (.+?)\n/);
         if (firstSuggestionMatch) {

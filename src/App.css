@@ -991,10 +991,8 @@ select {
 
 .tag-text {
   margin-right: 8px;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .tag-item .date-tag {
