@@ -1959,34 +1959,38 @@ const handleCancelEditExampleResource = () => {
         <h2>Knowledge Graph Metadata</h2>
         <div className="modal-header-controls">
           {showAISuggestions && (
-            <>
-              <button 
-                className="upload-button"
-                onClick={handleUploadClick}
-                title="Upload cheat sheet to help AI generate better suggestions"
-              >
-                📄 Upload Cheat Sheet
-              </button>
-              {cheatSheetFile && (
-                <span className="file-indicator">
-                  ✅ {cheatSheetFile.name}
-                </span>
-              )}
-              {processingCheatSheet && (
-                <div className="processing-indicator">
-                  🔄 Processing cheat sheet...
-                </div>
-              )}
-              {bulkSuggestionsReady && (
-                <div className="suggestions-ready-indicator">
-                  ✨ AI suggestions populated!
-                </div>
-              )}
-              {processingDuration > 0 && (
-                <div className="processing-time-indicator">
-                  🤖 gpt-4o-mini processed cheat sheet in {Math.floor(processingDuration / 1000)}s
-                </div>
-              )}
+            <div className="upload-section">
+              <div className="upload-controls">
+                <button 
+                  className="upload-button"
+                  onClick={handleUploadClick}
+                  title="Upload cheat sheet to help AI generate better suggestions"
+                >
+                  📄 Upload Cheat Sheet
+                </button>
+                {cheatSheetFile && (
+                  <span className="file-indicator">
+                    ✅ {cheatSheetFile.name}
+                  </span>
+                )}
+              </div>
+              <div className="upload-status">
+                {processingCheatSheet && (
+                  <div className="processing-indicator">
+                    🔄 Processing cheat sheet...
+                  </div>
+                )}
+                {bulkSuggestionsReady && (
+                  <div className="suggestions-ready-indicator">
+                    ✨ AI suggestions populated!
+                  </div>
+                )}
+                {processingDuration > 0 && (
+                  <div className="processing-time-indicator">
+                    🤖 gpt-4o-mini processed cheat sheet in {Math.floor(processingDuration / 1000)}s
+                  </div>
+                )}
+              </div>
               <input
                 ref={cheatSheetInputRef}
                 type="file"
@@ -1994,7 +1998,7 @@ const handleCancelEditExampleResource = () => {
                 onChange={handleCheatSheetUpload}
                 style={{ display: 'none' }}
               />
-            </>
+            </div>
           )}
           <button className={`modal-close-button`} onClick={onClose}>×</button>
         </div>

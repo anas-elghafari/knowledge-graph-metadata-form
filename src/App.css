@@ -637,8 +637,26 @@ select {
 
 .modal-header-controls {
   display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upload-controls {
+  display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.upload-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .processing-indicator {
