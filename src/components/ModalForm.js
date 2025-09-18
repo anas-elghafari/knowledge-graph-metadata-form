@@ -3,6 +3,40 @@ import { v4 as uuidv4 } from 'uuid';
 import fieldInstructions from '../fieldInstructions';
 import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
 
+// Smart comma splitting function that ignores commas within parentheses
+const smartCommaSplit = (text) => {
+  const result = [];
+  let current = '';
+  let parenDepth = 0;
+  
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    
+    if (char === '(') {
+      parenDepth++;
+      current += char;
+    } else if (char === ')') {
+      parenDepth--;
+      current += char;
+    } else if (char === ',' && parenDepth === 0) {
+      // Split here - we're not inside parentheses
+      if (current.trim()) {
+        result.push(current.trim());
+      }
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  // Add the last part
+  if (current.trim()) {
+    result.push(current.trim());
+  }
+  
+  return result;
+};
+
 function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null, aiEnabledByDefault = false }) {
   // Initial form state
   const initialFormState = {
@@ -309,13 +343,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       }
       
       // Special handling for multi-value fields
-      const multiValueFields = ['vocabulariesUsed', 'keywords', 'category', 'language'];
+      const multiValueFields = ['vocabulariesUsed', 'keywords', 'category', 'language', 'otherPages', 'statistics'];
       if (multiValueFields.includes(fieldName)) {
         const firstSuggestionMatch = suggestionText.match(/• (.+?)\n/);
         if (firstSuggestionMatch) {
           const suggestionValue = firstSuggestionMatch[1].trim();
-          // Split comma-separated values and clean them up
-          const values = suggestionValue.split(',').map(val => val.trim()).filter(val => val.length > 0);
+          // Smart split on commas, ignoring commas within parentheses
+          const values = smartCommaSplit(suggestionValue).map(val => val.trim()).filter(val => val.length > 0);
           
           if (values.length > 0) {
             // Add all values to the existing array, avoiding duplicates
