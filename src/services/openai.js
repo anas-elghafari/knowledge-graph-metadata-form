@@ -273,25 +273,7 @@ HANDLING "NS" VALUES:
     
     console.log('Bulk suggestion result:', result);
     
-    // Format suggestions for each field
-    const formattedSuggestions = {};
-    Object.entries(result.fieldSuggestions).forEach(([fieldName, fieldData]) => {
-      console.log(`Processing field ${fieldName}:`, fieldData);
-      
-      // Handle case where fieldData is a string (noSuggestionsReason)
-      if (typeof fieldData === 'string') {
-        formattedSuggestions[fieldName] = fieldData;
-      } else if (!fieldData.suggestions || fieldData.suggestions.length === 0) {
-        formattedSuggestions[fieldName] = fieldData.noSuggestionsReason || 'No suitable suggestions found for this field.';
-      } else {
-        const suggestionList = fieldData.suggestions
-          .map((suggestion, index) => `• ${suggestion.value}\n  ${suggestion.explanation}`)
-          .join('\n\n');
-        formattedSuggestions[fieldName] = `Ranked by confidence (most likely first):\n\n${suggestionList}`;
-      }
-    });
-
-    return { fieldSuggestions: result.fieldSuggestions };
+    return result;
   } catch (error) {
     console.error('Error getting bulk field suggestions:', error);
     throw error;
