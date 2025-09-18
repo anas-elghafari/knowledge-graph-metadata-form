@@ -256,7 +256,10 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       // Calculate processing duration
       if (processingStartTime) {
         const duration = Date.now() - processingStartTime;
+        console.log('Setting processing duration:', duration, 'ms');
         setProcessingDuration(duration);
+      } else {
+        console.log('No processingStartTime found');
       }
     }
   };
@@ -2025,6 +2028,10 @@ const handleCancelEditExampleResource = () => {
                     🤖 gpt-4o-mini processed cheat sheet in {Math.floor(processingDuration / 1000)}s
                   </div>
                 )}
+                {/* Debug - remove later */}
+                <div style={{fontSize: '10px', color: '#999'}}>
+                  Debug: processingDuration={processingDuration}, bulkSuggestionsReady={bulkSuggestionsReady ? 'true' : 'false'}
+                </div>
               </div>
               <input
                 ref={cheatSheetInputRef}
@@ -4296,7 +4303,7 @@ const handleCancelEditExampleResource = () => {
           {showAISuggestions && (
             <div className="ai-suggestions-panel">
               <div className="ai-panel-header">
-                <h3>AI Suggestions</h3>
+                <h3>AI Explanation</h3>
                 {activeField && (
                   <div className="active-field-indicator">
                     Field: <strong>{activeField}</strong>
@@ -4305,11 +4312,8 @@ const handleCancelEditExampleResource = () => {
               </div>
               
               <div className="ai-panel-content">
-                {activeField && activeField !== 'waiting-for-cheatsheet' && (
+                {activeField && activeField !== 'waiting-for-cheatsheet' && bulkSuggestionsReady && (
                   <div className="ai-suggestions-list">
-                    <div className="suggestions-header">
-                      Ranked by confidence (most likely first):
-                    </div>
                     {(() => {
                       const suggestionText = aiSuggestions[activeField];
                       
@@ -4376,19 +4380,19 @@ const handleCancelEditExampleResource = () => {
                   </div>
                 )}
                 
-                {activeField === 'waiting-for-cheatsheet' && (
+                {(!bulkSuggestionsReady || activeField === 'waiting-for-cheatsheet') && (
                   <div className="waiting-for-cheatsheet-message">
                     <div className="waiting-icon">📋</div>
                     <div className="waiting-text">
                       <strong>Waiting for cheat sheet</strong>
-                      <p>Please upload a relevant cheat sheet to get AI suggestions for your fields.</p>
+                      <p>Please upload a relevant cheat sheet to get AI explanations for your fields.</p>
                     </div>
                   </div>
                 )}
                 
-                {!activeField && (
+                {bulkSuggestionsReady && !activeField && (
                   <div className="ai-panel-placeholder">
-                    Click the 🤖 icon next to any field to get AI suggestions
+                    Click the 🤖 icon next to any field to get AI explanations
                   </div>
                 )}
               </div>
@@ -4406,7 +4410,7 @@ const handleCancelEditExampleResource = () => {
              onChange={(e) => setShowAISuggestions(e.target.checked)}
              className="ai-toggle-checkbox"
            />
-           Show AI Suggestions
+           Show AI Explanation
          </label>
        </div>
        
