@@ -713,8 +713,8 @@ const handleCancelEditExampleResource = () => {
         label.setAttribute('tabindex', '0'); // Make focusable for accessibility
       }
 
-      // Handle AI suggestion tooltips
-      if (showAISuggestions && fieldId) {
+      // Handle AI suggestion tooltips (exclude Type checkbox labels)
+      if (showAISuggestions && fieldId && !fieldId.startsWith('type')) {
         // Remove existing AI tooltip if any
         const existingAITooltip = label.querySelector('.ai-suggestion-tooltip');
         if (existingAITooltip) {
@@ -4364,7 +4364,7 @@ const handleCancelEditExampleResource = () => {
             <p>AI is analyzing your cheat sheet and generating suggestions...</p>
             <div className="processing-timer">
               {processingStartTime && (
-                <span>Processing time: {Math.floor(currentProcessingTime / 1000)}.{Math.floor((currentProcessingTime % 1000) / 100)}s</span>
+                <span>Processing time: {Math.floor(currentProcessingTime / 1000)}s</span>
               )}
             </div>
           </div>
