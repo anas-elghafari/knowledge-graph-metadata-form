@@ -650,8 +650,17 @@ select {
 
 .suggestions-ready-indicator {
   color: #28a745;
-  font-size: 0.9rem;
+  font-size: 12px;
+  margin-left: 10px;
   font-weight: 500;
+}
+
+.processing-time-indicator {
+  color: #6c757d;
+  font-size: 12px;
+  margin-left: 10px;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
 }
 
 @keyframes pulse {

@@ -1948,6 +1948,11 @@ const handleCancelEditExampleResource = () => {
                   ✨ AI suggestions populated!
                 </div>
               )}
+              {processingDuration > 0 && (
+                <div className="processing-time-indicator">
+                  🤖 gpt-4o-mini processed cheat sheet in {Math.floor(processingDuration / 1000)}s
+                </div>
+              )}
               <input
                 ref={cheatSheetInputRef}
                 type="file"
