@@ -58,7 +58,10 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   // State for AI suggestions
   const [showAISuggestions, setShowAISuggestions] = useState(aiEnabledByDefault);
   const [aiSuggestions, setAiSuggestions] = useState({});
-  const [loadingSuggestions, setLoadingSuggestions] = useState({});
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [processingStartTime, setProcessingStartTime] = useState(null);
+  const [processingDuration, setProcessingDuration] = useState(0);
+  const [currentProcessingTime, setCurrentProcessingTime] = useState(0);
   const [activeField, setActiveField] = useState(null);
   
   // Cheat sheet upload state
@@ -117,17 +120,15 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       }
       
       setCheatSheetFile(file);
-      setProcessingCheatSheet(true);
-      setBulkSuggestionsReady(false);
-      
       const reader = new FileReader();
+      
       reader.onload = async (e) => {
         const content = e.target.result;
-        console.log('CSV content loaded:', content.substring(0, 500) + '...');
-        
         setCheatSheetContent(content);
+        console.log('Cheat sheet uploaded:', content.substring(0, 200) + '...');
         
-        // Process bulk suggestions
+        // Start timing and process bulk suggestions automatically
+        setProcessingStartTime(Date.now());
         await processBulkSuggestions(content);
       };
       
@@ -248,6 +249,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       console.error('Error processing bulk suggestions:', error);
     } finally {
       setLoadingSuggestions(false);
+      // Calculate processing duration
+      if (processingStartTime) {
+        const duration = Date.now() - processingStartTime;
+        setProcessingDuration(duration);
+      }
     }
   };
 
@@ -718,7 +724,7 @@ const handleCancelEditExampleResource = () => {
         // Create AI suggestion tooltip
         const aiTooltip = document.createElement('span');
         aiTooltip.className = 'ai-suggestion-tooltip';
-        aiTooltip.innerHTML = loadingSuggestions[fieldId] ? '🤖⏳' : '🤖';
+        aiTooltip.innerHTML = '🤖';
         aiTooltip.title = aiSuggestions[fieldId] || 'Click to get AI suggestion';
         aiTooltip.style.cursor = 'pointer';
         aiTooltip.style.marginLeft = '8px';
@@ -761,7 +767,7 @@ const handleCancelEditExampleResource = () => {
         }
       }
     });
-  }, [showAISuggestions, aiSuggestions, loadingSuggestions, bulkSuggestionsReady]);
+  }, [showAISuggestions, aiSuggestions, bulkSuggestionsReady]);
 
 
   useEffect(() => {
@@ -774,8 +780,18 @@ const handleCancelEditExampleResource = () => {
     return () => timeoutId && clearTimeout(timeoutId);
   }, [message]);
 
-
-
+  // Real-time timer for processing overlay
+  useEffect(() => {
+    let interval;
+    if (loadingSuggestions && processingStartTime) {
+      interval = setInterval(() => {
+        setCurrentProcessingTime(Date.now() - processingStartTime);
+      }, 100); // Update every 100ms for smooth timer
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [loadingSuggestions, processingStartTime]);
 
     const isValidIriString = (iriString) => {
       console.log('Validating IRI:', iriString);
@@ -4211,13 +4227,7 @@ const handleCancelEditExampleResource = () => {
               </div>
               
               <div className="ai-panel-content">
-                {activeField && loadingSuggestions[activeField] && (
-                  <div className="ai-loading">
-                    🤖⏳ Loading suggestions...
-                  </div>
-                )}
-                
-                {activeField && activeField !== 'waiting-for-cheatsheet' && !loadingSuggestions[activeField] && (
+                {activeField && activeField !== 'waiting-for-cheatsheet' && (
                   <div className="ai-suggestions-list">
                     <div className="suggestions-header">
                       Ranked by confidence (most likely first):
@@ -4344,6 +4354,22 @@ const handleCancelEditExampleResource = () => {
          {isSubmitting ? 'Submitting...' : 'Submit'}
        </button>
       </div>
+      
+      {/* Processing Overlay */}
+      {loadingSuggestions && (
+        <div className="processing-overlay">
+          <div className="processing-content">
+            <div className="processing-spinner"></div>
+            <h3>Processing Cheat Sheet</h3>
+            <p>AI is analyzing your cheat sheet and generating suggestions...</p>
+            <div className="processing-timer">
+              {processingStartTime && (
+                <span>Processing time: {Math.floor(currentProcessingTime / 1000)}.{Math.floor((currentProcessingTime % 1000) / 100)}s</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </div>
   );
