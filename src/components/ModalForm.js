@@ -3,39 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import fieldInstructions from '../fieldInstructions';
 import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
 
-// Smart comma splitting function that ignores commas within parentheses
-const smartCommaSplit = (text) => {
-  const result = [];
-  let current = '';
-  let parenDepth = 0;
-  
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    
-    if (char === '(') {
-      parenDepth++;
-      current += char;
-    } else if (char === ')') {
-      parenDepth--;
-      current += char;
-    } else if (char === ',' && parenDepth === 0) {
-      // Split here - we're not inside parentheses
-      if (current.trim()) {
-        result.push(current.trim());
-      }
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  
-  // Add the last part
-  if (current.trim()) {
-    result.push(current.trim());
-  }
-  
-  return result;
-};
 
 function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null, aiEnabledByDefault = false }) {
   // Initial form state
@@ -277,7 +244,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       setAiSuggestions(formattedSuggestions);
       
       // Auto-populate fields with top suggestions
-      autoPopulateFieldsFromSuggestions(bulkSuggestionTexts);
+      autoPopulateFieldsFromSuggestions(bulkSuggestionTexts, formattedSuggestions);
       
       // Mark bulk suggestions as ready
       setBulkSuggestionsReady(true);
@@ -295,8 +262,9 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   };
 
   // Auto-populate fields with top suggestions from bulk results
-  const autoPopulateFieldsFromSuggestions = (bulkSuggestions) => {
+  const autoPopulateFieldsFromSuggestions = (bulkSuggestions, formattedSuggestions = null) => {
     console.log('Auto-populating fields with suggestions:', bulkSuggestions);
+    console.log('Formatted suggestions with raw data:', formattedSuggestions);
     const updatedFormData = { ...formData };
     
     Object.entries(bulkSuggestions).forEach(([fieldName, suggestionText]) => {
@@ -313,7 +281,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         console.log('Processing roles field...', suggestionText);
         try {
           // Get the raw AI response data for roles
-          const rawResponse = aiSuggestions[fieldName + '_raw'];
+          const rawResponse = formattedSuggestions ? formattedSuggestions[fieldName + '_raw'] : null;
           console.log('Raw roles response:', rawResponse);
           
           if (rawResponse && rawResponse.suggestions) {
@@ -350,8 +318,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                 
                 if (roleData.mode === 'name_mbox' && roleData.name) {
                   // Handle comma-separated names
-                  const names = smartCommaSplit(roleData.name);
-                  const emails = roleData.email ? smartCommaSplit(roleData.email) : [''];
+                  const names = roleData.name.split(',').map(n => n.trim()).filter(n => n.length > 0);
+                  const emails = roleData.email ? roleData.email.split(',').map(e => e.trim()).filter(e => e.length > 0) : [''];
                   
                   names.forEach((name, index) => {
                     const email = emails[index] || emails[0] || '';
@@ -359,7 +327,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                   });
                 } else if (roleData.mode === 'iri' && roleData.iri) {
                   // Handle comma-separated IRIs
-                  const iris = smartCommaSplit(roleData.iri);
+                  const iris = roleData.iri.split(',').map(i => i.trim()).filter(i => i.length > 0);
                   iris.forEach(iri => {
                     const newRole = {
                       roleType: roleData.roleType,
@@ -410,8 +378,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         const firstSuggestionMatch = suggestionText.match(/• (.+?)\n/);
         if (firstSuggestionMatch) {
           const suggestionValue = firstSuggestionMatch[1].trim();
-          // Smart split on commas, ignoring commas within parentheses
-          const values = smartCommaSplit(suggestionValue).map(val => val.trim()).filter(val => val.length > 0);
+          // Split on commas for most fields, periods for statistics field
+          let values;
+          if (fieldName === 'statistics') {
+            values = suggestionValue.split('.').map(val => val.trim()).filter(val => val.length > 0);
+          } else {
+            values = suggestionValue.split(',').map(val => val.trim()).filter(val => val.length > 0);
+          }
           
           if (values.length > 0) {
             // Add all values to the existing array, avoiding duplicates
