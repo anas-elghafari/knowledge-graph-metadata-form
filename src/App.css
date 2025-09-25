@@ -2221,3 +2221,239 @@ label:has(+ .form-input-error) .field-indicator {
   margin-bottom: 8px;
   display: block;
 }
+
+/* Toggle buttons for meta graph input mode */
+.toggle-buttons {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border: 1px solid var(--dark-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 8px 16px;
+  background-color: var(--dark-surface-lighter);
+  color: var(--dark-text-secondary);
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border-right: 1px solid var(--dark-border);
+}
+
+.toggle-btn:last-child {
+  border-right: none;
+}
+
+.toggle-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--dark-text);
+}
+
+.toggle-btn.active {
+  background-color: var(--primary-blue);
+  color: white;
+}
+
+.toggle-btn.active:hover {
+  background-color: var(--primary-blue-hover);
+}
+
+/* Input with button styling for manual IRI input */
+.input-with-button {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-with-button .form-input {
+  margin-bottom: 0;
+}
+
+.input-with-button .add-button:disabled {
+  background-color: var(--dark-border);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Unified input field for meta graph */
+.unified-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.unified-input-field {
+  display: flex;
+  align-items: center;
+  background-color: var(--dark-surface-lighter);
+  border: 2px dashed var(--dark-border);
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.unified-input-field:hover {
+  border-color: var(--primary-blue);
+  background-color: rgba(74, 144, 226, 0.05);
+}
+
+.unified-input-field.drag-over {
+  border-color: var(--primary-blue);
+  background-color: rgba(74, 144, 226, 0.1);
+  border-style: solid;
+}
+
+.unified-input-field.error {
+  border-color: var(--error-red);
+  background-color: rgba(220, 53, 69, 0.05);
+}
+
+.unified-input-field.valid {
+  border-color: var(--success-green);
+  background-color: rgba(40, 167, 69, 0.05);
+}
+
+.unified-text-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--dark-text);
+  font-size: 16px;
+  outline: none;
+  padding: 4px 8px;
+  margin-right: 12px;
+}
+
+.unified-text-input::placeholder {
+  color: var(--dark-text-secondary);
+  opacity: 0.8;
+}
+
+.unified-input-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.unified-input-actions .add-button {
+  padding: 6px 12px;
+  font-size: 14px;
+  margin: 0;
+}
+
+.unified-input-actions .browse-button {
+  padding: 6px 8px;
+  font-size: 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--dark-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unified-input-actions .browse-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* SPARQL Endpoint Confirmation Overlay */
+.confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirmation-dialog {
+  background-color: var(--dark-surface);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--dark-border);
+}
+
+.confirmation-dialog h3 {
+  color: var(--dark-text);
+  margin: 0 0 12px 0;
+  font-size: 18px;
+}
+
+.confirmation-dialog p {
+  color: var(--dark-text-secondary);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.sparql-confirmation-preview {
+  background-color: var(--dark-surface-lighter);
+  border: 1px solid var(--dark-border);
+  border-radius: 4px;
+  padding: 12px;
+  margin: 16px 0;
+  font-size: 14px;
+}
+
+.sparql-confirmation-preview div {
+  margin: 4px 0;
+  color: var(--dark-text-secondary);
+}
+
+.sparql-confirmation-preview strong {
+  color: var(--dark-text);
+  font-weight: 600;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.confirm-button {
+  background-color: var(--primary-blue);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+}
+
+.confirm-button:hover {
+  background-color: var(--primary-blue-hover);
+}
+
+.confirmation-actions .cancel-button {
+  background-color: transparent;
+  color: var(--dark-text-secondary);
+  border: 1px solid var(--dark-border);
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.confirmation-actions .cancel-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--dark-text);
+}

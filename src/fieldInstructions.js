@@ -36,8 +36,9 @@ const fieldInstructions = {
     "distModificationDate": "The date when this distribution was modified.",
     
 
-    "restAPI": "Provide a REST API for the KG.",
+    "restAPI": "Provide a REST API endpoint IRI for the KG.",
     "sparqlEndpoint": "Provide a SPARQL endpoint for the KG.",
+    "sparqlEndpoints": " ... ",
     "exampleQueries": "Provide an exemplar query against the KG.",
     
   

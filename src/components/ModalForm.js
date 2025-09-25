@@ -257,7 +257,14 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       if (processingStartTime) {
         const duration = Date.now() - processingStartTime;
         console.log('Setting processing duration:', duration, 'ms');
+        console.log('processingStartTime was:', processingStartTime);
+        console.log('Current time:', Date.now());
         setProcessingDuration(duration);
+        
+        // Force a re-render by also updating a dummy state
+        setTimeout(() => {
+          console.log('Processing duration should now be:', duration);
+        }, 100);
       } else {
         console.log('No processingStartTime found');
       }
@@ -448,6 +455,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [languageInput, setLanguageInput] = useState('');
   const [iriTemplateInput, setIriTemplateInput] = useState('');
   // Linked Resources collection state (similar to example resources)
+  const [showLinkedResourceConfirmation, setShowLinkedResourceConfirmation] = useState(false);
   const emptyLinkedResource = {
     target: '',
     triples: ''
@@ -503,11 +511,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [vocabulariesUsedInput, setVocabulariesUsedInput] = useState('');
   const [metadataSchemaInput, setMetadataSchemaInput] = useState('');
   const [restAPIInput, setRestAPIInput] = useState('');
+  const [restAPIInputError, setRestAPIInputError] = useState('');
   const [exampleQueriesInput, setExampleQueriesInput] = useState('');
 
 // SPARQL Endpoints Section State
 const emptySparqlEndpoint = {
-  dataService: '',
   endpointURL: '',
   identifier: '',
   title: '',
@@ -517,15 +525,16 @@ const emptySparqlEndpoint = {
 const [currentSparqlEndpoint, setCurrentSparqlEndpoint] = useState(emptySparqlEndpoint);
 const [sparqlEndpoints, setSparqlEndpoints] = useState([]);
 const [editingSparqlEndpointIdx, setEditingSparqlEndpointIdx] = useState(null);
-const [sparqlDataServiceValid, setSparqlDataServiceValid] = useState(false);
 const [sparqlEndpointURLValid, setSparqlEndpointURLValid] = useState(false);
 const [sparqlEndpointURLError, setSparqlEndpointURLError] = useState('');
 const [sparqlIdentifierValid, setSparqlIdentifierValid] = useState(false);
 const [sparqlTitleValid, setSparqlTitleValid] = useState(false);
 const [sparqlEndpointDescriptionValid, setSparqlEndpointDescriptionValid] = useState(false);
 const [sparqlStatusValid, setSparqlStatusValid] = useState(false);
+const [showSparqlConfirmation, setShowSparqlConfirmation] = useState(false);
 
 // Example Resource Section State
+const [showExampleResourceConfirmation, setShowExampleResourceConfirmation] = useState(false);
 const emptyExampleResource = {
   accessURL: '',
   title: '',
@@ -562,7 +571,6 @@ const handleKeyPress = (e, tagType, inputValue, setInputFunction) => {
 const resetSparqlEndpointForm = () => {
   setCurrentSparqlEndpoint(emptySparqlEndpoint);
   setEditingSparqlEndpointIdx(null);
-  setSparqlDataServiceValid(false);
   setSparqlEndpointURLValid(false);
   setSparqlEndpointURLError('');
   setSparqlIdentifierValid(false);
@@ -584,14 +592,25 @@ const resetExampleResourceForm = () => {
 
 const handleAddSparqlEndpoint = () => {
   if (editingSparqlEndpointIdx !== null) {
-    // Save edits
+    // Save edits directly (no confirmation needed for edits)
     const updated = [...sparqlEndpoints];
     updated[editingSparqlEndpointIdx] = currentSparqlEndpoint;
     setSparqlEndpoints(updated);
+    resetSparqlEndpointForm();
   } else {
-    setSparqlEndpoints(prev => [...prev, currentSparqlEndpoint]);
+    // Show confirmation for new additions
+    setShowSparqlConfirmation(true);
   }
+};
+
+const confirmAddSparqlEndpoint = () => {
+  setSparqlEndpoints(prev => [...prev, currentSparqlEndpoint]);
+  setShowSparqlConfirmation(false);
   resetSparqlEndpointForm();
+};
+
+const cancelAddSparqlEndpoint = () => {
+  setShowSparqlConfirmation(false);
 };
 
 const handleEditSparqlEndpoint = (idx) => {
@@ -613,16 +632,25 @@ const handleCancelEditSparqlEndpoint = () => {
 
 const handleAddExampleResource = () => {
   if (editingExampleResourceIdx !== null) {
-    // Save edits
+    // Save edits directly (no confirmation needed for edits)
     const updated = [...exampleResources];
     updated[editingExampleResourceIdx] = currentExampleResource;
     setExampleResources(updated);
+    resetExampleResourceForm();
   } else {
-    // Add new
-    setExampleResources([...exampleResources, currentExampleResource]);
+    // Show confirmation for new additions
+    setShowExampleResourceConfirmation(true);
   }
-  setCurrentExampleResource(emptyExampleResource);
-  setEditingExampleResourceIdx(null);
+};
+
+const confirmAddExampleResource = () => {
+  setExampleResources([...exampleResources, currentExampleResource]);
+  setShowExampleResourceConfirmation(false);
+  resetExampleResourceForm();
+};
+
+const cancelAddExampleResource = () => {
+  setShowExampleResourceConfirmation(false);
 };
 
 // Linked Resource handlers
@@ -632,16 +660,27 @@ const handleCurrentLinkedResourceChange = (field, value) => {
 
 const handleAddLinkedResource = () => {
   if (editingLinkedResourceIdx !== null) {
-    // Save edits
+    // Save edits directly (no confirmation needed for edits)
     const updated = [...linkedResources];
     updated[editingLinkedResourceIdx] = currentLinkedResource;
     setLinkedResources(updated);
+    setCurrentLinkedResource(emptyLinkedResource);
+    setEditingLinkedResourceIdx(null);
   } else {
-    // Add new
-    setLinkedResources([...linkedResources, currentLinkedResource]);
+    // Show confirmation for new additions
+    setShowLinkedResourceConfirmation(true);
   }
+};
+
+const confirmAddLinkedResource = () => {
+  setLinkedResources([...linkedResources, currentLinkedResource]);
+  setShowLinkedResourceConfirmation(false);
   setCurrentLinkedResource(emptyLinkedResource);
   setEditingLinkedResourceIdx(null);
+};
+
+const cancelAddLinkedResource = () => {
+  setShowLinkedResourceConfirmation(false);
 };
 
 const handleEditLinkedResource = (idx) => {
@@ -684,6 +723,7 @@ const handleCancelEditExampleResource = () => {
   const [otherPagesInputError, setOtherPagesInputError] = useState('');
   const [primaryReferenceDocInputError, setPrimaryReferenceDocInputError] = useState('');
   const [metaGraphInputError, setMetaGraphInputError] = useState('');
+  const [metaGraphInputValid, setMetaGraphInputValid] = useState(false);
   const [statisticsInputError, setStatisticsInputError] = useState('');
   const [categoryInputError, setCategoryInputError] = useState('');
   const [publicationReferencesInputError, setPublicationReferencesInputError] = useState('');
@@ -1416,6 +1456,24 @@ const handleCancelEditExampleResource = () => {
       });
     }
   };
+
+  const handleAddMetaGraphIRI = () => {
+    if (metaGraphInput.trim()) {
+      const iriError = isValidIriString(metaGraphInput);
+      if (!iriError) {
+        setFormData({
+          ...formData,
+          metaGraph: [...formData.metaGraph, metaGraphInput.trim()]
+        });
+        setMetaGraphInput('');
+        setMetaGraphInputError('');
+        setMetaGraphInputValid(false);
+      } else {
+        setMetaGraphInputError(iriError);
+        setMetaGraphInputValid(false);
+      }
+    }
+  };
   
   const addPendingTagInputs = () => {
     // Create a copy of the current form data that we'll update
@@ -1476,6 +1534,18 @@ const handleCancelEditExampleResource = () => {
         ...updatedFormData,
         primaryReferenceDocument: [...updatedFormData.primaryReferenceDocument, primaryReferenceDocInput.trim()]
       };
+    }
+    
+    if (metaGraphInput.trim()) {
+      const iriError = isValidIriString(metaGraphInput);
+      if (!iriError) {
+        updatedFormData = {
+          ...updatedFormData,
+          metaGraph: [...updatedFormData.metaGraph, metaGraphInput.trim()]
+        };
+      } else {
+        setMetaGraphInputError(iriError);
+      }
     }
     
     if (statisticsInput.trim()) {
@@ -1558,10 +1628,15 @@ const handleCancelEditExampleResource = () => {
     
     
     if (restAPIInput.trim()) {
-      updatedFormData = {
-        ...updatedFormData,
-        restAPI: [...updatedFormData.restAPI, restAPIInput.trim()]
-      };
+      const iriError = isValidIriString(restAPIInput);
+      if (!iriError) {
+        updatedFormData = {
+          ...updatedFormData,
+          restAPI: [...updatedFormData.restAPI, restAPIInput.trim()]
+        };
+      } else {
+        setRestAPIInputError(iriError);
+      }
     }
     
     if (exampleQueriesInput.trim()) {
@@ -2081,8 +2156,8 @@ const handleCancelEditExampleResource = () => {
           <div className="form-panel">
             <form onSubmit={handleSubmit}>
           
-          {/* Identifier (auto-generated UUID) */}
-          <div className="form-group">
+          {/* Hidden for now - Identifier (auto-generated UUID) */}
+          {/* <div className="form-group">
             <label htmlFor="identifier">
               Identifier <span className="field-indicator">auto-generated UUID</span>
             </label>
@@ -2094,7 +2169,7 @@ const handleCancelEditExampleResource = () => {
               ))}
               <div className="field-hint">This identifier is automatically generated and cannot be edited</div>
             </div>
-          </div>
+          </div> */}
           
           {/* Title */}
           <div className="form-group">
@@ -2425,9 +2500,10 @@ const handleCancelEditExampleResource = () => {
               required
               className={`form-control ${versionValid ? 'form-input-valid' : ''}`}
             />
-            <span className="version-id-display">
+            {/* Hidden for now - Full ID display */}
+            {/* <span className="version-id-display">
               Full ID: {formData.identifier[0] ? `${formData.identifier[0]}-v${formData.version}` : 'Will be generated from identifier'}
-            </span>
+            </span> */}
           </div>
     
                       
@@ -2609,19 +2685,87 @@ const handleCancelEditExampleResource = () => {
             <label htmlFor="metaGraph">
               Meta Graph <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
             </label>
-            <div className="file-upload-section">
-              <div className="file-upload-label">
-                <span className="file-name">{imageFileName || "No file selected"}</span>
-                <button 
-                  type="button" 
-                  className="browse-button"
-                  onClick={() => fileInputRef.current.click()}
-                >
-                  Browse
-                </button>
+            
+            {/* Unified Input Field */}
+            <div className="unified-input-container">
+              <div 
+                className={`unified-input-field ${metaGraphInputError ? 'error' : metaGraphInputValid ? 'valid' : ''}`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.add('drag-over');
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('drag-over');
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('drag-over');
+                  const files = Array.from(e.dataTransfer.files);
+                  if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type.startsWith('image/')) {
+                      setImageFileName(file.name);
+                      setFormData({
+                        ...formData,
+                        metaGraph: [...formData.metaGraph, file.name]
+                      });
+                    } else {
+                      alert('Please drop an image file.');
+                    }
+                  }
+                }}
+              >
                 <input
-          onBlur={validateRegularInput}              type="file"
-                  id="metaGraph"
+                  type="text"
+                  id="metaGraphInput"
+                  value={metaGraphInput}
+                  onChange={(e) => {
+                    setMetaGraphInput(e.target.value);
+                    if (e.target.value.trim()) {
+                      const iriError = isValidIriString(e.target.value);
+                      if (iriError) {
+                        setMetaGraphInputError(iriError);
+                        setMetaGraphInputValid(false);
+                      } else {
+                        setMetaGraphInputError('');
+                        setMetaGraphInputValid(true);
+                      }
+                    } else {
+                      setMetaGraphInputError('');
+                      setMetaGraphInputValid(false);
+                    }
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddMetaGraphIRI();
+                    }
+                  }}
+                  placeholder="Enter IRI or drag & drop image files here..."
+                  className="unified-text-input"
+                />
+                <div className="unified-input-actions">
+                  <button
+                    type="button"
+                    onClick={handleAddMetaGraphIRI}
+                    className="add-button"
+                    disabled={!metaGraphInputValid}
+                    title="Add IRI"
+                  >
+                    Add
+                  </button>
+                  <button 
+                    type="button" 
+                    className="browse-button"
+                    onClick={() => fileInputRef.current.click()}
+                    title="Browse for files"
+                  >
+                    📁
+                  </button>
+                </div>
+                <input
+                  type="file"
                   ref={fileInputRef}
                   onChange={handleFileUpload}
                   accept="image/*"
@@ -2629,21 +2773,28 @@ const handleCancelEditExampleResource = () => {
                   style={{ display: "none" }}
                 />
               </div>
-              <div className="tag-list">
-                {formData.metaGraph.map((graph, index) => (
-                  <div key={`meta-graph-${index}`} className="tag-item">
-                    <span className="tag-text">{graph}</span>
-                    <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('metaGraph', index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+              {metaGraphInputError && (
+                <div className="error-message">{metaGraphInputError}</div>
+              )}
+              <div className="field-hint">
+                Enter a valid IRI, drag & drop image files, or click 📁 to browse files
               </div>
-              <div className="field-hint">Upload image files to add to meta graph</div>
+            </div>
+
+            {/* Display added meta graph items */}
+            <div className="tag-list">
+              {formData.metaGraph.map((graph, index) => (
+                <div key={`meta-graph-${index}`} className="tag-item">
+                  <span className="tag-text">{graph}</span>
+                  <button 
+                    type="button"
+                    className="tag-remove"
+                    onClick={() => handleRemoveTag('metaGraph', index)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
           
@@ -3421,21 +3572,44 @@ const handleCancelEditExampleResource = () => {
          
          <div className="form-group">
           <label htmlFor="restAPI">
-              REST API <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+              REST API <span className="field-indicator optional-indicator">optional, multiple values allowed (IRI)</span>
           </label>
           <div className="tag-input-container">
               <div className="tag-input-row">
               <input
-                  type="text"
+                  type="url"
                   id="restAPI"
                   value={restAPIInput}
                   onChange={(e) => {
                     setRestAPIInput(e.target.value);
-                    setRestAPIInputValid(false);
+                    if (e.target.value.trim()) {
+                      const iriError = isValidIriString(e.target.value);
+                      if (iriError) {
+                        setRestAPIInputError(iriError);
+                        setRestAPIInputValid(false);
+                      } else {
+                        setRestAPIInputError('');
+                        setRestAPIInputValid(true);
+                      }
+                    } else {
+                      setRestAPIInputError('');
+                      setRestAPIInputValid(false);
+                    }
                   }}
-                  onBlur={() => setRestAPIInputValid(!!restAPIInput.trim())}
+                  onBlur={() => {
+                    if (restAPIInput.trim()) {
+                      const iriError = isValidIriString(restAPIInput);
+                      if (iriError) {
+                        setRestAPIInputError(iriError);
+                        setRestAPIInputValid(false);
+                      } else {
+                        setRestAPIInputError('');
+                        setRestAPIInputValid(true);
+                      }
+                    }
+                  }}
                   onKeyPress={(e) => handleKeyPress(e, 'restAPI', restAPIInput, setRestAPIInput)}
-                  className={`tag-input ${restAPIInputValid ? 'tag-input-valid' : ''}`}
+                  className={`tag-input ${restAPIInputError ? 'tag-input-error' : restAPIInputValid ? 'tag-input-valid' : ''}`}
               />
               <button 
                   type="button" 
@@ -3459,13 +3633,27 @@ const handleCancelEditExampleResource = () => {
                   </div>
               ))}
               </div>
+              {restAPIInputError && (
+                <div className="error-message">{restAPIInputError}</div>
+              )}
               <div className="field-hint"> </div>
           </div>
           </div>
     
           {/* SPARQL Endpoints Section */}
 <div className="form-section">
-  <h3 className="section-title">SPARQL Endpoints</h3>
+  <h3 className="section-title">SPARQL Endpoints 
+    <button
+      type="button"
+      className="info-icon"
+      data-field="sparqlEndpoints"
+      onMouseEnter={showTooltip}
+      onMouseLeave={hideTooltip}
+      onClick={(e) => e.preventDefault()}
+    >
+      ℹ️
+    </button>
+  </h3>
   <div className="field-indicator optional-indicator">optional, multiple submissions allowed</div>
   {/* Display existing SPARQL endpoints */}
   <div className="distributions-list">
@@ -3494,27 +3682,23 @@ const handleCancelEditExampleResource = () => {
         </div>
         <div className="distribution-preview">
           <div className="distribution-field">
-            <span className="field-label">dcat:DataService:</span>
-            <span className="field-value">{endpoint.dataService}</span>
-          </div>
-          <div className="distribution-field">
-            <span className="field-label">dcat:endpointURL:</span>
+            <span className="field-label">Endpoint URL:</span>
             <span className="field-value">{endpoint.endpointURL}</span>
           </div>
           <div className="distribution-field">
-            <span className="field-label">dct:identifier:</span>
+            <span className="field-label">Identifier:</span>
             <span className="field-value">{endpoint.identifier}</span>
           </div>
           <div className="distribution-field">
-            <span className="field-label">dct:title:</span>
+            <span className="field-label">Title:</span>
             <span className="field-value">{endpoint.title}</span>
           </div>
           <div className="distribution-field">
-            <span className="field-label">dcat:endpointDescription:</span>
+            <span className="field-label">Endpoint Description:</span>
             <span className="field-value">{endpoint.endpointDescription}</span>
           </div>
           <div className="distribution-field">
-            <span className="field-label">adms:status:</span>
+            <span className="field-label">Status:</span>
             <span className="field-value">{endpoint.status}</span>
           </div>
         </div>
@@ -3527,22 +3711,8 @@ const handleCancelEditExampleResource = () => {
       <h4>Add New SPARQL Endpoint</h4>
     </div>
     <div className="form-group">
-      <label htmlFor="sparqlDataService">
-        dcat:DataService <span className="field-indicator optional-indicator">optional</span>
-      </label>
-      <input
-        type="text"
-        id="sparqlDataService"
-        name="sparqlDataService"
-        value={currentSparqlEndpoint.dataService}
-        onChange={e => handleCurrentSparqlEndpointChange('dataService', e.target.value)}
-        onBlur={validateRegularInput}
-        className={`subfield-input ${sparqlDataServiceValid ? 'form-input-valid' : ''}`}
-      />
-    </div>
-    <div className="form-group">
       <label htmlFor="sparqlEndpointURL">
-        dcat:endpointURL <span className="field-indicator optional-indicator">optional</span>
+        Endpoint URL <span className="field-indicator optional-indicator">optional</span>
       </label>
       <input
         type="text"
@@ -3557,7 +3727,7 @@ const handleCancelEditExampleResource = () => {
     </div>
     <div className="form-group">
       <label htmlFor="sparqlIdentifier">
-        dct:identifier <span className="field-indicator optional-indicator">optional</span>
+        Identifier <span className="field-indicator optional-indicator">optional</span>
       </label>
       <input
         type="text"
@@ -3571,7 +3741,7 @@ const handleCancelEditExampleResource = () => {
     </div>
     <div className="form-group">
       <label htmlFor="sparqlTitle">
-        dct:title <span className="field-indicator optional-indicator">optional</span>
+        Title <span className="field-indicator optional-indicator">optional</span>
       </label>
       <input
         type="text"
@@ -3585,7 +3755,7 @@ const handleCancelEditExampleResource = () => {
     </div>
     <div className="form-group">
       <label htmlFor="sparqlEndpointDescription">
-        dcat:endpointDescription <span className="field-indicator optional-indicator">optional</span>
+        Endpoint Description <span className="field-indicator optional-indicator">optional</span>
       </label>
       <input
         type="text"
@@ -3599,7 +3769,7 @@ const handleCancelEditExampleResource = () => {
     </div>
     <div className="form-group">
       <label htmlFor="sparqlStatus">
-        adms:status <span className="field-indicator optional-indicator">optional</span>
+        Status <span className="field-indicator optional-indicator">optional</span>
       </label>
       <input
         type="text"
@@ -3631,6 +3801,49 @@ const handleCancelEditExampleResource = () => {
     </div>
   </div>
 </div>
+
+{/* SPARQL Endpoint Confirmation Overlay */}
+{showSparqlConfirmation && (
+  <div className="confirmation-overlay">
+    <div className="confirmation-dialog">
+      <h3>Confirm SPARQL Endpoint Addition</h3>
+      <p>Are you sure you want to add this SPARQL endpoint?</p>
+      <div className="sparql-confirmation-preview">
+        {currentSparqlEndpoint.endpointURL && (
+          <div><strong>Endpoint URL:</strong> {currentSparqlEndpoint.endpointURL}</div>
+        )}
+        {currentSparqlEndpoint.identifier && (
+          <div><strong>Identifier:</strong> {currentSparqlEndpoint.identifier}</div>
+        )}
+        {currentSparqlEndpoint.title && (
+          <div><strong>Title:</strong> {currentSparqlEndpoint.title}</div>
+        )}
+        {currentSparqlEndpoint.endpointDescription && (
+          <div><strong>Endpoint Description:</strong> {currentSparqlEndpoint.endpointDescription}</div>
+        )}
+        {currentSparqlEndpoint.status && (
+          <div><strong>Status:</strong> {currentSparqlEndpoint.status}</div>
+        )}
+      </div>
+      <div className="confirmation-actions">
+        <button 
+          type="button" 
+          className="confirm-button"
+          onClick={confirmAddSparqlEndpoint}
+        >
+          Yes, Add SPARQL Endpoint
+        </button>
+        <button 
+          type="button" 
+          className="cancel-button"
+          onClick={cancelAddSparqlEndpoint}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
           {/* Example Resource Section */}
 <div className="form-section">
@@ -3664,23 +3877,23 @@ const handleCancelEditExampleResource = () => {
         </div>
         <div className="distribution-preview">
           <div className="distribution-field">
-            <span className="field-label">dcat:accessURL:</span>
+            <span className="field-label">Access URL:</span>
             <span className="field-value">{resource.accessURL}</span>
           </div>
           <div className="distribution-field">
-            <span className="field-label">dct:title:</span>
+            <span className="field-label">Title:</span>
             <span className="field-value">{resource.title}</span>
           </div>
           <div className="distribution-field">
-            <span className="field-label">dcat:mediaType:</span>
+            <span className="field-label">Media Type:</span>
             <span className="field-value">{resource.mediaType}</span>
           </div>
           <div className="distribution-field">
-            <span className="field-label">dct:description:</span>
+            <span className="field-label">Description:</span>
             <span className="field-value">{resource.description}</span>
           </div>
           <div className="distribution-field">
-            <span className="field-label">adms:status:</span>
+            <span className="field-label">Status:</span>
             <span className="field-value">{resource.status}</span>
           </div>
         </div>
@@ -3692,7 +3905,7 @@ const handleCancelEditExampleResource = () => {
   <div className="distribution-form">
     <div className="form-group">
       <label htmlFor="exampleResourceAccessURL">
-        dcat:accessURL <span className="field-indicator optional-indicator">optional (IRI)</span>
+        Access URL <span className="field-indicator optional-indicator">optional (IRI)</span>
       </label>
       <input
         type="text"
@@ -3707,7 +3920,7 @@ const handleCancelEditExampleResource = () => {
     </div>
     <div className="form-group">
       <label htmlFor="exampleResourceTitle">
-        dct:title <span className="field-indicator optional-indicator">optional</span>
+        Title <span className="field-indicator optional-indicator">optional</span>
       </label>
       <input
         type="text"
@@ -3721,7 +3934,7 @@ const handleCancelEditExampleResource = () => {
     </div>
     <div className="form-group">
       <label htmlFor="exampleResourceMediaType">
-        dcat:mediaType <span className="field-indicator optional-indicator">optional</span>
+        Media Type <span className="field-indicator optional-indicator">optional</span>
       </label>
       <input
         type="text"
@@ -3735,7 +3948,7 @@ const handleCancelEditExampleResource = () => {
     </div>
     <div className="form-group">
       <label htmlFor="exampleResourceDescription">
-        dct:description <span className="field-indicator optional-indicator">optional</span>
+        Description <span className="field-indicator optional-indicator">optional</span>
       </label>
       <input
         type="text"
@@ -3749,7 +3962,7 @@ const handleCancelEditExampleResource = () => {
     </div>
     <div className="form-group">
       <label htmlFor="exampleResourceStatus">
-        adms:status <span className="field-indicator optional-indicator">optional</span>
+        Status <span className="field-indicator optional-indicator">optional</span>
       </label>
       <input
         type="text"
@@ -3781,6 +3994,49 @@ const handleCancelEditExampleResource = () => {
     </div>
   </div>
 </div>
+
+{/* Example Resource Confirmation Overlay */}
+{showExampleResourceConfirmation && (
+  <div className="confirmation-overlay">
+    <div className="confirmation-dialog">
+      <h3>Confirm Example Resource Addition</h3>
+      <p>Are you sure you want to add this example resource?</p>
+      <div className="sparql-confirmation-preview">
+        {currentExampleResource.accessURL && (
+          <div><strong>Access URL:</strong> {currentExampleResource.accessURL}</div>
+        )}
+        {currentExampleResource.title && (
+          <div><strong>Title:</strong> {currentExampleResource.title}</div>
+        )}
+        {currentExampleResource.mediaType && (
+          <div><strong>Media Type:</strong> {currentExampleResource.mediaType}</div>
+        )}
+        {currentExampleResource.description && (
+          <div><strong>Description:</strong> {currentExampleResource.description}</div>
+        )}
+        {currentExampleResource.status && (
+          <div><strong>Status:</strong> {currentExampleResource.status}</div>
+        )}
+      </div>
+      <div className="confirmation-actions">
+        <button 
+          type="button" 
+          className="confirm-button"
+          onClick={confirmAddExampleResource}
+        >
+          Yes, Add Example Resource
+        </button>
+        <button 
+          type="button" 
+          className="cancel-button"
+          onClick={cancelAddExampleResource}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
           {/* Example Queries [0,∞] - Optional, multiple values */}
           <div className="form-group">
@@ -4084,8 +4340,8 @@ const handleCancelEditExampleResource = () => {
                    </div>
                  </div>
                  <div className="distribution-details">
-                   <div><strong>void:target:</strong> {resource.target}</div>
-                   <div><strong>void:triples:</strong> {resource.triples}</div>
+                   <div><strong>Target:</strong> {resource.target}</div>
+                   <div><strong>Triples:</strong> {resource.triples}</div>
                  </div>
                </div>
              ))}
@@ -4095,7 +4351,7 @@ const handleCancelEditExampleResource = () => {
            <div className="distribution-form">
              <div className="form-group">
                <label htmlFor="linkedResourceTarget">
-                 void:target <span className="field-indicator optional-indicator">optional</span>
+                 Target <span className="field-indicator optional-indicator">optional</span>
                </label>
                <input
                  type="text"
@@ -4109,7 +4365,7 @@ const handleCancelEditExampleResource = () => {
              </div>
              <div className="form-group">
                <label htmlFor="linkedResourceTriples">
-                 void:triples <span className="field-indicator optional-indicator">optional</span>
+                 Triples <span className="field-indicator optional-indicator">optional</span>
                </label>
                <input
                  type="text"
@@ -4144,6 +4400,40 @@ const handleCancelEditExampleResource = () => {
              </div>
            </div>
          </div>
+
+{/* Linked Resource Confirmation Overlay */}
+{showLinkedResourceConfirmation && (
+  <div className="confirmation-overlay">
+    <div className="confirmation-dialog">
+      <h3>Confirm Linked Resource Addition</h3>
+      <p>Are you sure you want to add this linked resource?</p>
+      <div className="sparql-confirmation-preview">
+        {currentLinkedResource.target && (
+          <div><strong>Target:</strong> {currentLinkedResource.target}</div>
+        )}
+        {currentLinkedResource.triples && (
+          <div><strong>Triples:</strong> {currentLinkedResource.triples}</div>
+        )}
+      </div>
+      <div className="confirmation-actions">
+        <button 
+          type="button" 
+          className="confirm-button"
+          onClick={confirmAddLinkedResource}
+        >
+          Yes, Add Linked Resource
+        </button>
+        <button 
+          type="button" 
+          className="cancel-button"
+          onClick={cancelAddLinkedResource}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     
          {/* Access Statement [1] - Required, single value */}
          <div className="form-group">
