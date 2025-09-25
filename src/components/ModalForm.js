@@ -1397,7 +1397,6 @@ const handleCancelEditExampleResource = () => {
       'distCompressionFormat': setDistCompressionFormatValid,
       'distPackagingFormat': setDistPackagingFormatValid,
       'distHasPolicy': setDistHasPolicyValid,
-    'sparqlDataService': setSparqlDataServiceValid,
     'sparqlIdentifier': setSparqlIdentifierValid,
     'sparqlTitle': setSparqlTitleValid,
     'sparqlEndpointDescription': setSparqlEndpointDescriptionValid,
@@ -3643,16 +3642,13 @@ const handleCancelEditExampleResource = () => {
           {/* SPARQL Endpoints Section */}
 <div className="form-section">
   <h3 className="section-title">SPARQL Endpoints 
-    <button
-      type="button"
+    <span 
       className="info-icon"
-      data-field="sparqlEndpoints"
-      onMouseEnter={showTooltip}
-      onMouseLeave={hideTooltip}
-      onClick={(e) => e.preventDefault()}
+      data-tooltip={fieldInstructions['sparqlEndpoints'] || ''}
+      tabIndex="0"
     >
       ℹ️
-    </button>
+    </span>
   </h3>
   <div className="field-indicator optional-indicator">optional, multiple submissions allowed</div>
   {/* Display existing SPARQL endpoints */}
