@@ -536,11 +536,10 @@ const [showSparqlConfirmation, setShowSparqlConfirmation] = useState(false);
 // Example Resource Section State
 const [showExampleResourceConfirmation, setShowExampleResourceConfirmation] = useState(false);
 const emptyExampleResource = {
-  accessURL: '',
   title: '',
-  mediaType: '',
   description: '',
-  status: ''
+  status: '',
+  accessURL: ''
 };
 const [currentExampleResource, setCurrentExampleResource] = useState(emptyExampleResource);
 const [exampleResources, setExampleResources] = useState([]);
@@ -548,7 +547,6 @@ const [editingExampleResourceIdx, setEditingExampleResourceIdx] = useState(null)
 const [exampleResourceAccessURLValid, setExampleResourceAccessURLValid] = useState(false);
 const [exampleResourceAccessURLError, setExampleResourceAccessURLError] = useState('');
 const [exampleResourceTitleValid, setExampleResourceTitleValid] = useState(false);
-const [exampleResourceMediaTypeValid, setExampleResourceMediaTypeValid] = useState(false);
 const [exampleResourceDescriptionValid, setExampleResourceDescriptionValid] = useState(false);
 const [exampleResourceStatusValid, setExampleResourceStatusValid] = useState(false);
 
@@ -585,7 +583,6 @@ const resetExampleResourceForm = () => {
   setExampleResourceAccessURLValid(false);
   setExampleResourceAccessURLError('');
   setExampleResourceTitleValid(false);
-  setExampleResourceMediaTypeValid(false);
   setExampleResourceDescriptionValid(false);
   setExampleResourceStatusValid(false);
 };
@@ -1402,7 +1399,6 @@ const handleCancelEditExampleResource = () => {
     'sparqlEndpointDescription': setSparqlEndpointDescriptionValid,
     'sparqlStatus': setSparqlStatusValid,
     'exampleResourceTitle': setExampleResourceTitleValid,
-    'exampleResourceMediaType': setExampleResourceMediaTypeValid,
     'exampleResourceDescription': setExampleResourceDescriptionValid,
     'exampleResourceStatus': setExampleResourceStatusValid,
     'linkedResourceTarget': setLinkedResourceTargetValid,
@@ -2946,7 +2942,7 @@ const handleCancelEditExampleResource = () => {
           {/* Roles Section */}
           <div className="form-section">
             <h3 className="section-title">Roles</h3>
-            <div className="field-indicator optional-indicator">optional, multiple submissions allowed</div>
+            <div className="field-indicator required-indicator">required, at least 1 role must be added</div>
           </div>
 
           {/* Display existing roles */}
@@ -3075,7 +3071,7 @@ const handleCancelEditExampleResource = () => {
               {currentRole.inputMode === 'agentIRI' ? (
                 <div className="form-group">
                   <label htmlFor="roleAgent" className="subfield-label">
-                    Agent <span className="field-indicator required-indicator">required (IRI)</span>
+                    Agent <span className="field-indicator optional-indicator">optional (IRI)</span>
                   </label>
                   <input
                     onBlur={validateIriInput}
@@ -3096,7 +3092,7 @@ const handleCancelEditExampleResource = () => {
                 <>
                   <div className="form-group">
                     <label htmlFor="roleGivenName" className="subfield-label">
-                      Given Name <span className="field-indicator required-indicator">required</span>
+                      Given Name <span className="field-indicator optional-indicator">optional</span>
                     </label>
                     <input
                       onBlur={validateRegularInput}
@@ -3109,7 +3105,7 @@ const handleCancelEditExampleResource = () => {
                   </div>
                   <div className="form-group">
                     <label htmlFor="roleMbox" className="subfield-label">
-                      Mbox <span className="field-indicator required-indicator">required</span>
+                      Mbox <span className="field-indicator optional-indicator">optional</span>
                     </label>
                     <input
                       onBlur={validateEmailInput}
@@ -3873,16 +3869,8 @@ const handleCancelEditExampleResource = () => {
         </div>
         <div className="distribution-preview">
           <div className="distribution-field">
-            <span className="field-label">Access URL:</span>
-            <span className="field-value">{resource.accessURL}</span>
-          </div>
-          <div className="distribution-field">
             <span className="field-label">Title:</span>
             <span className="field-value">{resource.title}</span>
-          </div>
-          <div className="distribution-field">
-            <span className="field-label">Media Type:</span>
-            <span className="field-value">{resource.mediaType}</span>
           </div>
           <div className="distribution-field">
             <span className="field-label">Description:</span>
@@ -3892,6 +3880,10 @@ const handleCancelEditExampleResource = () => {
             <span className="field-label">Status:</span>
             <span className="field-value">{resource.status}</span>
           </div>
+          <div className="distribution-field">
+            <span className="field-label">Access URL:</span>
+            <span className="field-value">{resource.accessURL}</span>
+          </div>
         </div>
       </div>
     ))}
@@ -3899,21 +3891,6 @@ const handleCancelEditExampleResource = () => {
 
   {/* Example Resource Form */}
   <div className="distribution-form">
-    <div className="form-group">
-      <label htmlFor="exampleResourceAccessURL">
-        Access URL <span className="field-indicator optional-indicator">optional (IRI)</span>
-      </label>
-      <input
-        type="text"
-        id="exampleResourceAccessURL"
-        name="exampleResourceAccessURL"
-        value={currentExampleResource.accessURL}
-        onChange={e => handleCurrentExampleResourceChange('accessURL', e.target.value)}
-        onBlur={validateIriInput}
-        className={`subfield-input ${exampleResourceAccessURLError ? 'form-input-error' : ''} ${exampleResourceAccessURLValid ? 'form-input-valid' : ''}`}
-      />
-      {exampleResourceAccessURLError && <div className="iri-error-message">{exampleResourceAccessURLError}</div>}
-    </div>
     <div className="form-group">
       <label htmlFor="exampleResourceTitle">
         Title <span className="field-indicator optional-indicator">optional</span>
@@ -3926,20 +3903,6 @@ const handleCancelEditExampleResource = () => {
         onChange={e => handleCurrentExampleResourceChange('title', e.target.value)}
         onBlur={validateRegularInput}
         className={`subfield-input ${exampleResourceTitleValid ? 'form-input-valid' : ''}`}
-      />
-    </div>
-    <div className="form-group">
-      <label htmlFor="exampleResourceMediaType">
-        Media Type <span className="field-indicator optional-indicator">optional</span>
-      </label>
-      <input
-        type="text"
-        id="exampleResourceMediaType"
-        name="exampleResourceMediaType"
-        value={currentExampleResource.mediaType}
-        onChange={e => handleCurrentExampleResourceChange('mediaType', e.target.value)}
-        onBlur={validateRegularInput}
-        className={`subfield-input ${exampleResourceMediaTypeValid ? 'form-input-valid' : ''}`}
       />
     </div>
     <div className="form-group">
@@ -3970,6 +3933,21 @@ const handleCancelEditExampleResource = () => {
         className={`subfield-input ${exampleResourceStatusValid ? 'form-input-valid' : ''}`}
       />
     </div>
+    <div className="form-group">
+      <label htmlFor="exampleResourceAccessURL">
+        Access URL <span className="field-indicator optional-indicator">optional (IRI)</span>
+      </label>
+      <input
+        type="text"
+        id="exampleResourceAccessURL"
+        name="exampleResourceAccessURL"
+        value={currentExampleResource.accessURL}
+        onChange={e => handleCurrentExampleResourceChange('accessURL', e.target.value)}
+        onBlur={validateIriInput}
+        className={`subfield-input ${exampleResourceAccessURLError ? 'form-input-error' : ''} ${exampleResourceAccessURLValid ? 'form-input-valid' : ''}`}
+      />
+      {exampleResourceAccessURLError && <div className="iri-error-message">{exampleResourceAccessURLError}</div>}
+    </div>
     <div className="button-row">
       <button
         type="button"
@@ -3998,20 +3976,17 @@ const handleCancelEditExampleResource = () => {
       <h3>Confirm Example Resource Addition</h3>
       <p>Are you sure you want to add this example resource?</p>
       <div className="sparql-confirmation-preview">
-        {currentExampleResource.accessURL && (
-          <div><strong>Access URL:</strong> {currentExampleResource.accessURL}</div>
-        )}
         {currentExampleResource.title && (
           <div><strong>Title:</strong> {currentExampleResource.title}</div>
-        )}
-        {currentExampleResource.mediaType && (
-          <div><strong>Media Type:</strong> {currentExampleResource.mediaType}</div>
         )}
         {currentExampleResource.description && (
           <div><strong>Description:</strong> {currentExampleResource.description}</div>
         )}
         {currentExampleResource.status && (
           <div><strong>Status:</strong> {currentExampleResource.status}</div>
+        )}
+        {currentExampleResource.accessURL && (
+          <div><strong>Access URL:</strong> {currentExampleResource.accessURL}</div>
         )}
       </div>
       <div className="confirmation-actions">
