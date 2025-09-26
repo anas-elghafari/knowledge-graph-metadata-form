@@ -23,6 +23,7 @@ const fieldInstructions = {
     
     // Vocabularies and schemas
     "vocabulariesUsed": "Specify the vocabularies used in the knowledge.",
+    "kgSchema": "Specify the schema or ontology used to structure the knowledge graph data.",
     
     // Documentation
     "primaryReferenceDocument": "Provide a reference to a document, preprint or data paper describing the KG.",

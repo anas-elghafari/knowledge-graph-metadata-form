@@ -34,6 +34,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     
     primaryReferenceDocument: [],
     metaGraph: [],
+    kgSchema: [],
     statistics: [],
     vocabulariesUsed: [],
     restAPI: [],
@@ -508,7 +509,14 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   });
 
   const [vocabulariesUsedInput, setVocabulariesUsedInput] = useState('');
+  const [kgSchemaInput, setKgSchemaInput] = useState('');
   const [restAPIInput, setRestAPIInput] = useState('');
+  
+  // Single-value field inputs (for tag-style display)
+  const [titleInput, setTitleInput] = useState('');
+  const [descriptionInput, setDescriptionInput] = useState('');
+  const [versionInput, setVersionInput] = useState('');
+  const [accessStatementInput, setAccessStatementInput] = useState('');
   const [restAPIInputError, setRestAPIInputError] = useState('');
   const [exampleQueriesInput, setExampleQueriesInput] = useState('');
 
@@ -951,6 +959,7 @@ const handleCancelEditExampleResource = () => {
         'homepageURLInput': setHomepageURLInputError,
         'otherPagesInput': setOtherPagesInputError,
         'vocabulariesUsedInput': setVocabulariesUsedInputError,
+        'kgSchemaInput': setKgSchemaInputError,
         'primaryReferenceDocInput': setPrimaryReferenceDocInputError,
         'license': setLicenseError,
         'categoryInput': setCategoryInputError,
@@ -969,6 +978,7 @@ const handleCancelEditExampleResource = () => {
         'homepageURLInput': setHomepageURLInputValid,
         'otherPagesInput': setOtherPagesInputValid,
         'vocabulariesUsedInput': setVocabulariesUsedInputValid,
+        'kgSchemaInput': setKgSchemaInputValid,
         'primaryReferenceDocInput': setPrimaryReferenceDocInputValid,
         'license': setLicenseValid,
         
@@ -1011,7 +1021,14 @@ const handleCancelEditExampleResource = () => {
     
     // Error states for new IRI fields
     const [vocabulariesUsedInputError, setVocabulariesUsedInputError] = useState('');
+    const [kgSchemaInputError, setKgSchemaInputError] = useState('');
     const [licenseError, setLicenseError] = useState('');
+    
+    // Single-value field rejection messages
+    const [titleRejectionMessage, setTitleRejectionMessage] = useState('');
+    const [descriptionRejectionMessage, setDescriptionRejectionMessage] = useState('');
+    const [versionRejectionMessage, setVersionRejectionMessage] = useState('');
+    const [accessStatementRejectionMessage, setAccessStatementRejectionMessage] = useState('');
     const [accessStatementError, setAccessStatementError] = useState('');
     const [currentRoleAgentError, setCurrentRoleAgentError] = useState('');
     const [currentRoleMboxError, setCurrentRoleMboxError] = useState('');
@@ -1023,6 +1040,7 @@ const handleCancelEditExampleResource = () => {
     
     // Valid states for new IRI fields
     const [vocabulariesUsedInputValid, setVocabulariesUsedInputValid] = useState(false);
+    const [kgSchemaInputValid, setKgSchemaInputValid] = useState(false);
     const [currentRoleAgentValid, setCurrentRoleAgentValid] = useState(false);
     const [currentRoleMboxValid, setCurrentRoleMboxValid] = useState(false);
     const [distDownloadURLValid, setDistDownloadURLValid] = useState(false);
@@ -1037,7 +1055,7 @@ const handleCancelEditExampleResource = () => {
     
       // Fields that require IRI validation - EXPANDED LIST
       const iriFields = [
-        'homepageURL', 'otherPages', 'vocabulariesUsed',
+        'homepageURL', 'otherPages', 'vocabulariesUsed', 'kgSchema',
         'primaryReferenceDocument', 'category', 
         'publicationReferences', 'source'
       ];
@@ -1059,6 +1077,39 @@ const handleCancelEditExampleResource = () => {
       }
     };
     
+    // Helper functions for single-value tag fields
+    const handleAddSingleValueTag = (fieldName, inputValue, setInputFunc, setRejectionFunc) => {
+      if (!inputValue.trim()) return;
+      
+      // Check if field already has a value
+      if (formData[fieldName] && formData[fieldName].trim()) {
+        setRejectionFunc('This field only allows one value. Remove the existing value first.');
+        setTimeout(() => setRejectionFunc(''), 3000); // Clear message after 3 seconds
+        return;
+      }
+      
+      // Set the single value
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        [fieldName]: inputValue.trim()
+      }));
+      
+      // Clear the input
+      setInputFunc('');
+      
+      // Clear any rejection message
+      setRejectionFunc('');
+    };
+    
+    const handleRemoveSingleValueTag = (fieldName, setRejectionFunc) => {
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        [fieldName]: ''
+      }));
+      
+      // Clear any rejection message
+      setRejectionFunc('');
+    };
 
     const handleChange = (e) => {
       const { name, value } = e.target;
@@ -1377,6 +1428,7 @@ const handleCancelEditExampleResource = () => {
       'iriTemplate': setIriTemplateInputValid,
       'nameSpace': setNameSpaceInputValid,
       'vocabulariesUsed': setVocabulariesUsedInputValid,
+      'kgSchema': setKgSchemaInputValid,
       'restAPI': setRestAPIInputValid,
       
       'exampleQueries': setExampleQueriesInputValid,
@@ -1607,7 +1659,17 @@ const handleCancelEditExampleResource = () => {
       };
     }
     
-    
+    if (kgSchemaInput.trim()) {
+      const iriError = isValidIriString(kgSchemaInput);
+      if (!iriError) {
+        updatedFormData = {
+          ...updatedFormData,
+          kgSchema: [...updatedFormData.kgSchema, kgSchemaInput.trim()]
+        };
+      } else {
+        setKgSchemaInputError(iriError);
+      }
+    }
     
     if (restAPIInput.trim()) {
       const iriError = isValidIriString(restAPIInput);
@@ -2157,15 +2219,60 @@ const handleCancelEditExampleResource = () => {
             <label htmlFor="title">
               Title <span className="field-indicator required-indicator">required, 1 value only</span>
             </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              className={`form-control ${titleValid ? 'form-input-valid' : ''}`}
-              placeholder="Enter title"
-            />
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <input
+                  type="text"
+                  id="title"
+                  name="titleInput"
+                  value={titleInput}
+                  onChange={(e) => {
+                    setTitleInput(e.target.value);
+                    setTitleRejectionMessage(''); // Clear rejection message when typing
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddSingleValueTag('title', titleInput, setTitleInput, setTitleRejectionMessage);
+                    }
+                  }}
+                  className={`tag-input ${titleValid ? 'form-input-valid' : ''}`}
+                  placeholder="Enter title and press Enter or +"
+                />
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddSingleValueTag('title', titleInput, setTitleInput, setTitleRejectionMessage)}
+                >
+                  +
+                </button>
+              </div>
+              
+              {/* Display current title as a tag */}
+              {formData.title && (
+                <div className="tag-list">
+                  <div className="tag-item">
+                    <span className="tag-text">{formData.title}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveSingleValueTag('title', setTitleRejectionMessage)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Rejection message */}
+              {titleRejectionMessage && (
+                <div className="rejection-message" style={{color: '#e74c3c', fontSize: '0.9em', marginTop: '5px'}}>
+                  {titleRejectionMessage}
+                </div>
+              )}
+              
+              <div className="field-hint">Press Enter or click + to add title</div>
+            </div>
           </div>
           
           {/* Alternative Title */}
@@ -2266,14 +2373,61 @@ const handleCancelEditExampleResource = () => {
             <label htmlFor="description">
               Description <span className="field-indicator required-indicator">required, 1 value only</span>
             </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              className={`form-control ${descriptionValid ? 'form-input-valid' : ''}`}
-              rows="4"
-            />
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <textarea
+                  id="description"
+                  name="descriptionInput"
+                  value={descriptionInput}
+                  onChange={(e) => {
+                    setDescriptionInput(e.target.value);
+                    setDescriptionRejectionMessage(''); // Clear rejection message when typing
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                      e.preventDefault();
+                      handleAddSingleValueTag('description', descriptionInput, setDescriptionInput, setDescriptionRejectionMessage);
+                    }
+                  }}
+                  className={`tag-input ${descriptionValid ? 'form-input-valid' : ''}`}
+                  rows="4"
+                  placeholder="Enter description and press Ctrl+Enter or +"
+                />
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddSingleValueTag('description', descriptionInput, setDescriptionInput, setDescriptionRejectionMessage)}
+                  style={{alignSelf: 'flex-start', marginTop: '5px'}}
+                >
+                  +
+                </button>
+              </div>
+              
+              {/* Display current description as a tag */}
+              {formData.description && (
+                <div className="tag-list">
+                  <div className="tag-item" style={{maxWidth: '100%', whiteSpace: 'normal'}}>
+                    <span className="tag-text">{formData.description}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveSingleValueTag('description', setDescriptionRejectionMessage)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Rejection message */}
+              {descriptionRejectionMessage && (
+                <div className="rejection-message" style={{color: '#e74c3c', fontSize: '0.9em', marginTop: '5px'}}>
+                  {descriptionRejectionMessage}
+                </div>
+              )}
+              
+              <div className="field-hint">Press Ctrl+Enter or click + to add description</div>
+            </div>
           </div>
 
           {/* Language [1,∞] - Required, multiple values */}
@@ -2764,27 +2918,6 @@ const handleCancelEditExampleResource = () => {
             </div>
           </div>
 
-          {/* Version - User input with subtle version ID display */}
-          <div className="form-group">
-            <label htmlFor="version">
-              Version <span className="field-indicator required-indicator">required, 1 value only</span>
-            </label>
-            <input
-              type="text"
-              id="version"
-              name="version"
-              value={formData.version}
-              onChange={handleChange}
-              placeholder="e.g. 1.0, 2.5"
-              required
-              className={`form-control ${versionValid ? 'form-input-valid' : ''}`}
-            />
-            {/* Hidden for now - Full ID display */}
-            {/* <span className="version-id-display">
-              Full ID: {formData.identifier[0] ? `${formData.identifier[0]}-v${formData.version}` : 'Will be generated from identifier'}
-            </span> */}
-          </div>
-    
                       
           <div className="form-group">
             <label htmlFor="publishedDate">
@@ -3025,6 +3158,55 @@ const handleCancelEditExampleResource = () => {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+          
+          {/* KG Schema */}
+          <div className="form-group">
+            <label htmlFor="kgSchema">
+              KG Schema <span className="field-indicator optional-indicator">optional (IRI), multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+              <input
+                type="text"
+                id="kgSchema"
+                name="kgSchemaInput"
+                value={kgSchemaInput}
+                onChange={(e) => {
+                  setKgSchemaInput(e.target.value);
+                  setKgSchemaInputError('');
+                  setKgSchemaInputValid(false);
+                }}
+                onBlur={validateIriInput}
+                onKeyUp={(e) => handleKeyPress(e, 'kgSchema', kgSchemaInput, setKgSchemaInput, setKgSchemaInputError)}
+                className={`${kgSchemaInputError ? 'tag-input-error' : ''} ${kgSchemaInputValid ? 'tag-input-valid' : ''}`}
+              />
+              {kgSchemaInputError && <div className="iri-error-message">{kgSchemaInputError}</div>}
+
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('kgSchema', kgSchemaInput, setKgSchemaInput)}
+                >
+                  +
+                </button>
+              </div>
+              <div className="tag-list">
+                {formData.kgSchema.map((schema, index) => (
+                  <div key={`kg-schema-${index}`} className="tag-item">
+                    <span className="tag-text">{schema}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('kgSchema', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="field-hint"> </div>
             </div>
           </div>
           
@@ -3819,6 +4001,71 @@ const handleCancelEditExampleResource = () => {
               <div className="field-hint"> </div>
           </div>
       </div>
+
+          {/* Version - User input with subtle version ID display */}
+          <div className="form-group">
+            <label htmlFor="version">
+              Version <span className="field-indicator required-indicator">required, 1 value only</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <input
+                  type="text"
+                  id="version"
+                  name="versionInput"
+                  value={versionInput}
+                  onChange={(e) => {
+                    setVersionInput(e.target.value);
+                    setVersionRejectionMessage(''); // Clear rejection message when typing
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddSingleValueTag('version', versionInput, setVersionInput, setVersionRejectionMessage);
+                    }
+                  }}
+                  className={`tag-input ${versionValid ? 'form-input-valid' : ''}`}
+                  placeholder="e.g. 1.0, 2.5 - press Enter or +"
+                />
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddSingleValueTag('version', versionInput, setVersionInput, setVersionRejectionMessage)}
+                >
+                  +
+                </button>
+              </div>
+              
+              {/* Display current version as a tag */}
+              {formData.version && (
+                <div className="tag-list">
+                  <div className="tag-item">
+                    <span className="tag-text">{formData.version}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveSingleValueTag('version', setVersionRejectionMessage)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Rejection message */}
+              {versionRejectionMessage && (
+                <div className="rejection-message" style={{color: '#e74c3c', fontSize: '0.9em', marginTop: '5px'}}>
+                  {versionRejectionMessage}
+                </div>
+              )}
+              
+              <div className="field-hint">Press Enter or click + to add version</div>
+            </div>
+            {/* Hidden for now - Full ID display */}
+            {/* <span className="version-id-display">
+              Full ID: {formData.identifier[0] ? `${formData.identifier[0]}-v${formData.version}` : 'Will be generated from identifier'}
+            </span> */}
+          </div>
     
          {/* Keywords [1,∞] - Required, multiple values */}
          <div className="form-group">
@@ -4351,22 +4598,88 @@ const handleCancelEditExampleResource = () => {
            <label htmlFor="accessStatement">
              Access Statement <span className="field-indicator required-indicator">required (IRI), 1 value only</span>
            </label>
-           <input
-                id="accessStatement"
-                name="accessStatement"
-                value={formData.accessStatement}
-                onChange={(e) => {
-                  handleChange(e);
-                  setAccessStatementError('');
-                  setAccessStatementValid(false);
-                }}
-                onBlur={validateIriInput}
-                required
-                rows="3"
-                className={`form-control ${accessStatementValid ? 'form-input-valid' : ''} ${accessStatementError ? 'form-input-error' : ''}`}
-              ></input>
-            {accessStatementError && <div className="iri-error-message">{accessStatementError}</div>}
-
+           <div className="tag-input-container">
+             <div className="tag-input-row">
+               <input
+                 type="text"
+                 id="accessStatement"
+                 name="accessStatementInput"
+                 value={accessStatementInput}
+                 onChange={(e) => {
+                   setAccessStatementInput(e.target.value);
+                   setAccessStatementRejectionMessage(''); // Clear rejection message when typing
+                   setAccessStatementError(''); // Clear validation error when typing
+                 }}
+                 onKeyPress={(e) => {
+                   if (e.key === 'Enter') {
+                     e.preventDefault();
+                     // Validate IRI before adding
+                     const iriError = isValidIriString(accessStatementInput);
+                     if (iriError) {
+                       setAccessStatementError(iriError);
+                       return;
+                     }
+                     handleAddSingleValueTag('accessStatement', accessStatementInput, setAccessStatementInput, setAccessStatementRejectionMessage);
+                   }
+                 }}
+                 onBlur={(e) => {
+                   if (accessStatementInput.trim()) {
+                     const iriError = isValidIriString(accessStatementInput);
+                     if (iriError) {
+                       setAccessStatementError(iriError);
+                     } else {
+                       setAccessStatementError('');
+                     }
+                   }
+                 }}
+                 className={`tag-input ${accessStatementValid ? 'form-input-valid' : ''} ${accessStatementError ? 'form-input-error' : ''}`}
+                 placeholder="Enter IRI and press Enter or +"
+               />
+               <button 
+                 type="button" 
+                 className="tag-add-button"
+                 onClick={() => {
+                   // Validate IRI before adding
+                   const iriError = isValidIriString(accessStatementInput);
+                   if (iriError) {
+                     setAccessStatementError(iriError);
+                     return;
+                   }
+                   handleAddSingleValueTag('accessStatement', accessStatementInput, setAccessStatementInput, setAccessStatementRejectionMessage);
+                 }}
+               >
+                 +
+               </button>
+             </div>
+             
+             {/* Display current access statement as a tag */}
+             {formData.accessStatement && (
+               <div className="tag-list">
+                 <div className="tag-item">
+                   <span className="tag-text">{formData.accessStatement}</span>
+                   <button 
+                     type="button"
+                     className="tag-remove"
+                     onClick={() => handleRemoveSingleValueTag('accessStatement', setAccessStatementRejectionMessage)}
+                   >
+                     ×
+                   </button>
+                 </div>
+               </div>
+             )}
+             
+             {/* Validation error */}
+             {accessStatementError && <div className="iri-error-message">{accessStatementError}</div>}
+             
+             {/* Rejection message */}
+             {accessStatementRejectionMessage && (
+               <div className="rejection-message" style={{color: '#e74c3c', fontSize: '0.9em', marginTop: '5px'}}>
+                 {accessStatementRejectionMessage}
+               </div>
+             )}
+             
+             <div className="field-hint">Press Enter or click + to add access statement (must be valid IRI)</div>
+           </div>
          </div>
     
          {/* Source [0,∞] - Optional, multiple values */}
