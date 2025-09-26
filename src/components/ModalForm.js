@@ -2341,16 +2341,15 @@ const handleCancelEditExampleResource = () => {
                 <input
                   type="text"
                   id="alternativeTitle"
+                  name="alternativeTitleInput"
                   value={alternativeTitleInput}
-                  onChange={(e) => {
-                    setAlternativeTitleInput(e.target.value);
-                    setAlternativeTitleInputValid(false);
-                  }}
-                  onBlur={() => {
+                  onChange={(e) => setAlternativeTitleInput(e.target.value)}
+                  onBlur={(e) => {
                     if (alternativeTitleInput.trim()) setAlternativeTitleInputValid(true);
                   }}
                   onKeyPress={(e) => handleKeyPress(e, 'alternativeTitle', alternativeTitleInput, setAlternativeTitleInput)}
                   className={`tag-input ${alternativeTitleInputValid ? 'tag-input-valid' : ''}`}
+                  placeholder="Enter alternative title and press Enter or +"
                 />
                 <button 
                   type="button" 
@@ -2390,14 +2389,15 @@ const handleCancelEditExampleResource = () => {
                 <input
                   type="text"
                   id="acronym"
+                  name="acronymInput"
                   value={acronymInput}
                   onChange={(e) => {
                     setAcronymInput(e.target.value);
-                    setAcronymInputValid(false);
                   }}
                   onBlur={() => setAcronymInputValid(!!acronymInput.trim())}
                   onKeyPress={(e) => handleKeyPress(e, 'acronym', acronymInput, setAcronymInput)}
                   className={`tag-input ${acronymInputValid ? 'tag-input-valid' : ''}`}
+                  placeholder="Enter acronym and press Enter or +"
                 />
                 <button 
                   type="button" 
@@ -2496,12 +2496,13 @@ const handleCancelEditExampleResource = () => {
                 <input
                   type="text"
                   id="language"
-                  name="language"
+                  name="languageInput"
                   value={languageInput}
                   onChange={(e) => setLanguageInput(e.target.value)}
                   onBlur={validateRegularInput}
                   onKeyPress={(e) => handleKeyPress(e, 'language', languageInput, setLanguageInput)}
                   className={`tag-input ${languageInputValid ? 'form-input-valid' : ''}`}
+                  placeholder="Enter language and press Enter or +"
                 />
                 <button 
                   type="button" 
@@ -2544,6 +2545,7 @@ const handleCancelEditExampleResource = () => {
                   onBlur={validateRegularInput}
                   onKeyPress={(e) => handleKeyPress(e, 'keywords', keywordsInput, setKeywordsInput)}
                   className={`tag-input ${keywordsInputValid ? 'form-input-valid' : ''}`}
+                  placeholder="Enter keyword and press Enter or +"
                 />
                 <button 
                   type="button" 
