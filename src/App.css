@@ -2457,3 +2457,26 @@ label:has(+ .form-input-error) .field-indicator {
   background-color: rgba(255, 255, 255, 0.1);
   color: var(--dark-text);
 }
+
+/* Remove green borders from all tag inputs - override any validation styling */
+.tag-input,
+.tag-input.tag-input-valid,
+input.tag-input,
+input.tag-input.tag-input-valid,
+.tag-input-container input,
+.tag-input-container input.tag-input-valid {
+  border-color: var(--dark-border) !important;
+  box-shadow: none !important;
+  background-color: var(--dark-surface-lighter) !important;
+}
+
+/* Ensure focus states still work properly */
+.tag-input:focus,
+.tag-input.tag-input-valid:focus,
+input.tag-input:focus,
+input.tag-input.tag-input-valid:focus,
+.tag-input-container input:focus,
+.tag-input-container input.tag-input-valid:focus {
+  border-color: var(--primary-blue) !important;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25) !important;
+}

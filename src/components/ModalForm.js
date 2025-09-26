@@ -566,10 +566,26 @@ const handleCurrentExampleResourceChange = (field, value) => {
 };
 
 // Handle Enter key press for tag inputs
-const handleKeyPress = (e, tagType, inputValue, setInputFunction) => {
+const handleKeyPress = (e, tagType, inputValue, setInputFunction, setErrorFunction) => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    handleAddTag(tagType, inputValue, setInputFunction);
+    
+    // List of fields that require IRI validation
+    const iriFields = [
+      'homepageURL', 'otherPages', 'vocabulariesUsed', 'kgSchema',
+      'primaryReferenceDocument', 'category', 'publicationReferences', 'source'
+    ];
+    
+    // If this is an IRI field, validate before adding
+    if (iriFields.includes(tagType) && setErrorFunction) {
+      const iriError = isValidIriString(inputValue);
+      if (iriError) {
+        setErrorFunction(iriError);
+        return; // Don't add the tag if validation fails
+      }
+    }
+    
+    handleAddTag(tagType, inputValue, setInputFunction, setErrorFunction);
   }
 };
 
@@ -744,7 +760,7 @@ const handleCancelEditExampleResource = () => {
   const [descriptionValid, setDescriptionValid] = useState(false);
   const [typeValid, setTypeValid] = useState(true); // Valid by default since both types are pre-selected
   const [licenseValid, setLicenseValid] = useState(false);
-  const [versionValid, setVersionValid] = useState(true); // Version validation state
+  const [versionValid, setVersionValid] = useState(false); // Version validation state
   const [accessStatementValid, setAccessStatementValid] = useState(false);
   const [keywordsInputValid, setKeywordsInputValid] = useState(false);
   const [nameSpaceInputValid, setNameSpaceInputValid] = useState(false);
@@ -1178,7 +1194,7 @@ const handleCancelEditExampleResource = () => {
       if (name === 'title') setTitleValid(false);
       if (name === 'description') setDescriptionValid(false);
       if (name === 'license') setLicenseValid(false);
-      if (name === 'version') setVersionValid(true); // Reset version validation
+      if (name === 'version') setVersionValid(false); // Reset version validation
       if (name === 'accessStatement') setAccessStatementValid(false);
       if (name === 'keywords') setKeywordsInputValid(false);
       if (name === 'nameSpace') setNameSpaceInputValid(false);
@@ -3133,6 +3149,7 @@ const handleCancelEditExampleResource = () => {
                   onBlur={validateIriInput}
                   onKeyUp= {(e) => handleKeyPress(e, 'vocabulariesUsed', vocabulariesUsedInput, setVocabulariesUsedInput, setVocabulariesUsedInputError)}
                   className={`tag-input ${vocabulariesUsedInputError ? 'tag-input-error' : ''} ${vocabulariesUsedInputValid ? 'tag-input-valid' : ''}`}
+                  placeholder="Enter IRI and press Enter or +"
               />
               {vocabulariesUsedInputError && <div className="iri-error-message">{vocabulariesUsedInputError}</div>}
 
@@ -3396,6 +3413,7 @@ const handleCancelEditExampleResource = () => {
                 onBlur={() => setStatisticsInputValid(!!statisticsInput.trim())}
                 onKeyPress={(e) => handleKeyPress(e, 'statistics', statisticsInput, setStatisticsInput)}
                 className={`tag-input ${statisticsInputValid ? 'tag-input-valid' : ''}`}
+                placeholder="Enter statistic and press Enter or +"
               />
               <button 
                   type="button" 
@@ -3926,15 +3944,7 @@ const handleCancelEditExampleResource = () => {
     
           {/* SPARQL Endpoints Section */}
 <div className="form-section">
-  <h3 className="section-title">SPARQL Endpoints 
-    <span 
-      className="info-icon"
-      data-tooltip={fieldInstructions['sparqlEndpoints'] || ''}
-      tabIndex="0"
-    >
-      ℹ️
-    </span>
-  </h3>
+  <h3 className="section-title">SPARQL Endpoints</h3>
   <div className="field-indicator optional-indicator">optional, multiple submissions allowed</div>
   {/* Display existing SPARQL endpoints */}
   <div className="distributions-list">
@@ -4101,6 +4111,7 @@ const handleCancelEditExampleResource = () => {
                   onBlur={validateRegularInput}
                   onKeyPress={(e) => handleKeyPress(e, 'exampleQueries', exampleQueriesInput, setExampleQueriesInput)}
                   className={`tag-input ${exampleQueriesInputValid ? 'form-input-valid' : ''}`}
+                  placeholder="Enter example query and press Enter or +"
               />
               <button 
                   type="button" 
@@ -4148,6 +4159,7 @@ const handleCancelEditExampleResource = () => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       handleAddSingleValueTag('version', versionInput, setVersionInput, setVersionRejectionMessage);
+                      if (versionInput.trim()) setVersionValid(true);
                     }
                   }}
                   className={`tag-input ${versionValid ? 'form-input-valid' : ''}`}
@@ -4156,7 +4168,10 @@ const handleCancelEditExampleResource = () => {
                 <button 
                   type="button" 
                   className="tag-add-button"
-                  onClick={() => handleAddSingleValueTag('version', versionInput, setVersionInput, setVersionRejectionMessage)}
+                  onClick={() => {
+                    handleAddSingleValueTag('version', versionInput, setVersionInput, setVersionRejectionMessage);
+                    if (versionInput.trim()) setVersionValid(true);
+                  }}
                 >
                   +
                 </button>
@@ -4170,7 +4185,10 @@ const handleCancelEditExampleResource = () => {
                     <button 
                       type="button"
                       className="tag-remove"
-                      onClick={() => handleRemoveSingleValueTag('version', setVersionRejectionMessage)}
+                      onClick={() => {
+                        handleRemoveSingleValueTag('version', setVersionRejectionMessage);
+                        setVersionValid(false);
+                      }}
                     >
                       ×
                     </button>
@@ -4256,6 +4274,7 @@ const handleCancelEditExampleResource = () => {
                     onBlur={validateIriInput}
                     onKeyUp={(e) => handleKeyPress(e, 'category', categoryInput, setCategoryInput, setCategoryInputError)}
                     className={`${categoryInputError ? 'tag-input-error' : ''} ${categoryInputValid ? 'tag-input-valid' : ''}`}
+                    placeholder="Enter IRI and press Enter or +"
                   />
                   {categoryInputError && <div className="iri-error-message">{categoryInputError}</div>}
 
@@ -4305,6 +4324,7 @@ const handleCancelEditExampleResource = () => {
                 onBlur={validateIriInput}
                 onKeyPress={(e) => handleKeyPress(e, 'publicationReferences', publicationReferencesInput, setPublicationReferencesInput, setPublicationReferencesInputError)}
                 className={`${publicationReferencesInputError ? 'tag-input-error' : ''} ${publicationReferencesInputValid ? 'tag-input-valid' : ''}`}
+                placeholder="Enter IRI and press Enter or +"
               />
               {publicationReferencesInputError && <div className="iri-error-message">{publicationReferencesInputError}</div>}
 
@@ -4795,6 +4815,7 @@ const handleCancelEditExampleResource = () => {
                   onBlur={validateIriInput}
                   onKeyPress={(e) => handleKeyPress(e, 'source', sourceInput, setSourceInput, setSourceInputError)}
                   className={`${sourceInputError ? 'tag-input-error' : ''} ${sourceInputValid ? 'tag-input-valid' : ''}`}
+                  placeholder="Enter IRI and press Enter or +"
             />
             {sourceInputError && <div className="iri-error-message">{sourceInputError}</div>}
 
@@ -4840,6 +4861,7 @@ const handleCancelEditExampleResource = () => {
                   onBlur={validateRegularInput}
                   onKeyPress={(e) => handleKeyPress(e, 'nameSpace', nameSpaceInput, setNameSpaceInput)}
                   className={`tag-input ${nameSpaceInputValid ? 'form-input-valid' : ''}`}
+                  placeholder="Enter namespace and press Enter or +"
                 />
                <button 
                  type="button" 
