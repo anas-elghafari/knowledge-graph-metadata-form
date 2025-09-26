@@ -1129,9 +1129,15 @@ const handleCancelEditExampleResource = () => {
       }
       
       // Validate date format
-      const dateError = isValidDateString(inputValue);
-      if (dateError) {
-        setErrorFunc(dateError);
+      if (!isValidDate(inputValue)) {
+        // Use the existing validateDateInput function to get proper error message
+        const syntheticEvent = {
+          target: {
+            name: fieldName,
+            value: inputValue
+          }
+        };
+        validateDateInput(syntheticEvent);
         return;
       }
       
