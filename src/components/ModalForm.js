@@ -27,7 +27,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     
     // Other fields
     license: '',
-    version: '1.0', // Default version number
+    version: '', // No default version
 
     // Distributions array
     distributions: [],
