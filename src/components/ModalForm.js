@@ -389,13 +389,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         const firstSuggestionMatch = suggestionText.match(/• (.+?)\n/);
         if (firstSuggestionMatch) {
           const suggestionValue = firstSuggestionMatch[1].trim();
-          // Split on commas for most fields, periods for statistics field
-          let values;
-          if (fieldName === 'statistics') {
-            values = suggestionValue.split('.').map(val => val.trim()).filter(val => val.length > 0);
-          } else {
-            values = suggestionValue.split(',').map(val => val.trim()).filter(val => val.length > 0);
-          }
+          // Split on commas for all multi-value fields
+          let values = suggestionValue.split(',').map(val => val.trim()).filter(val => val.length > 0);
           
           if (values.length > 0) {
             // Add all values to the existing array, avoiding duplicates
