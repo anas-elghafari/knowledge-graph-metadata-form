@@ -517,6 +517,9 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [descriptionInput, setDescriptionInput] = useState('');
   const [versionInput, setVersionInput] = useState('');
   const [accessStatementInput, setAccessStatementInput] = useState('');
+  const [createdDateInput, setCreatedDateInput] = useState('');
+  const [publishedDateInput, setPublishedDateInput] = useState('');
+  const [licenseInput, setLicenseInput] = useState('');
   const [restAPIInputError, setRestAPIInputError] = useState('');
   const [exampleQueriesInput, setExampleQueriesInput] = useState('');
 
@@ -1029,6 +1032,9 @@ const handleCancelEditExampleResource = () => {
     const [descriptionRejectionMessage, setDescriptionRejectionMessage] = useState('');
     const [versionRejectionMessage, setVersionRejectionMessage] = useState('');
     const [accessStatementRejectionMessage, setAccessStatementRejectionMessage] = useState('');
+    const [createdDateRejectionMessage, setCreatedDateRejectionMessage] = useState('');
+    const [publishedDateRejectionMessage, setPublishedDateRejectionMessage] = useState('');
+    const [licenseRejectionMessage, setLicenseRejectionMessage] = useState('');
     const [accessStatementError, setAccessStatementError] = useState('');
     const [currentRoleAgentError, setCurrentRoleAgentError] = useState('');
     const [currentRoleMboxError, setCurrentRoleMboxError] = useState('');
@@ -1108,6 +1114,60 @@ const handleCancelEditExampleResource = () => {
       }));
       
       // Clear any rejection message
+      setRejectionFunc('');
+    };
+    
+    // Helper function for single-value date fields with validation
+    const handleAddSingleValueDateTag = (fieldName, inputValue, setInputFunc, setRejectionFunc, setErrorFunc, setValidFunc) => {
+      if (!inputValue.trim()) return;
+      
+      // Check if field already has a value
+      if (formData[fieldName] && formData[fieldName].trim()) {
+        setRejectionFunc('This field only allows one value. Remove the existing value first.');
+        setTimeout(() => setRejectionFunc(''), 3000);
+        return;
+      }
+      
+      // Validate date format
+      const dateError = isValidDateString(inputValue);
+      if (dateError) {
+        setErrorFunc(dateError);
+        return;
+      }
+      
+      // Set the single value
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        [fieldName]: inputValue.trim()
+      }));
+      
+      // Clear the input and set as valid
+      setInputFunc('');
+      setErrorFunc('');
+      setValidFunc(true);
+      setRejectionFunc('');
+    };
+    
+    // Helper function for single-value dropdown fields
+    const handleAddSingleValueDropdownTag = (fieldName, inputValue, setInputFunc, setRejectionFunc, setValidFunc) => {
+      if (!inputValue.trim()) return;
+      
+      // Check if field already has a value
+      if (formData[fieldName] && formData[fieldName].trim()) {
+        setRejectionFunc('This field only allows one value. Remove the existing value first.');
+        setTimeout(() => setRejectionFunc(''), 3000);
+        return;
+      }
+      
+      // Set the single value
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        [fieldName]: inputValue.trim()
+      }));
+      
+      // Clear the input and set as valid
+      setInputFunc('');
+      setValidFunc(true);
       setRejectionFunc('');
     };
 
@@ -2847,25 +2907,80 @@ const handleCancelEditExampleResource = () => {
             <label htmlFor="createdDate">
               Created Date <span className="field-indicator optional-indicator">optional, 1 value only</span>
             </label>
-            <div className="date-input-container">
-              <input
-                type="text"
-                id="createdDate"
-                name="createdDate"
-                value={formData.createdDate}
-                onChange={handleChange}
-                onBlur={validateDateInput}
-                placeholder="YYYY/MM/DD"
-                className={`date-input ${createdDateError ? 'date-input-error' : ''} ${createdDateValid ? 'date-input-valid' : ''}`}
-              />
-              <input
-                type="date"
-                className="date-picker-control"
-                onChange={(e) => handleDatePickerChange(e, 'createdDate')}
-                aria-label="Date picker for Created Date"
-              />
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <div className="date-input-container" style={{flex: 1}}>
+                  <input
+                    type="text"
+                    id="createdDate"
+                    name="createdDateInput"
+                    value={createdDateInput}
+                    onChange={(e) => {
+                      setCreatedDateInput(e.target.value);
+                      setCreatedDateRejectionMessage('');
+                      setCreatedDateError('');
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddSingleValueDateTag('createdDate', createdDateInput, setCreatedDateInput, setCreatedDateRejectionMessage, setCreatedDateError, setCreatedDateValid);
+                      }
+                    }}
+                    placeholder="YYYY/MM/DD"
+                    className={`date-input ${createdDateError ? 'date-input-error' : ''} ${createdDateValid ? 'date-input-valid' : ''}`}
+                  />
+                  <input
+                    type="date"
+                    className="date-picker-control"
+                    onChange={(e) => {
+                      setCreatedDateInput(e.target.value);
+                      setCreatedDateRejectionMessage('');
+                      setCreatedDateError('');
+                    }}
+                    aria-label="Date picker for Created Date"
+                  />
+                </div>
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddSingleValueDateTag('createdDate', createdDateInput, setCreatedDateInput, setCreatedDateRejectionMessage, setCreatedDateError, setCreatedDateValid)}
+                >
+                  +
+                </button>
+              </div>
+              
+              {/* Display current created date as a tag */}
+              {formData.createdDate && (
+                <div className="tag-list">
+                  <div className="tag-item">
+                    <span className="tag-text">{formData.createdDate}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => {
+                        handleRemoveSingleValueTag('createdDate', setCreatedDateRejectionMessage);
+                        setCreatedDateValid(false);
+                        setCreatedDateError('');
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Date validation error */}
+              {createdDateError && <div className="date-error-message">{createdDateError}</div>}
+              
+              {/* Rejection message */}
+              {createdDateRejectionMessage && (
+                <div className="rejection-message" style={{color: '#e74c3c', fontSize: '0.9em', marginTop: '5px'}}>
+                  {createdDateRejectionMessage}
+                </div>
+              )}
+              
+              <div className="field-hint">Press Enter or click + to add date (YYYY/MM/DD format)</div>
             </div>
-            {createdDateError && <div className="date-error-message">{createdDateError}</div>}
           </div>
           
     
@@ -2923,26 +3038,81 @@ const handleCancelEditExampleResource = () => {
             <label htmlFor="publishedDate">
               Published Date <span className="field-indicator required-indicator">required, 1 value only</span>
             </label>
-            <div className="date-input-container">
-              <input
-                type="text"
-                id="publishedDate"
-                name="publishedDate"
-                value={formData.publishedDate}
-                onChange={handleChange}
-                onBlur={validateDateInput}
-                placeholder="YYYY/MM/DD"
-                required
-                className={`date-input ${publishedDateError ? 'date-input-error' : ''} ${publishedDateValid ? 'date-input-valid' : ''}`}
-              />
-              <input
-                type="date"
-                className="date-picker-control"
-                onChange={(e) => handleDatePickerChange(e, 'publishedDate')}
-                aria-label="Date picker for Published Date"
-              />
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <div className="date-input-container" style={{flex: 1}}>
+                  <input
+                    type="text"
+                    id="publishedDate"
+                    name="publishedDateInput"
+                    value={publishedDateInput}
+                    onChange={(e) => {
+                      setPublishedDateInput(e.target.value);
+                      setPublishedDateRejectionMessage('');
+                      setPublishedDateError('');
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddSingleValueDateTag('publishedDate', publishedDateInput, setPublishedDateInput, setPublishedDateRejectionMessage, setPublishedDateError, setPublishedDateValid);
+                      }
+                    }}
+                    placeholder="YYYY/MM/DD"
+                    required
+                    className={`date-input ${publishedDateError ? 'date-input-error' : ''} ${publishedDateValid ? 'date-input-valid' : ''}`}
+                  />
+                  <input
+                    type="date"
+                    className="date-picker-control"
+                    onChange={(e) => {
+                      setPublishedDateInput(e.target.value);
+                      setPublishedDateRejectionMessage('');
+                      setPublishedDateError('');
+                    }}
+                    aria-label="Date picker for Published Date"
+                  />
+                </div>
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddSingleValueDateTag('publishedDate', publishedDateInput, setPublishedDateInput, setPublishedDateRejectionMessage, setPublishedDateError, setPublishedDateValid)}
+                >
+                  +
+                </button>
+              </div>
+              
+              {/* Display current published date as a tag */}
+              {formData.publishedDate && (
+                <div className="tag-list">
+                  <div className="tag-item">
+                    <span className="tag-text">{formData.publishedDate}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => {
+                        handleRemoveSingleValueTag('publishedDate', setPublishedDateRejectionMessage);
+                        setPublishedDateValid(false);
+                        setPublishedDateError('');
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Date validation error */}
+              {publishedDateError && <div className="date-error-message">{publishedDateError}</div>}
+              
+              {/* Rejection message */}
+              {publishedDateRejectionMessage && (
+                <div className="rejection-message" style={{color: '#e74c3c', fontSize: '0.9em', marginTop: '5px'}}>
+                  {publishedDateRejectionMessage}
+                </div>
+              )}
+              
+              <div className="field-hint">Press Enter or click + to add date (YYYY/MM/DD format)</div>
             </div>
-            {publishedDateError && <div className="date-error-message">{publishedDateError}</div>}
           </div>
     
     
@@ -4779,66 +4949,124 @@ const handleCancelEditExampleResource = () => {
             <label htmlFor="license">
               KG License <span className="field-indicator required-indicator">required, 1 value only</span>
             </label>
-            <select
-               id="license"
-               name="license"
-               value={formData.license}
-               onChange={(e) => {
-                 handleChange(e);
-                 setLicenseError('');
-                 setLicenseValid(true);
-               }}
-               required
-               className={`form-control ${licenseValid ? 'form-input-valid' : ''} ${licenseError ? 'form-input-error' : ''}`}
-             >
-               <option value="">Select a license...</option>
-               <option value="https://opensource.org/licenses/MIT">https://opensource.org/licenses/MIT</option>
-               <option value="https://opensource.org/licenses/Apache-2.0">https://opensource.org/licenses/Apache-2.0</option>
-               <option value="https://opensource.org/licenses/GPL-3.0">https://opensource.org/licenses/GPL-3.0</option>
-               <option value="https://opensource.org/licenses/GPL-2.0">https://opensource.org/licenses/GPL-2.0</option>
-               <option value="https://opensource.org/licenses/LGPL-3.0">https://opensource.org/licenses/LGPL-3.0</option>
-               <option value="https://opensource.org/licenses/BSD-3-Clause">https://opensource.org/licenses/BSD-3-Clause</option>
-               <option value="https://opensource.org/licenses/BSD-2-Clause">https://opensource.org/licenses/BSD-2-Clause</option>
-               <option value="https://opensource.org/licenses/ISC">https://opensource.org/licenses/ISC</option>
-               <option value="https://www.boost.org/LICENSE_1_0.txt">https://www.boost.org/LICENSE_1_0.txt</option>
-               <option value="https://opensource.org/licenses/Zlib">https://opensource.org/licenses/Zlib</option>
-               <option value="http://www.wtfpl.net/">http://www.wtfpl.net/</option>
-               <option value="https://opensource.org/licenses/AGPL-3.0">https://opensource.org/licenses/AGPL-3.0</option>
-               <option value="https://opensource.org/licenses/MPL-2.0">https://opensource.org/licenses/MPL-2.0</option>
-               <option value="https://opensource.org/licenses/EPL-1.0">https://opensource.org/licenses/EPL-1.0</option>
-               <option value="https://opensource.org/licenses/EUPL-1.1">https://opensource.org/licenses/EUPL-1.1</option>
-               <option value="https://opensource.org/licenses/MS-PL">https://opensource.org/licenses/MS-PL</option>
-               <option value="https://opensource.org/licenses/MS-RL">https://opensource.org/licenses/MS-RL</option>
-               <option value="https://opensource.org/licenses/CDDL-1.0">https://opensource.org/licenses/CDDL-1.0</option>
-               <option value="https://opensource.org/licenses/Artistic-2.0">https://opensource.org/licenses/Artistic-2.0</option>
-               <option value="https://opensource.org/licenses/AFL-3.0">https://opensource.org/licenses/AFL-3.0</option>
-               <option value="https://creativecommons.org/licenses/by/4.0/">https://creativecommons.org/licenses/by/4.0/</option>
-               <option value="https://creativecommons.org/licenses/by-sa/4.0/">https://creativecommons.org/licenses/by-sa/4.0/</option>
-               <option value="https://creativecommons.org/licenses/by-nc/4.0/">https://creativecommons.org/licenses/by-nc/4.0/</option>
-               <option value="https://creativecommons.org/licenses/by-nc-sa/4.0/">https://creativecommons.org/licenses/by-nc-sa/4.0/</option>
-               <option value="https://creativecommons.org/publicdomain/zero/1.0/">https://creativecommons.org/publicdomain/zero/1.0/</option>
-               <option value="https://unlicense.org/">https://unlicense.org/</option>
-               <option value="Other">Other (specify below)</option>
-             </select>
-             {licenseError && <div className="iri-error-message">{licenseError}</div>}
-             
-             {/* Conditional input field for "Other" license */}
-             {formData.license === 'Other' && (
-               <div className="custom-license-input" style={{marginTop: '10px'}}>
-                 <input
-                   type="text"
-                   id="customLicense"
-                   name="customLicense"
-                   placeholder="Enter custom license name or URL..."
-                   value={customLicenseInput}
-                   onChange={(e) => setCustomLicenseInput(e.target.value)}
-                   className="form-control"
-                   style={{fontSize: '14px'}}
-                 />
-               </div>
-             )}
-             
-             <div className="field-hint">This license applies to the metadata record itself, not the dataset content</div>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <select
+                   id="license"
+                   name="licenseInput"
+                   value={licenseInput}
+                   onChange={(e) => {
+                     setLicenseInput(e.target.value);
+                     setLicenseRejectionMessage('');
+                     setLicenseError('');
+                   }}
+                   className={`form-control ${licenseValid ? 'form-input-valid' : ''} ${licenseError ? 'form-input-error' : ''}`}
+                   style={{flex: 1}}
+                 >
+                   <option value="">Select a license...</option>
+                   <option value="https://opensource.org/licenses/MIT">https://opensource.org/licenses/MIT</option>
+                   <option value="https://opensource.org/licenses/Apache-2.0">https://opensource.org/licenses/Apache-2.0</option>
+                   <option value="https://opensource.org/licenses/GPL-3.0">https://opensource.org/licenses/GPL-3.0</option>
+                   <option value="https://opensource.org/licenses/GPL-2.0">https://opensource.org/licenses/GPL-2.0</option>
+                   <option value="https://opensource.org/licenses/LGPL-3.0">https://opensource.org/licenses/LGPL-3.0</option>
+                   <option value="https://opensource.org/licenses/BSD-3-Clause">https://opensource.org/licenses/BSD-3-Clause</option>
+                   <option value="https://opensource.org/licenses/BSD-2-Clause">https://opensource.org/licenses/BSD-2-Clause</option>
+                   <option value="https://opensource.org/licenses/ISC">https://opensource.org/licenses/ISC</option>
+                   <option value="https://www.boost.org/LICENSE_1_0.txt">https://www.boost.org/LICENSE_1_0.txt</option>
+                   <option value="https://opensource.org/licenses/Zlib">https://opensource.org/licenses/Zlib</option>
+                   <option value="http://www.wtfpl.net/">http://www.wtfpl.net/</option>
+                   <option value="https://opensource.org/licenses/AGPL-3.0">https://opensource.org/licenses/AGPL-3.0</option>
+                   <option value="https://opensource.org/licenses/MPL-2.0">https://opensource.org/licenses/MPL-2.0</option>
+                   <option value="https://opensource.org/licenses/EPL-1.0">https://opensource.org/licenses/EPL-1.0</option>
+                   <option value="https://opensource.org/licenses/EUPL-1.1">https://opensource.org/licenses/EUPL-1.1</option>
+                   <option value="https://opensource.org/licenses/MS-PL">https://opensource.org/licenses/MS-PL</option>
+                   <option value="https://opensource.org/licenses/MS-RL">https://opensource.org/licenses/MS-RL</option>
+                   <option value="https://opensource.org/licenses/CDDL-1.0">https://opensource.org/licenses/CDDL-1.0</option>
+                   <option value="https://opensource.org/licenses/Artistic-2.0">https://opensource.org/licenses/Artistic-2.0</option>
+                   <option value="https://opensource.org/licenses/AFL-3.0">https://opensource.org/licenses/AFL-3.0</option>
+                   <option value="https://creativecommons.org/licenses/by/4.0/">https://creativecommons.org/licenses/by/4.0/</option>
+                   <option value="https://creativecommons.org/licenses/by-sa/4.0/">https://creativecommons.org/licenses/by-sa/4.0/</option>
+                   <option value="https://creativecommons.org/licenses/by-nc/4.0/">https://creativecommons.org/licenses/by-nc/4.0/</option>
+                   <option value="https://creativecommons.org/licenses/by-nc-sa/4.0/">https://creativecommons.org/licenses/by-nc-sa/4.0/</option>
+                   <option value="https://creativecommons.org/publicdomain/zero/1.0/">https://creativecommons.org/publicdomain/zero/1.0/</option>
+                   <option value="https://unlicense.org/">https://unlicense.org/</option>
+                   <option value="Other">Other (specify below)</option>
+                 </select>
+                 <button 
+                   type="button" 
+                   className="tag-add-button"
+                   onClick={() => {
+                     if (licenseInput === 'Other' && customLicenseInput.trim()) {
+                       handleAddSingleValueDropdownTag('license', `Other-${customLicenseInput.trim()}`, setLicenseInput, setLicenseRejectionMessage, setLicenseValid);
+                       setCustomLicenseInput(''); // Clear custom input
+                     } else if (licenseInput && licenseInput !== 'Other') {
+                       handleAddSingleValueDropdownTag('license', licenseInput, setLicenseInput, setLicenseRejectionMessage, setLicenseValid);
+                     }
+                   }}
+                 >
+                   +
+                 </button>
+              </div>
+              
+              {/* Conditional input field for "Other" license */}
+              {licenseInput === 'Other' && (
+                <div className="custom-license-input" style={{marginTop: '10px'}}>
+                  <input
+                    type="text"
+                    id="customLicense"
+                    name="customLicense"
+                    placeholder="Enter custom license name or URL..."
+                    value={customLicenseInput}
+                    onChange={(e) => setCustomLicenseInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && customLicenseInput.trim()) {
+                        e.preventDefault();
+                        handleAddSingleValueDropdownTag('license', `Other-${customLicenseInput.trim()}`, setLicenseInput, setLicenseRejectionMessage, setLicenseValid);
+                        setCustomLicenseInput('');
+                      }
+                    }}
+                    className="form-control"
+                    style={{fontSize: '14px'}}
+                  />
+                </div>
+              )}
+              
+              {/* Display current license as a tag */}
+              {formData.license && (
+                <div className="tag-list">
+                  <div className="tag-item">
+                    <span className="tag-text">
+                      {formData.license.startsWith('Other-') 
+                        ? `Custom: ${formData.license.substring(6)}` 
+                        : formData.license}
+                    </span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => {
+                        handleRemoveSingleValueTag('license', setLicenseRejectionMessage);
+                        setLicenseValid(false);
+                        setLicenseError('');
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* License validation error */}
+              {licenseError && <div className="iri-error-message">{licenseError}</div>}
+              
+              {/* Rejection message */}
+              {licenseRejectionMessage && (
+                <div className="rejection-message" style={{color: '#e74c3c', fontSize: '0.9em', marginTop: '5px'}}>
+                  {licenseRejectionMessage}
+                </div>
+              )}
+              
+              <div className="field-hint">Select license and click + to add. This license applies to the metadata record itself, not the dataset content</div>
+            </div>
           </div>
             </form>
           </div>
