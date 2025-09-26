@@ -455,7 +455,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [languageInput, setLanguageInput] = useState('');
   const [iriTemplateInput, setIriTemplateInput] = useState('');
   // Linked Resources collection state (similar to example resources)
-  const [showLinkedResourceConfirmation, setShowLinkedResourceConfirmation] = useState(false);
   const emptyLinkedResource = {
     target: '',
     triples: ''
@@ -540,7 +539,6 @@ const [sparqlIdentifierValid, setSparqlIdentifierValid] = useState(false);
 const [sparqlTitleValid, setSparqlTitleValid] = useState(false);
 const [sparqlEndpointDescriptionValid, setSparqlEndpointDescriptionValid] = useState(false);
 const [sparqlStatusValid, setSparqlStatusValid] = useState(false);
-const [showSparqlConfirmation, setShowSparqlConfirmation] = useState(false);
 
 // Example Resource Section State
 const [showExampleResourceConfirmation, setShowExampleResourceConfirmation] = useState(false);
@@ -598,26 +596,22 @@ const resetExampleResourceForm = () => {
 
 const handleAddSparqlEndpoint = () => {
   if (editingSparqlEndpointIdx !== null) {
-    // Save edits directly (no confirmation needed for edits)
+    // Save edits directly
     const updated = [...sparqlEndpoints];
     updated[editingSparqlEndpointIdx] = currentSparqlEndpoint;
     setSparqlEndpoints(updated);
     resetSparqlEndpointForm();
+    setMessage('SPARQL Endpoint updated successfully');
+    setTimeout(() => setMessage(''), 2000);
   } else {
-    // Show confirmation for new additions
-    setShowSparqlConfirmation(true);
+    // Add new SPARQL endpoint directly with success message
+    setSparqlEndpoints(prev => [...prev, currentSparqlEndpoint]);
+    resetSparqlEndpointForm();
+    setMessage('SPARQL Endpoint added successfully');
+    setTimeout(() => setMessage(''), 2000);
   }
 };
 
-const confirmAddSparqlEndpoint = () => {
-  setSparqlEndpoints(prev => [...prev, currentSparqlEndpoint]);
-  setShowSparqlConfirmation(false);
-  resetSparqlEndpointForm();
-};
-
-const cancelAddSparqlEndpoint = () => {
-  setShowSparqlConfirmation(false);
-};
 
 const handleEditSparqlEndpoint = (idx) => {
   setCurrentSparqlEndpoint(sparqlEndpoints[idx]);
@@ -666,28 +660,24 @@ const handleCurrentLinkedResourceChange = (field, value) => {
 
 const handleAddLinkedResource = () => {
   if (editingLinkedResourceIdx !== null) {
-    // Save edits directly (no confirmation needed for edits)
+    // Save edits directly
     const updated = [...linkedResources];
     updated[editingLinkedResourceIdx] = currentLinkedResource;
     setLinkedResources(updated);
     setCurrentLinkedResource(emptyLinkedResource);
     setEditingLinkedResourceIdx(null);
+    setMessage('Linked Resource updated successfully');
+    setTimeout(() => setMessage(''), 2000);
   } else {
-    // Show confirmation for new additions
-    setShowLinkedResourceConfirmation(true);
+    // Add new linked resource directly with success message
+    setLinkedResources([...linkedResources, currentLinkedResource]);
+    setCurrentLinkedResource(emptyLinkedResource);
+    setEditingLinkedResourceIdx(null);
+    setMessage('Linked Resource added successfully');
+    setTimeout(() => setMessage(''), 2000);
   }
 };
 
-const confirmAddLinkedResource = () => {
-  setLinkedResources([...linkedResources, currentLinkedResource]);
-  setShowLinkedResourceConfirmation(false);
-  setCurrentLinkedResource(emptyLinkedResource);
-  setEditingLinkedResourceIdx(null);
-};
-
-const cancelAddLinkedResource = () => {
-  setShowLinkedResourceConfirmation(false);
-};
 
 const handleEditLinkedResource = (idx) => {
   setCurrentLinkedResource(linkedResources[idx]);
@@ -4091,48 +4081,6 @@ const handleCancelEditExampleResource = () => {
   </div>
 </div>
 
-{/* SPARQL Endpoint Confirmation Overlay */}
-{showSparqlConfirmation && (
-  <div className="confirmation-overlay">
-    <div className="confirmation-dialog">
-      <h3>Confirm SPARQL Endpoint Addition</h3>
-      <p>Are you sure you want to add this SPARQL endpoint?</p>
-      <div className="sparql-confirmation-preview">
-        {currentSparqlEndpoint.endpointURL && (
-          <div><strong>Endpoint URL:</strong> {currentSparqlEndpoint.endpointURL}</div>
-        )}
-        {currentSparqlEndpoint.identifier && (
-          <div><strong>Identifier:</strong> {currentSparqlEndpoint.identifier}</div>
-        )}
-        {currentSparqlEndpoint.title && (
-          <div><strong>Title:</strong> {currentSparqlEndpoint.title}</div>
-        )}
-        {currentSparqlEndpoint.endpointDescription && (
-          <div><strong>Endpoint Description:</strong> {currentSparqlEndpoint.endpointDescription}</div>
-        )}
-        {currentSparqlEndpoint.status && (
-          <div><strong>Status:</strong> {currentSparqlEndpoint.status}</div>
-        )}
-      </div>
-      <div className="confirmation-actions">
-        <button 
-          type="button" 
-          className="confirm-button"
-          onClick={confirmAddSparqlEndpoint}
-        >
-          Yes, Add SPARQL Endpoint
-        </button>
-        <button 
-          type="button" 
-          className="cancel-button"
-          onClick={cancelAddSparqlEndpoint}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-)}
 
 
           {/* Example Queries [0,∞] - Optional, multiple values */}
@@ -4563,39 +4511,6 @@ const handleCancelEditExampleResource = () => {
            </div>
          </div>
 
-{/* Linked Resource Confirmation Overlay */}
-{showLinkedResourceConfirmation && (
-  <div className="confirmation-overlay">
-    <div className="confirmation-dialog">
-      <h3>Confirm Linked Resource Addition</h3>
-      <p>Are you sure you want to add this linked resource?</p>
-      <div className="sparql-confirmation-preview">
-        {currentLinkedResource.target && (
-          <div><strong>Target:</strong> {currentLinkedResource.target}</div>
-        )}
-        {currentLinkedResource.triples && (
-          <div><strong>Triples:</strong> {currentLinkedResource.triples}</div>
-        )}
-      </div>
-      <div className="confirmation-actions">
-        <button 
-          type="button" 
-          className="confirm-button"
-          onClick={confirmAddLinkedResource}
-        >
-          Yes, Add Linked Resource
-        </button>
-        <button 
-          type="button" 
-          className="cancel-button"
-          onClick={cancelAddLinkedResource}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-)}
 
           {/* Example Resource Section */}
 <div className="form-section">
