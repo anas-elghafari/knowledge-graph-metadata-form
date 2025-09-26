@@ -2077,51 +2077,10 @@ const handleCancelEditExampleResource = () => {
     setMessage('');
     
     // Handle custom license formatting
+    let finalFormData = { ...updatedForm };
+    if (updatedForm.license === 'Other' && customLicenseInput.trim()) {
+      finalFormData.license = `Other-${customLicenseInput.trim()}`;
     }
-  }
-
-  // Construct error message
-  let errorMessage = '';
-  
-  if (missingFields.length > 0) {
-    errorMessage += `The following fields are required but have not been filled: ${missingFields.join(', ')}`;
-  }
-  
-  if (invalidDates.length > 0) {
-    if (errorMessage) errorMessage += '\n\n';
-    errorMessage += `The following dates are invalid:\n${invalidDates.join('\n')}`;
-  }
-
-  // Handle validation errors based on submission mode
-  if (errorMessage && !forceSubmit) {
-    setMessage(errorMessage);
-    setIsSubmitting(false);
-    return;
-  }
-  
-  // For forced submission, collect validation errors to include in the data
-  const validationErrors = {
-    missingFields: missingFields,
-    invalidDates: invalidDates,
-    errorMessage: errorMessage,
-    submissionMode: forceSubmit ? 'forced' : 'normal',
-    submissionTimestamp: new Date().toISOString()
-  };
-  
-  // Sync SPARQL endpoints, Example Resources, and Linked Resources before submission
-  updatedForm.sparqlEndpoint = sparqlEndpoints;
-  updatedForm.exampleResource = exampleResources;
-  updatedForm.linkedResources = linkedResources;
-
-  // Proceed with submission
-  setIsSubmitting(true);
-  setMessage('');
-  
-  // Handle custom license formatting
-  let finalFormData = { ...updatedForm };
-  if (updatedForm.license === 'Other' && customLicenseInput.trim()) {
-    finalFormData.license = `Other-${customLicenseInput.trim()}`;
-  }
   
   // Structure submission with validation errors outside form data
   const submissionData = {
