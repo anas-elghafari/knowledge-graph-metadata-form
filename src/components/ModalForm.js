@@ -36,7 +36,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     metaGraph: [],
     statistics: [],
     vocabulariesUsed: [],
-    metadataSchema: [],
     restAPI: [],
     sparqlEndpoint: [],
     exampleQueries: [],
@@ -509,7 +508,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   });
 
   const [vocabulariesUsedInput, setVocabulariesUsedInput] = useState('');
-  const [metadataSchemaInput, setMetadataSchemaInput] = useState('');
   const [restAPIInput, setRestAPIInput] = useState('');
   const [restAPIInputError, setRestAPIInputError] = useState('');
   const [exampleQueriesInput, setExampleQueriesInput] = useState('');
@@ -953,7 +951,6 @@ const handleCancelEditExampleResource = () => {
         'homepageURLInput': setHomepageURLInputError,
         'otherPagesInput': setOtherPagesInputError,
         'vocabulariesUsedInput': setVocabulariesUsedInputError,
-        'metadataSchemaInput': setMetadataSchemaInputError,
         'primaryReferenceDocInput': setPrimaryReferenceDocInputError,
         'license': setLicenseError,
         'categoryInput': setCategoryInputError,
@@ -972,7 +969,6 @@ const handleCancelEditExampleResource = () => {
         'homepageURLInput': setHomepageURLInputValid,
         'otherPagesInput': setOtherPagesInputValid,
         'vocabulariesUsedInput': setVocabulariesUsedInputValid,
-        'metadataSchemaInput': setMetadataSchemaInputValid,
         'primaryReferenceDocInput': setPrimaryReferenceDocInputValid,
         'license': setLicenseValid,
         
@@ -1015,7 +1011,6 @@ const handleCancelEditExampleResource = () => {
     
     // Error states for new IRI fields
     const [vocabulariesUsedInputError, setVocabulariesUsedInputError] = useState('');
-    const [metadataSchemaInputError, setMetadataSchemaInputError] = useState('');
     const [licenseError, setLicenseError] = useState('');
     const [accessStatementError, setAccessStatementError] = useState('');
     const [currentRoleAgentError, setCurrentRoleAgentError] = useState('');
@@ -1028,7 +1023,6 @@ const handleCancelEditExampleResource = () => {
     
     // Valid states for new IRI fields
     const [vocabulariesUsedInputValid, setVocabulariesUsedInputValid] = useState(false);
-    const [metadataSchemaInputValid, setMetadataSchemaInputValid] = useState(false);
     const [currentRoleAgentValid, setCurrentRoleAgentValid] = useState(false);
     const [currentRoleMboxValid, setCurrentRoleMboxValid] = useState(false);
     const [distDownloadURLValid, setDistDownloadURLValid] = useState(false);
@@ -1043,7 +1037,7 @@ const handleCancelEditExampleResource = () => {
     
       // Fields that require IRI validation - EXPANDED LIST
       const iriFields = [
-        'homepageURL', 'otherPages', 'vocabulariesUsed', 'metadataSchema',
+        'homepageURL', 'otherPages', 'vocabulariesUsed',
         'primaryReferenceDocument', 'category', 
         'publicationReferences', 'source'
       ];
@@ -1383,7 +1377,6 @@ const handleCancelEditExampleResource = () => {
       'iriTemplate': setIriTemplateInputValid,
       'nameSpace': setNameSpaceInputValid,
       'vocabulariesUsed': setVocabulariesUsedInputValid,
-      'metadataSchema': setMetadataSchemaInputValid,
       'restAPI': setRestAPIInputValid,
       
       'exampleQueries': setExampleQueriesInputValid,
@@ -1614,12 +1607,6 @@ const handleCancelEditExampleResource = () => {
       };
     }
     
-    if (metadataSchemaInput.trim()) {
-      updatedFormData = {
-        ...updatedFormData,
-        metadataSchema: [...updatedFormData.metadataSchema, metadataSchemaInput.trim()]
-      };
-    }
     
     
     if (restAPIInput.trim()) {
@@ -1894,7 +1881,6 @@ const handleCancelEditExampleResource = () => {
     if (updatedForm.language.length === 0) missingFields.push('Language');
     if (!updatedForm.accessStatement) missingFields.push('Access Statement');
     if (updatedForm.vocabulariesUsed.length === 0) missingFields.push('Vocabularies Used');
-    if (updatedForm.metadataSchema.length === 0) missingFields.push('Metadata Schema');
     
     // Check for invalid dates (only for dates that are filled)
     if (createdDateError && updatedForm.createdDate) invalidDates.push(`Created Date: ${createdDateError}`);
@@ -2404,441 +2390,6 @@ const handleCancelEditExampleResource = () => {
             </div>
           </div>
 
-          {/* Date fields */}
-          <div className="form-group">
-            <label htmlFor="createdDate">
-              Created Date <span className="field-indicator optional-indicator">optional, 1 value only</span>
-            </label>
-            <div className="date-input-container">
-              <input
-                type="text"
-                id="createdDate"
-                name="createdDate"
-                value={formData.createdDate}
-                onChange={handleChange}
-                onBlur={validateDateInput}
-                placeholder="YYYY/MM/DD"
-                className={`date-input ${createdDateError ? 'date-input-error' : ''} ${createdDateValid ? 'date-input-valid' : ''}`}
-              />
-              <input
-                type="date"
-                className="date-picker-control"
-                onChange={(e) => handleDatePickerChange(e, 'createdDate')}
-                aria-label="Date picker for Created Date"
-              />
-            </div>
-            {createdDateError && <div className="date-error-message">{createdDateError}</div>}
-          </div>
-          
-    
-          <div className="form-group">
-            <label htmlFor="modifiedDate">
-              Modified Date <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-            </label>
-            <div className="tag-input-container">
-              <div className="tag-input-row">
-                <input
-                  type="text"
-                  id="modifiedDate"
-                  name="modifiedDate"
-                  value={modifiedDateInput}
-                  onChange={(e) => setModifiedDateInput(e.target.value)}
-                  onBlur={validateDateInput}
-                  placeholder="YYYY/MM/DD"
-                  className={`date-input ${modifiedDateError ? 'date-input-error' : ''} ${modifiedDateValid ? 'date-input-valid' : ''}`}
-                />
-                <input
-                  type="date"
-                  className="date-picker-control"
-                  onChange={(e) => handleDatePickerChange(e, 'modifiedDate')}
-                  aria-label="Date picker for Modified Date"
-                />
-                <button 
-                  type="button" 
-                  className="tag-add-button"
-                  onClick={handleAddDate}
-                  disabled={!modifiedDateInput || modifiedDateError}
-                >
-                  +
-                </button>
-              </div>
-              {modifiedDateError && <div className="date-error-message">{modifiedDateError}</div>}
-              <div className="tag-list">
-                {formData.modifiedDate.map((date, index) => (
-                  <div key={`modified-date-${index}`} className="tag-item">
-                    <span className="tag-text date-tag">{date}</span>
-                    <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('modifiedDate', index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Version - User input with subtle version ID display */}
-          <div className="form-group">
-            <label htmlFor="version">
-              Version <span className="field-indicator required-indicator">required, 1 value only</span>
-            </label>
-            <input
-              type="text"
-              id="version"
-              name="version"
-              value={formData.version}
-              onChange={handleChange}
-              placeholder="e.g. 1.0, 2.5"
-              required
-              className={`form-control ${versionValid ? 'form-input-valid' : ''}`}
-            />
-            {/* Hidden for now - Full ID display */}
-            {/* <span className="version-id-display">
-              Full ID: {formData.identifier[0] ? `${formData.identifier[0]}-v${formData.version}` : 'Will be generated from identifier'}
-            </span> */}
-          </div>
-    
-                      
-          <div className="form-group">
-            <label htmlFor="publishedDate">
-              Published Date <span className="field-indicator required-indicator">required, 1 value only</span>
-            </label>
-            <div className="date-input-container">
-              <input
-                type="text"
-                id="publishedDate"
-                name="publishedDate"
-                value={formData.publishedDate}
-                onChange={handleChange}
-                onBlur={validateDateInput}
-                placeholder="YYYY/MM/DD"
-                required
-                className={`date-input ${publishedDateError ? 'date-input-error' : ''} ${publishedDateValid ? 'date-input-valid' : ''}`}
-              />
-              <input
-                type="date"
-                className="date-picker-control"
-                onChange={(e) => handleDatePickerChange(e, 'publishedDate')}
-                aria-label="Date picker for Published Date"
-              />
-            </div>
-            {publishedDateError && <div className="date-error-message">{publishedDateError}</div>}
-          </div>
-    
-    
-          <div className="form-group">
-          <label htmlFor="vocabulariesUsed">
-              Vocabularies Used <span className="field-indicator required-indicator">required (IRI), multiple values allowed</span>
-          </label>
-          <div className="tag-input-container">
-              <div className="tag-input-row">
-              <input
-                  type="text"
-                  id="vocabulariesUsed"
-                  name="vocabulariesUsedInput"
-                  value={vocabulariesUsedInput}
-                  onChange={(e) => {
-                    setVocabulariesUsedInput(e.target.value);
-                    setVocabulariesUsedInputError('');
-                    setVocabulariesUsedInputValid(false);
-                  }}
-                  onBlur={validateIriInput}
-                  onKeyUp= {(e) => handleKeyPress(e, 'vocabulariesUsed', vocabulariesUsedInput, setVocabulariesUsedInput, setVocabulariesUsedInputError)}
-                  className={`tag-input ${vocabulariesUsedInputError ? 'tag-input-error' : ''} ${vocabulariesUsedInputValid ? 'tag-input-valid' : ''}`}
-              />
-              {vocabulariesUsedInputError && <div className="iri-error-message">{vocabulariesUsedInputError}</div>}
-
-              <button 
-                  type="button" 
-                  className="tag-add-button"
-                  onClick={() => handleAddTag('vocabulariesUsed', vocabulariesUsedInput, setVocabulariesUsedInput)}
-              >
-                  +
-              </button>
-              </div>
-              <div className="tag-list">
-              {formData.vocabulariesUsed.map((item, index) => (
-                  <div key={`vocabulary-${index}`} className="tag-item">
-                  <span className="tag-text">{item}</span>
-                  <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('vocabulariesUsed', index)}
-                  >
-                      ×
-                  </button>
-                  </div>
-              ))}
-              </div>
-              <div className="field-hint"> </div>
-          </div>
-          </div>
-    
-          {/* Metadata Schema [1,∞] - Required, multiple values */}
-          <div className="form-group">
-          <label htmlFor="metadataSchema">
-              Metadata Schema <span className="field-indicator required-indicator">required (IRI), multiple values allowed</span>
-          </label>
-          <div className="tag-input-container">
-              <div className="tag-input-row">
-              <input
-                type="text"
-                id="metadataSchema"
-                name="metadataSchemaInput"
-                value={metadataSchemaInput}
-                onChange={(e) => {
-                  setMetadataSchemaInput(e.target.value);
-                  setMetadataSchemaInputError('');
-                  setMetadataSchemaInputValid(false);
-                }}
-                onBlur={validateIriInput}
-                onKeyPress={(e) => handleKeyPress(e, 'metadataSchema', metadataSchemaInput, setMetadataSchemaInput, setMetadataSchemaInputError)}
-                className={`tag-input ${metadataSchemaInputError ? 'tag-input-error' : ''} ${metadataSchemaInputValid ? 'tag-input-valid' : ''}`}
-              />
-              {metadataSchemaInputError && <div className="iri-error-message">{metadataSchemaInputError}</div>}
-
-              <button 
-                  type="button" 
-                  className="tag-add-button"
-                  onClick={() => handleAddTag('metadataSchema', metadataSchemaInput, setMetadataSchemaInput)}
-              >
-                  +
-              </button>
-              </div>
-              <div className="tag-list">
-              {formData.metadataSchema.map((item, index) => (
-                  <div key={`metadata-schema-${index}`} className="tag-item">
-                  <span className="tag-text">{item}</span>
-                  <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('metadataSchema', index)}
-                  >
-                      ×
-                  </button>
-                  </div>
-              ))}
-              </div>
-              <div className="field-hint"> </div>
-          </div>
-          </div>
-    
-          {/* Primary Reference Document */}
-          <div className="form-group">
-            <label htmlFor="primaryReferenceDocument">
-              Primary Reference Document <span className="field-indicator required-indicator">required (IRI), multiple values allowed</span>
-            </label>
-            <div className="tag-input-container">
-              <div className="tag-input-row">
-              <input
-                type="text"
-                id="primaryReferenceDocument"
-                name="primaryReferenceDocInput"
-                value={primaryReferenceDocInput}
-                onChange={(e) => {
-                  setPrimaryReferenceDocInput(e.target.value);
-                  setPrimaryReferenceDocInputError('');
-                  setPrimaryReferenceDocInputValid(false);
-                }}
-                onBlur={validateIriInput}
-                onKeyUp={(e) => handleKeyPress(e, 'primaryReferenceDocument', primaryReferenceDocInput, setPrimaryReferenceDocInput, setPrimaryReferenceDocInputError)}
-                className={`${primaryReferenceDocInputError ? 'tag-input-error' : ''} ${primaryReferenceDocInputValid ? 'tag-input-valid' : ''}`}
-              />
-              {primaryReferenceDocInputError && <div className="iri-error-message">{primaryReferenceDocInputError}</div>}
-
-                <button 
-                  type="button" 
-                  className="tag-add-button"
-                  onClick={() => handleAddTag('primaryReferenceDocument', primaryReferenceDocInput, setPrimaryReferenceDocInput)}
-                >
-                  +
-                </button>
-              </div>
-              <div className="tag-list">
-                {formData.primaryReferenceDocument.map((doc, index) => (
-                  <div key={`ref-doc-${index}`} className="tag-item">
-                    <span className="tag-text">{doc}</span>
-                    <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('primaryReferenceDocument', index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div className="field-hint"> </div>
-            </div>
-          </div>
-          
-          {/* Meta Graph */}
-          <div className="form-group">
-            <label htmlFor="metaGraph">
-              Meta Graph <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-            </label>
-            
-            {/* Unified Input Field */}
-            <div className="unified-input-container">
-              <div 
-                className={`unified-input-field ${metaGraphInputError ? 'error' : metaGraphInputValid ? 'valid' : ''}`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.add('drag-over');
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove('drag-over');
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove('drag-over');
-                  const files = Array.from(e.dataTransfer.files);
-                  if (files.length > 0) {
-                    const file = files[0];
-                    if (file.type.startsWith('image/')) {
-                      setImageFileName(file.name);
-                      setFormData({
-                        ...formData,
-                        metaGraph: [...formData.metaGraph, file.name]
-                      });
-                    } else {
-                      alert('Please drop an image file.');
-                    }
-                  }
-                }}
-              >
-                <input
-                  type="text"
-                  id="metaGraphInput"
-                  value={metaGraphInput}
-                  onChange={(e) => {
-                    setMetaGraphInput(e.target.value);
-                    if (e.target.value.trim()) {
-                      const iriError = isValidIriString(e.target.value);
-                      if (iriError) {
-                        setMetaGraphInputError(iriError);
-                        setMetaGraphInputValid(false);
-                      } else {
-                        setMetaGraphInputError('');
-                        setMetaGraphInputValid(true);
-                      }
-                    } else {
-                      setMetaGraphInputError('');
-                      setMetaGraphInputValid(false);
-                    }
-                  }}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddMetaGraphIRI();
-                    }
-                  }}
-                  placeholder="Enter IRI or drag & drop image files here..."
-                  className="unified-text-input"
-                />
-                <div className="unified-input-actions">
-                  <button
-                    type="button"
-                    onClick={handleAddMetaGraphIRI}
-                    className="add-button"
-                    disabled={!metaGraphInputValid}
-                    title="Add IRI"
-                  >
-                    Add
-                  </button>
-                  <button 
-                    type="button" 
-                    className="browse-button"
-                    onClick={() => fileInputRef.current.click()}
-                    title="Browse for files"
-                  >
-                    📁
-                  </button>
-                </div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  accept="image/*"
-                  className="file-upload-input"
-                  style={{ display: "none" }}
-                />
-              </div>
-              {metaGraphInputError && (
-                <div className="error-message">{metaGraphInputError}</div>
-              )}
-              <div className="field-hint">
-                Enter a valid IRI, drag & drop image files, or click 📁 to browse files
-              </div>
-            </div>
-
-            {/* Display added meta graph items */}
-            <div className="tag-list">
-              {formData.metaGraph.map((graph, index) => (
-                <div key={`meta-graph-${index}`} className="tag-item">
-                  <span className="tag-text">{graph}</span>
-                  <button 
-                    type="button"
-                    className="tag-remove"
-                    onClick={() => handleRemoveTag('metaGraph', index)}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Statistics */}
-          <div className="form-group">
-            <label htmlFor="statistics">
-              Statistics <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
-            </label>
-            <div className="tag-input-container">
-              <div className="tag-input-row">
-              <input
-                type="text"
-                id="statistics"
-                value={statisticsInput}
-                onChange={(e) => {
-                  setStatisticsInput(e.target.value);
-                  setStatisticsInputValid(false);
-                }}
-                onBlur={() => setStatisticsInputValid(!!statisticsInput.trim())}
-                onKeyPress={(e) => handleKeyPress(e, 'statistics', statisticsInput, setStatisticsInput)}
-                className={`tag-input ${statisticsInputValid ? 'tag-input-valid' : ''}`}
-              />
-              <button 
-                  type="button" 
-                  className="tag-add-button"
-                  onClick={() => handleAddTag('statistics', statisticsInput, setStatisticsInput)}
-              >
-                  +
-              </button>
-              </div>
-              <div className="tag-list">
-                {formData.statistics.map((stat, index) => (
-                  <div key={`stat-${index}`} className="tag-item">
-                    <span className="tag-text">{stat}</span>
-                    <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('statistics', index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div className="field-hint"> </div>
-            </div>
-          </div>
-    
-          
           {/* Homepage URL (optional, multiple values allowed, IRIs) */}
           <div className="form-group">
             <label htmlFor="homepageURL">
@@ -3136,6 +2687,394 @@ const handleCancelEditExampleResource = () => {
               </button>
             </div>
           </div>
+
+          {/* Date fields */}
+          <div className="form-group">
+            <label htmlFor="createdDate">
+              Created Date <span className="field-indicator optional-indicator">optional, 1 value only</span>
+            </label>
+            <div className="date-input-container">
+              <input
+                type="text"
+                id="createdDate"
+                name="createdDate"
+                value={formData.createdDate}
+                onChange={handleChange}
+                onBlur={validateDateInput}
+                placeholder="YYYY/MM/DD"
+                className={`date-input ${createdDateError ? 'date-input-error' : ''} ${createdDateValid ? 'date-input-valid' : ''}`}
+              />
+              <input
+                type="date"
+                className="date-picker-control"
+                onChange={(e) => handleDatePickerChange(e, 'createdDate')}
+                aria-label="Date picker for Created Date"
+              />
+            </div>
+            {createdDateError && <div className="date-error-message">{createdDateError}</div>}
+          </div>
+          
+    
+          <div className="form-group">
+            <label htmlFor="modifiedDate">
+              Modified Date <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+                <input
+                  type="text"
+                  id="modifiedDate"
+                  name="modifiedDate"
+                  value={modifiedDateInput}
+                  onChange={(e) => setModifiedDateInput(e.target.value)}
+                  onBlur={validateDateInput}
+                  placeholder="YYYY/MM/DD"
+                  className={`date-input ${modifiedDateError ? 'date-input-error' : ''} ${modifiedDateValid ? 'date-input-valid' : ''}`}
+                />
+                <input
+                  type="date"
+                  className="date-picker-control"
+                  onChange={(e) => handleDatePickerChange(e, 'modifiedDate')}
+                  aria-label="Date picker for Modified Date"
+                />
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={handleAddDate}
+                  disabled={!modifiedDateInput || modifiedDateError}
+                >
+                  +
+                </button>
+              </div>
+              {modifiedDateError && <div className="date-error-message">{modifiedDateError}</div>}
+              <div className="tag-list">
+                {formData.modifiedDate.map((date, index) => (
+                  <div key={`modified-date-${index}`} className="tag-item">
+                    <span className="tag-text date-tag">{date}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('modifiedDate', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Version - User input with subtle version ID display */}
+          <div className="form-group">
+            <label htmlFor="version">
+              Version <span className="field-indicator required-indicator">required, 1 value only</span>
+            </label>
+            <input
+              type="text"
+              id="version"
+              name="version"
+              value={formData.version}
+              onChange={handleChange}
+              placeholder="e.g. 1.0, 2.5"
+              required
+              className={`form-control ${versionValid ? 'form-input-valid' : ''}`}
+            />
+            {/* Hidden for now - Full ID display */}
+            {/* <span className="version-id-display">
+              Full ID: {formData.identifier[0] ? `${formData.identifier[0]}-v${formData.version}` : 'Will be generated from identifier'}
+            </span> */}
+          </div>
+    
+                      
+          <div className="form-group">
+            <label htmlFor="publishedDate">
+              Published Date <span className="field-indicator required-indicator">required, 1 value only</span>
+            </label>
+            <div className="date-input-container">
+              <input
+                type="text"
+                id="publishedDate"
+                name="publishedDate"
+                value={formData.publishedDate}
+                onChange={handleChange}
+                onBlur={validateDateInput}
+                placeholder="YYYY/MM/DD"
+                required
+                className={`date-input ${publishedDateError ? 'date-input-error' : ''} ${publishedDateValid ? 'date-input-valid' : ''}`}
+              />
+              <input
+                type="date"
+                className="date-picker-control"
+                onChange={(e) => handleDatePickerChange(e, 'publishedDate')}
+                aria-label="Date picker for Published Date"
+              />
+            </div>
+            {publishedDateError && <div className="date-error-message">{publishedDateError}</div>}
+          </div>
+    
+    
+          <div className="form-group">
+          <label htmlFor="vocabulariesUsed">
+              Vocabularies Used <span className="field-indicator required-indicator">required (IRI), multiple values allowed</span>
+          </label>
+          <div className="tag-input-container">
+              <div className="tag-input-row">
+              <input
+                  type="text"
+                  id="vocabulariesUsed"
+                  name="vocabulariesUsedInput"
+                  value={vocabulariesUsedInput}
+                  onChange={(e) => {
+                    setVocabulariesUsedInput(e.target.value);
+                    setVocabulariesUsedInputError('');
+                    setVocabulariesUsedInputValid(false);
+                  }}
+                  onBlur={validateIriInput}
+                  onKeyUp= {(e) => handleKeyPress(e, 'vocabulariesUsed', vocabulariesUsedInput, setVocabulariesUsedInput, setVocabulariesUsedInputError)}
+                  className={`tag-input ${vocabulariesUsedInputError ? 'tag-input-error' : ''} ${vocabulariesUsedInputValid ? 'tag-input-valid' : ''}`}
+              />
+              {vocabulariesUsedInputError && <div className="iri-error-message">{vocabulariesUsedInputError}</div>}
+
+              <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('vocabulariesUsed', vocabulariesUsedInput, setVocabulariesUsedInput)}
+              >
+                  +
+              </button>
+              </div>
+              <div className="tag-list">
+              {formData.vocabulariesUsed.map((item, index) => (
+                  <div key={`vocabulary-${index}`} className="tag-item">
+                  <span className="tag-text">{item}</span>
+                  <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('vocabulariesUsed', index)}
+                  >
+                      ×
+                  </button>
+                  </div>
+              ))}
+              </div>
+              <div className="field-hint"> </div>
+          </div>
+          </div>
+    
+          {/* Primary Reference Document */}
+          <div className="form-group">
+            <label htmlFor="primaryReferenceDocument">
+              Primary Reference Document <span className="field-indicator required-indicator">required (IRI), multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+              <input
+                type="text"
+                id="primaryReferenceDocument"
+                name="primaryReferenceDocInput"
+                value={primaryReferenceDocInput}
+                onChange={(e) => {
+                  setPrimaryReferenceDocInput(e.target.value);
+                  setPrimaryReferenceDocInputError('');
+                  setPrimaryReferenceDocInputValid(false);
+                }}
+                onBlur={validateIriInput}
+                onKeyUp={(e) => handleKeyPress(e, 'primaryReferenceDocument', primaryReferenceDocInput, setPrimaryReferenceDocInput, setPrimaryReferenceDocInputError)}
+                className={`${primaryReferenceDocInputError ? 'tag-input-error' : ''} ${primaryReferenceDocInputValid ? 'tag-input-valid' : ''}`}
+              />
+              {primaryReferenceDocInputError && <div className="iri-error-message">{primaryReferenceDocInputError}</div>}
+
+                <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('primaryReferenceDocument', primaryReferenceDocInput, setPrimaryReferenceDocInput)}
+                >
+                  +
+                </button>
+              </div>
+              <div className="tag-list">
+                {formData.primaryReferenceDocument.map((doc, index) => (
+                  <div key={`ref-doc-${index}`} className="tag-item">
+                    <span className="tag-text">{doc}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('primaryReferenceDocument', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="field-hint"> </div>
+            </div>
+          </div>
+          
+          {/* Meta Graph */}
+          <div className="form-group">
+            <label htmlFor="metaGraph">
+              Meta Graph <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+            </label>
+            
+            {/* Unified Input Field */}
+            <div className="unified-input-container">
+              <div 
+                className={`unified-input-field ${metaGraphInputError ? 'error' : metaGraphInputValid ? 'valid' : ''}`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.add('drag-over');
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('drag-over');
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('drag-over');
+                  const files = Array.from(e.dataTransfer.files);
+                  if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type.startsWith('image/')) {
+                      setImageFileName(file.name);
+                      setFormData({
+                        ...formData,
+                        metaGraph: [...formData.metaGraph, file.name]
+                      });
+                    } else {
+                      alert('Please drop an image file.');
+                    }
+                  }
+                }}
+              >
+                <input
+                  type="text"
+                  id="metaGraphInput"
+                  value={metaGraphInput}
+                  onChange={(e) => {
+                    setMetaGraphInput(e.target.value);
+                    if (e.target.value.trim()) {
+                      const iriError = isValidIriString(e.target.value);
+                      if (iriError) {
+                        setMetaGraphInputError(iriError);
+                        setMetaGraphInputValid(false);
+                      } else {
+                        setMetaGraphInputError('');
+                        setMetaGraphInputValid(true);
+                      }
+                    } else {
+                      setMetaGraphInputError('');
+                      setMetaGraphInputValid(false);
+                    }
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddMetaGraphIRI();
+                    }
+                  }}
+                  placeholder="Enter IRI or drag & drop image files here..."
+                  className="unified-text-input"
+                />
+                <div className="unified-input-actions">
+                  <button
+                    type="button"
+                    onClick={handleAddMetaGraphIRI}
+                    className="add-button"
+                    disabled={!metaGraphInputValid}
+                    title="Add IRI"
+                  >
+                    Add
+                  </button>
+                  <button 
+                    type="button" 
+                    className="browse-button"
+                    onClick={() => fileInputRef.current.click()}
+                    title="Browse for files"
+                  >
+                    📁
+                  </button>
+                </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="image/*"
+                  className="file-upload-input"
+                  style={{ display: "none" }}
+                />
+              </div>
+              {metaGraphInputError && (
+                <div className="error-message">{metaGraphInputError}</div>
+              )}
+              <div className="field-hint">
+                Enter a valid IRI, drag & drop image files, or click 📁 to browse files
+              </div>
+            </div>
+
+            {/* Display added meta graph items */}
+            <div className="tag-list">
+              {formData.metaGraph.map((graph, index) => (
+                <div key={`meta-graph-${index}`} className="tag-item">
+                  <span className="tag-text">{graph}</span>
+                  <button 
+                    type="button"
+                    className="tag-remove"
+                    onClick={() => handleRemoveTag('metaGraph', index)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Statistics */}
+          <div className="form-group">
+            <label htmlFor="statistics">
+              Statistics <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+            </label>
+            <div className="tag-input-container">
+              <div className="tag-input-row">
+              <input
+                type="text"
+                id="statistics"
+                value={statisticsInput}
+                onChange={(e) => {
+                  setStatisticsInput(e.target.value);
+                  setStatisticsInputValid(false);
+                }}
+                onBlur={() => setStatisticsInputValid(!!statisticsInput.trim())}
+                onKeyPress={(e) => handleKeyPress(e, 'statistics', statisticsInput, setStatisticsInput)}
+                className={`tag-input ${statisticsInputValid ? 'tag-input-valid' : ''}`}
+              />
+              <button 
+                  type="button" 
+                  className="tag-add-button"
+                  onClick={() => handleAddTag('statistics', statisticsInput, setStatisticsInput)}
+              >
+                  +
+              </button>
+              </div>
+              <div className="tag-list">
+                {formData.statistics.map((stat, index) => (
+                  <div key={`stat-${index}`} className="tag-item">
+                    <span className="tag-text">{stat}</span>
+                    <button 
+                      type="button"
+                      className="tag-remove"
+                      onClick={() => handleRemoveTag('statistics', index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="field-hint"> </div>
+            </div>
+          </div>
+    
+          
+
 
          {/* Distributions Section */}
          <div className="form-section">
@@ -3837,177 +3776,6 @@ const handleCancelEditExampleResource = () => {
   </div>
 )}
 
-          {/* Example Resource Section */}
-<div className="form-section">
-  <h3 className="section-title">Example Resources</h3>
-  <div className="field-indicator optional-indicator">optional, multiple submissions allowed</div>
-  
-  {/* Display existing Example Resources */}
-  <div className="distributions-list">
-    {exampleResources.map((resource, idx) => (
-      <div key={`example-resource-${idx}`} className="distribution-item">
-        <div className="distribution-header">
-          <div className="distribution-title">{resource.title || '(no title)'}</div>
-          <div className="distribution-actions">
-            <button
-              type="button"
-              className="edit-button"
-              onClick={() => handleEditExampleResource(idx)}
-              aria-label="Edit Example Resource"
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              className="tag-remove"
-              onClick={() => handleRemoveExampleResource(idx)}
-              aria-label="Remove Example Resource"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-        <div className="distribution-preview">
-          <div className="distribution-field">
-            <span className="field-label">Title:</span>
-            <span className="field-value">{resource.title}</span>
-          </div>
-          <div className="distribution-field">
-            <span className="field-label">Description:</span>
-            <span className="field-value">{resource.description}</span>
-          </div>
-          <div className="distribution-field">
-            <span className="field-label">Status:</span>
-            <span className="field-value">{resource.status}</span>
-          </div>
-          <div className="distribution-field">
-            <span className="field-label">Access URL:</span>
-            <span className="field-value">{resource.accessURL}</span>
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-
-  {/* Example Resource Form */}
-  <div className="distribution-form">
-    <div className="form-group">
-      <label htmlFor="exampleResourceTitle">
-        Title <span className="field-indicator optional-indicator">optional</span>
-      </label>
-      <input
-        type="text"
-        id="exampleResourceTitle"
-        name="exampleResourceTitle"
-        value={currentExampleResource.title}
-        onChange={e => handleCurrentExampleResourceChange('title', e.target.value)}
-        onBlur={validateRegularInput}
-        className={`subfield-input ${exampleResourceTitleValid ? 'form-input-valid' : ''}`}
-      />
-    </div>
-    <div className="form-group">
-      <label htmlFor="exampleResourceDescription">
-        Description <span className="field-indicator optional-indicator">optional</span>
-      </label>
-      <input
-        type="text"
-        id="exampleResourceDescription"
-        name="exampleResourceDescription"
-        value={currentExampleResource.description}
-        onChange={e => handleCurrentExampleResourceChange('description', e.target.value)}
-        onBlur={validateRegularInput}
-        className={`subfield-input ${exampleResourceDescriptionValid ? 'form-input-valid' : ''}`}
-      />
-    </div>
-    <div className="form-group">
-      <label htmlFor="exampleResourceStatus">
-        Status <span className="field-indicator optional-indicator">optional</span>
-      </label>
-      <input
-        type="text"
-        id="exampleResourceStatus"
-        name="exampleResourceStatus"
-        value={currentExampleResource.status}
-        onChange={e => handleCurrentExampleResourceChange('status', e.target.value)}
-        onBlur={validateRegularInput}
-        className={`subfield-input ${exampleResourceStatusValid ? 'form-input-valid' : ''}`}
-      />
-    </div>
-    <div className="form-group">
-      <label htmlFor="exampleResourceAccessURL">
-        Access URL <span className="field-indicator optional-indicator">optional (IRI)</span>
-      </label>
-      <input
-        type="text"
-        id="exampleResourceAccessURL"
-        name="exampleResourceAccessURL"
-        value={currentExampleResource.accessURL}
-        onChange={e => handleCurrentExampleResourceChange('accessURL', e.target.value)}
-        onBlur={validateIriInput}
-        className={`subfield-input ${exampleResourceAccessURLError ? 'form-input-error' : ''} ${exampleResourceAccessURLValid ? 'form-input-valid' : ''}`}
-      />
-      {exampleResourceAccessURLError && <div className="iri-error-message">{exampleResourceAccessURLError}</div>}
-    </div>
-    <div className="button-row">
-      <button
-        type="button"
-        className="add-button"
-        onClick={handleAddExampleResource}
-      >
-        {editingExampleResourceIdx !== null ? 'Save Changes' : 'Add Example Resource'}
-      </button>
-      {editingExampleResourceIdx !== null && (
-        <button
-          type="button"
-          className="cancel-button"
-          onClick={handleCancelEditExampleResource}
-        >
-          Cancel
-        </button>
-      )}
-    </div>
-  </div>
-</div>
-
-{/* Example Resource Confirmation Overlay */}
-{showExampleResourceConfirmation && (
-  <div className="confirmation-overlay">
-    <div className="confirmation-dialog">
-      <h3>Confirm Example Resource Addition</h3>
-      <p>Are you sure you want to add this example resource?</p>
-      <div className="sparql-confirmation-preview">
-        {currentExampleResource.title && (
-          <div><strong>Title:</strong> {currentExampleResource.title}</div>
-        )}
-        {currentExampleResource.description && (
-          <div><strong>Description:</strong> {currentExampleResource.description}</div>
-        )}
-        {currentExampleResource.status && (
-          <div><strong>Status:</strong> {currentExampleResource.status}</div>
-        )}
-        {currentExampleResource.accessURL && (
-          <div><strong>Access URL:</strong> {currentExampleResource.accessURL}</div>
-        )}
-      </div>
-      <div className="confirmation-actions">
-        <button 
-          type="button" 
-          className="confirm-button"
-          onClick={confirmAddExampleResource}
-        >
-          Yes, Add Example Resource
-        </button>
-        <button 
-          type="button" 
-          className="cancel-button"
-          onClick={cancelAddExampleResource}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-)}
 
           {/* Example Queries [0,∞] - Optional, multiple values */}
           <div className="form-group">
@@ -4405,6 +4173,178 @@ const handleCancelEditExampleResource = () => {
     </div>
   </div>
 )}
+
+          {/* Example Resource Section */}
+<div className="form-section">
+  <h3 className="section-title">Example Resources</h3>
+  <div className="field-indicator optional-indicator">optional, multiple submissions allowed</div>
+  
+  {/* Display existing Example Resources */}
+  <div className="distributions-list">
+    {exampleResources.map((resource, idx) => (
+      <div key={`example-resource-${idx}`} className="distribution-item">
+        <div className="distribution-header">
+          <div className="distribution-title">{resource.title || '(no title)'}</div>
+          <div className="distribution-actions">
+            <button
+              type="button"
+              className="edit-button"
+              onClick={() => handleEditExampleResource(idx)}
+              aria-label="Edit Example Resource"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="tag-remove"
+              onClick={() => handleRemoveExampleResource(idx)}
+              aria-label="Remove Example Resource"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <div className="distribution-preview">
+          <div className="distribution-field">
+            <span className="field-label">Title:</span>
+            <span className="field-value">{resource.title}</span>
+          </div>
+          <div className="distribution-field">
+            <span className="field-label">Description:</span>
+            <span className="field-value">{resource.description}</span>
+          </div>
+          <div className="distribution-field">
+            <span className="field-label">Status:</span>
+            <span className="field-value">{resource.status}</span>
+          </div>
+          <div className="distribution-field">
+            <span className="field-label">Access URL:</span>
+            <span className="field-value">{resource.accessURL}</span>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  {/* Example Resource Form */}
+  <div className="distribution-form">
+    <div className="form-group">
+      <label htmlFor="exampleResourceTitle">
+        Title <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="exampleResourceTitle"
+        name="exampleResourceTitle"
+        value={currentExampleResource.title}
+        onChange={e => handleCurrentExampleResourceChange('title', e.target.value)}
+        onBlur={validateRegularInput}
+        className={`subfield-input ${exampleResourceTitleValid ? 'form-input-valid' : ''}`}
+      />
+    </div>
+    <div className="form-group">
+      <label htmlFor="exampleResourceDescription">
+        Description <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="exampleResourceDescription"
+        name="exampleResourceDescription"
+        value={currentExampleResource.description}
+        onChange={e => handleCurrentExampleResourceChange('description', e.target.value)}
+        onBlur={validateRegularInput}
+        className={`subfield-input ${exampleResourceDescriptionValid ? 'form-input-valid' : ''}`}
+      />
+    </div>
+    <div className="form-group">
+      <label htmlFor="exampleResourceStatus">
+        Status <span className="field-indicator optional-indicator">optional</span>
+      </label>
+      <input
+        type="text"
+        id="exampleResourceStatus"
+        name="exampleResourceStatus"
+        value={currentExampleResource.status}
+        onChange={e => handleCurrentExampleResourceChange('status', e.target.value)}
+        onBlur={validateRegularInput}
+        className={`subfield-input ${exampleResourceStatusValid ? 'form-input-valid' : ''}`}
+      />
+    </div>
+    <div className="form-group">
+      <label htmlFor="exampleResourceAccessURL">
+        Access URL <span className="field-indicator optional-indicator">optional (IRI)</span>
+      </label>
+      <input
+        type="text"
+        id="exampleResourceAccessURL"
+        name="exampleResourceAccessURL"
+        value={currentExampleResource.accessURL}
+        onChange={e => handleCurrentExampleResourceChange('accessURL', e.target.value)}
+        onBlur={validateIriInput}
+        className={`subfield-input ${exampleResourceAccessURLError ? 'form-input-error' : ''} ${exampleResourceAccessURLValid ? 'form-input-valid' : ''}`}
+      />
+      {exampleResourceAccessURLError && <div className="iri-error-message">{exampleResourceAccessURLError}</div>}
+    </div>
+    <div className="button-row">
+      <button
+        type="button"
+        className="add-button"
+        onClick={handleAddExampleResource}
+      >
+        {editingExampleResourceIdx !== null ? 'Save Changes' : 'Add Example Resource'}
+      </button>
+      {editingExampleResourceIdx !== null && (
+        <button
+          type="button"
+          className="cancel-button"
+          onClick={handleCancelEditExampleResource}
+        >
+          Cancel
+        </button>
+      )}
+    </div>
+  </div>
+</div>
+
+{/* Example Resource Confirmation Overlay */}
+{showExampleResourceConfirmation && (
+  <div className="confirmation-overlay">
+    <div className="confirmation-dialog">
+      <h3>Confirm Example Resource Addition</h3>
+      <p>Are you sure you want to add this example resource?</p>
+      <div className="sparql-confirmation-preview">
+        {currentExampleResource.title && (
+          <div><strong>Title:</strong> {currentExampleResource.title}</div>
+        )}
+        {currentExampleResource.description && (
+          <div><strong>Description:</strong> {currentExampleResource.description}</div>
+        )}
+        {currentExampleResource.status && (
+          <div><strong>Status:</strong> {currentExampleResource.status}</div>
+        )}
+        {currentExampleResource.accessURL && (
+          <div><strong>Access URL:</strong> {currentExampleResource.accessURL}</div>
+        )}
+      </div>
+      <div className="confirmation-actions">
+        <button 
+          type="button" 
+          className="confirm-button"
+          onClick={confirmAddExampleResource}
+        >
+          Yes, Add Example Resource
+        </button>
+        <button 
+          type="button" 
+          className="cancel-button"
+          onClick={cancelAddExampleResource}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     
          {/* Access Statement [1] - Required, single value */}
          <div className="form-group">
@@ -4524,7 +4464,7 @@ const handleCancelEditExampleResource = () => {
           {/* License for Metadata */}
           <div className="form-group">
             <label htmlFor="license">
-              Metadata License <span className="field-indicator required-indicator">required, 1 value only</span>
+              KG License <span className="field-indicator required-indicator">required, 1 value only</span>
             </label>
             <select
                id="license"

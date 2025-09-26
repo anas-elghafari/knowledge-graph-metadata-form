@@ -23,7 +23,6 @@ const fieldInstructions = {
     
     // Vocabularies and schemas
     "vocabulariesUsed": "Specify the vocabularies used in the knowledge.",
-    "metadataSchema": "Specify the file against which to validate the KG metadata. Recommend that IRI is a Profile (https://www.w3.org/TR/dx-prof/).",
     
     // Documentation
     "primaryReferenceDocument": "Provide a reference to a document, preprint or data paper describing the KG.",
@@ -79,7 +78,6 @@ const fieldInstructions = {
     "exampleResourceStatus": " ... ",
     "exampleResourceTitle": " ... ",
     "homepageURLInput": " ... ",
-    "metadataSchemaInput": " ... ",
     "otherPagesInput": " ... ",
     "primaryReferenceDocInput": " ... ",
     "publicationReferencesInput": " ... ",
