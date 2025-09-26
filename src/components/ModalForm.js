@@ -56,6 +56,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState('');
+  const [bypassValidation, setBypassValidation] = useState(true);
   // State for AI suggestions
   const [showAISuggestions, setShowAISuggestions] = useState(aiEnabledByDefault);
   const [aiSuggestions, setAiSuggestions] = useState({});
@@ -2076,50 +2077,88 @@ const handleCancelEditExampleResource = () => {
     setMessage('');
     
     // Handle custom license formatting
-    let finalFormData = { ...updatedForm };
-    if (updatedForm.license === 'Other' && customLicenseInput.trim()) {
-      finalFormData.license = `Other-${customLicenseInput.trim()}`;
     }
-    
-    // Add validation errors to the form data (always include, even if empty)
-    // Place at top level for visibility
-    finalFormData.VALIDATION_ERRORS = validationErrors;
-    finalFormData._metadata = {
-      ...finalFormData._metadata,
+  }
+
+  // Construct error message
+  let errorMessage = '';
+  
+  if (missingFields.length > 0) {
+    errorMessage += `The following fields are required but have not been filled: ${missingFields.join(', ')}`;
+  }
+  
+  if (invalidDates.length > 0) {
+    if (errorMessage) errorMessage += '\n\n';
+    errorMessage += `The following dates are invalid:\n${invalidDates.join('\n')}`;
+  }
+
+  // Handle validation errors based on submission mode
+  if (errorMessage && !forceSubmit) {
+    setMessage(errorMessage);
+    setIsSubmitting(false);
+    return;
+  }
+  
+  // For forced submission, collect validation errors to include in the data
+  const validationErrors = {
+    missingFields: missingFields,
+    invalidDates: invalidDates,
+    errorMessage: errorMessage,
+    submissionMode: forceSubmit ? 'forced' : 'normal',
+    submissionTimestamp: new Date().toISOString()
+  };
+  
+  // Sync SPARQL endpoints, Example Resources, and Linked Resources before submission
+  updatedForm.sparqlEndpoint = sparqlEndpoints;
+  updatedForm.exampleResource = exampleResources;
+  updatedForm.linkedResources = linkedResources;
+
+  // Proceed with submission
+  setIsSubmitting(true);
+  setMessage('');
+  
+  // Handle custom license formatting
+  let finalFormData = { ...updatedForm };
+  if (updatedForm.license === 'Other' && customLicenseInput.trim()) {
+    finalFormData.license = `Other-${customLicenseInput.trim()}`;
+  }
+  
+  // Structure submission with validation errors outside form data
+  const submissionData = {
+    formData: finalFormData,
+    validationErrors: validationErrors,
+    metadata: {
       hasValidationErrors: (missingFields.length > 0 || invalidDates.length > 0),
-      submissionMode: forceSubmit ? 'FORCED_SUBMISSION' : 'NORMAL_SUBMISSION'
-    };
-    
-    // Log validation errors for debugging
-    if (forceSubmit) {
-      console.log('FORCED SUBMISSION - Validation errors recorded:', validationErrors);
+      submissionMode: forceSubmit ? 'FORCED_SUBMISSION' : 'NORMAL_SUBMISSION',
+      timestamp: new Date().toISOString()
     }
+  };
+  
+  if (forceSubmit) {
+    console.log('FORCED SUBMISSION - Validation errors recorded:', validationErrors);
+  }
+  
+  try {
+    // Submit structured data to parent component
+    const result = await onSubmit(submissionData);
     
-    try {
-      // Submit form data to parent component
-      const result = await onSubmit(finalFormData);
-      
-      if (result.success) {
-        setMessage('Form submitted successfully!');
-        setTimeout(() => {
-          setMessage('');
-          onClose();
-        }, 3000);
-      } else {
-        setMessage(result.message);
-      }
-    } catch (error) {
-      console.error('Error in form submission:', error);
-      setMessage('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+    if (result.success) {
+      setMessage('Form submitted successfully!');
+      setTimeout(() => {
+        setMessage('');
+        onClose();
+      }, 3000);
+    } else {
+      setMessage(result.message);
     }
+  } catch (error) {
+    console.error('Error in form submission:', error);
+    setMessage('An unexpected error occurred. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
 };
 
-  // Handle forced submission
-  const handleForceSubmit = async (e) => {
-    await handleSubmit(e, true);
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -3199,6 +3238,7 @@ const handleCancelEditExampleResource = () => {
                 onBlur={validateIriInput}
                 onKeyUp={(e) => handleKeyPress(e, 'primaryReferenceDocument', primaryReferenceDocInput, setPrimaryReferenceDocInput, setPrimaryReferenceDocInputError)}
                 className={`${primaryReferenceDocInputError ? 'tag-input-error' : ''} ${primaryReferenceDocInputValid ? 'tag-input-valid' : ''}`}
+                placeholder="Enter IRI and press Enter or +"
               />
               {primaryReferenceDocInputError && <div className="iri-error-message">{primaryReferenceDocInputError}</div>}
 
@@ -3366,6 +3406,7 @@ const handleCancelEditExampleResource = () => {
                 onBlur={validateIriInput}
                 onKeyUp={(e) => handleKeyPress(e, 'kgSchema', kgSchemaInput, setKgSchemaInput, setKgSchemaInputError)}
                 className={`${kgSchemaInputError ? 'tag-input-error' : ''} ${kgSchemaInputValid ? 'tag-input-valid' : ''}`}
+                placeholder="Enter IRI and press Enter or +"
               />
               {kgSchemaInputError && <div className="iri-error-message">{kgSchemaInputError}</div>}
 
@@ -3912,6 +3953,7 @@ const handleCancelEditExampleResource = () => {
                   }}
                   onKeyPress={(e) => handleKeyPress(e, 'restAPI', restAPIInput, setRestAPIInput)}
                   className={`tag-input ${restAPIInputError ? 'tag-input-error' : restAPIInputValid ? 'tag-input-valid' : ''}`}
+                  placeholder="Enter REST API URL and press Enter or +"
               />
               <button 
                   type="button" 
@@ -5146,21 +5188,22 @@ const handleCancelEditExampleResource = () => {
     
        <button 
          className="submit-button"
-         onClick={handleSubmit}
+         onClick={(e) => handleSubmit(e, bypassValidation)}
          disabled={isSubmitting}
        >
          {isSubmitting ? 'Submitting...' : 'Submit'}
        </button>
        
-       <div className="force-submit-container">
-         <button 
-           className="force-submit-link"
-           onClick={handleForceSubmit}
-           disabled={isSubmitting}
-           type="button"
-         >
-           force submit
-         </button>
+       <div className="bypass-validation-container">
+         <label className="checkbox-wrapper">
+           <input 
+             type="checkbox"
+             checked={bypassValidation}
+             onChange={(e) => setBypassValidation(e.target.checked)}
+             disabled={isSubmitting}
+           />
+           <span className="checkbox-label">Allow submission to bypass validation rules</span>
+         </label>
        </div>
       </div>
       

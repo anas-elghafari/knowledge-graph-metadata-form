@@ -68,8 +68,7 @@ function DataTable({ submissions }) {
             <thead>
               <tr>
                 <th>Title</th>
-                <th>Description</th>
-                <th>Type</th>
+                <th>Acronym</th>
                 <th>Date Submitted</th>
               </tr>
             </thead>
@@ -77,8 +76,7 @@ function DataTable({ submissions }) {
               {submissions.map((item, index) => (
                 <tr key={index}>
                   <td>{item.name}</td>
-                  <td>{item.description}</td>
-                  <td>{item.type}</td>
+                  <td>{item.acronym && item.acronym.length > 0 ? item.acronym.join(', ') : '-'}</td>
                   <td>{new Date(item.date).toLocaleString()}</td>
                 </tr>
               ))}

@@ -11,8 +11,27 @@ function App() {
   const [draftToLoad, setDraftToLoad] = useState(null);
   const [aiEnabledByDefault, setAiEnabledByDefault] = useState(false);
   
+  // Get the current view mode from URL parameters
+  const getViewMode = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    return mode; // 'llm', 'regular', or null (both)
+  };
+  
+  const [viewMode, setViewMode] = useState(getViewMode());
+  
   // Create a ref for the SavedDrafts component
   const savedDraftsRef = useRef(null);
+  
+  // Listen for URL changes (for back/forward navigation)
+  useEffect(() => {
+    const handlePopState = () => {
+      setViewMode(getViewMode());
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   
   // Load any saved submissions from localStorage on component mount
   useEffect(() => {
@@ -69,24 +88,35 @@ function App() {
   };
   
   // Handle form submission
-  const handleSubmission = async (formData) => {
+  const handleSubmission = async (submissionData) => {
     try {
+      // Extract form data and validation errors from the new structure
+      const { formData, validationErrors, metadata } = submissionData;
+      
       // Create submission with complete data and metadata
       const timestamp = new Date().toISOString();
       
       const submission = {
         // Display data for the table
         name: formData.title,
-        description: formData.description,
-        type: "KG-Metadata",
+        acronym: formData.acronym,
         date: timestamp,
         
-        // Complete form data
+        // Complete form data (clean, without validation errors)
         formData: {
           ...formData,
           timestamp: timestamp,
           browserType: navigator.userAgent,
           submissionId: `kg-meta-${Date.now()}`
+        },
+        
+        // Validation errors outside form data
+        validationErrors: validationErrors,
+        
+        // Submission metadata
+        metadata: {
+          ...metadata,
+          timestamp: timestamp
         }
       };
       
@@ -104,13 +134,34 @@ function App() {
     }
   };
 
-  return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Knowledge Graph Metadata</h1>
-      </header>
-      <main>
-        <div className="form-container">
+  // Render different buttons based on view mode
+  const renderButtons = () => {
+    if (viewMode === 'regular') {
+      // Only show manual form button
+      return (
+        <button 
+          className="submit-button" 
+          onClick={handleOpenModal}
+          style={{ width: 'auto' }}
+        >
+          Create Metadata - Form/Manual
+        </button>
+      );
+    } else if (viewMode === 'llm') {
+      // Only show AI assisted button
+      return (
+        <button 
+          className="submit-button" 
+          onClick={handleOpenModalWithAI}
+          style={{ width: 'auto' }}
+        >
+          Create Metadata - AI Assisted
+        </button>
+      );
+    } else {
+      // Show both buttons (default homepage)
+      return (
+        <>
           <button 
             className="submit-button" 
             onClick={handleOpenModal}
@@ -125,6 +176,40 @@ function App() {
           >
             Create Metadata - AI Assisted
           </button>
+        </>
+      );
+    }
+  };
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <h1>Knowledge Graph Metadata</h1>
+        {/* Add navigation links */}
+        <div className="view-mode-links">
+          <a 
+            href="?" 
+            className={!viewMode ? 'active' : ''}
+          >
+            Both Tools
+          </a>
+          <a 
+            href="?mode=regular" 
+            className={viewMode === 'regular' ? 'active' : ''}
+          >
+            Manual Only
+          </a>
+          <a 
+            href="?mode=llm" 
+            className={viewMode === 'llm' ? 'active' : ''}
+          >
+            AI Only
+          </a>
+        </div>
+      </header>
+      <main>
+        <div className="form-container">
+          {renderButtons()}
         </div>
         <DataTable submissions={submissions} />
         
