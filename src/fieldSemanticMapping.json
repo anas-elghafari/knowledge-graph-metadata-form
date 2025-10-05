@@ -14,7 +14,7 @@
   "license": "dct:license",
   "version": "dcat:version",
   "distributions": "dcat:distribution",
-  "primaryReferenceDocument": "???",
+  "primaryReferenceDocument": "cito:citesAsAuthority",
   "metaGraph": "void:description",
   "kgSchema": "dct:conformsTo",
   "statistics": "???",

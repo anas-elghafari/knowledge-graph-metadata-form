@@ -629,7 +629,6 @@ const [sparqlEndpointDescriptionValid, setSparqlEndpointDescriptionValid] = useS
 const [sparqlStatusValid, setSparqlStatusValid] = useState(false);
 
 // Example Resource Section State
-const [showExampleResourceConfirmation, setShowExampleResourceConfirmation] = useState(false);
 const emptyExampleResource = {
   title: '',
   description: '',
@@ -736,26 +735,18 @@ const handleCancelEditSparqlEndpoint = () => {
 
 const handleAddExampleResource = () => {
   if (editingExampleResourceIdx !== null) {
-    // Save edits directly (no confirmation needed for edits)
+    // Save edits directly
     const updated = [...exampleResources];
     updated[editingExampleResourceIdx] = currentExampleResource;
     setExampleResources(updated);
     resetExampleResourceForm();
   } else {
-    // Show confirmation for new additions
-    setShowExampleResourceConfirmation(true);
+    // Add new example resource directly
+    setExampleResources([...exampleResources, currentExampleResource]);
+    resetExampleResourceForm();
   }
 };
 
-const confirmAddExampleResource = () => {
-  setExampleResources([...exampleResources, currentExampleResource]);
-  setShowExampleResourceConfirmation(false);
-  resetExampleResourceForm();
-};
-
-const cancelAddExampleResource = () => {
-  setShowExampleResourceConfirmation(false);
-};
 
 // Linked Resource handlers
 const handleCurrentLinkedResourceChange = (field, value) => {
@@ -2649,6 +2640,7 @@ const handleCancelEditExampleResource = () => {
                   </div>
                 ))}
               </div>
+              <div className="field-hint">Press Enter or click + to add alternative title</div>
             </div>
           </div>
 
@@ -2694,6 +2686,7 @@ const handleCancelEditExampleResource = () => {
                   </div>
                 ))}
               </div>
+              <div className="field-hint">Press Enter or click + to add acronym</div>
             </div>
           </div>
 
@@ -2799,6 +2792,7 @@ const handleCancelEditExampleResource = () => {
                   </div>
                 ))}
               </div>
+              <div className="field-hint">Press Enter or click + to add language</div>
             </div>
           </div>
 
@@ -2842,6 +2836,7 @@ const handleCancelEditExampleResource = () => {
                   </div>
                 ))}
               </div>
+              <div className="field-hint">Press Enter or click + to add keyword</div>
             </div>
           </div>
 
@@ -3432,7 +3427,7 @@ const handleCancelEditExampleResource = () => {
                   </div>
               ))}
               </div>
-              <div className="field-hint"> </div>
+              <div className="field-hint">Press Enter or click + to add vocabulary</div>
           </div>
           </div>
     
@@ -3482,7 +3477,7 @@ const handleCancelEditExampleResource = () => {
                   </div>
                 ))}
               </div>
-              <div className="field-hint"> </div>
+              <div className="field-hint">Press Enter or click + to add reference document (IRI)</div>
             </div>
           </div>
           
@@ -3555,11 +3550,11 @@ const handleCancelEditExampleResource = () => {
                   <button
                     type="button"
                     onClick={handleAddMetaGraphIRI}
-                    className="add-button"
+                    className="tag-add-button"
                     disabled={!metaGraphInputValid}
                     title="Add IRI"
                   >
-                    Add
+                    +
                   </button>
                   <button 
                     type="button" 
@@ -3650,7 +3645,7 @@ const handleCancelEditExampleResource = () => {
                   </div>
                 ))}
               </div>
-              <div className="field-hint"> </div>
+              <div className="field-hint">Press Enter or click + to add KG schema (IRI)</div>
             </div>
           </div>
           
@@ -3696,7 +3691,7 @@ const handleCancelEditExampleResource = () => {
                   </div>
                 ))}
               </div>
-              <div className="field-hint"> </div>
+              <div className="field-hint">Press Enter or click + to add statistics (IRI)</div>
             </div>
           </div>
     
@@ -4198,7 +4193,7 @@ const handleCancelEditExampleResource = () => {
               {restAPIInputError && (
                 <div className="error-message">{restAPIInputError}</div>
               )}
-              <div className="field-hint"> </div>
+              <div className="field-hint">Press Enter or click + to add REST API (IRI)</div>
           </div>
           </div>
     
@@ -4395,7 +4390,7 @@ const handleCancelEditExampleResource = () => {
                   </div>
               ))}
               </div>
-              <div className="field-hint"> </div>
+              <div className="field-hint">Press Enter or click + to add example query</div>
           </div>
       </div>
 
@@ -4510,7 +4505,7 @@ const handleCancelEditExampleResource = () => {
                  </div>
                ))}
              </div>
-             <div className="field-hint"> </div>
+             <div className="field-hint">Press Enter or click + to add keyword</div>
            </div>
          </div>
     
@@ -4560,7 +4555,7 @@ const handleCancelEditExampleResource = () => {
                  </div>
                ))}
              </div>
-             <div className="field-hint"> </div>
+             <div className="field-hint">Press Enter or click + to add category (IRI)</div>
            </div>
          </div>
     
@@ -4610,7 +4605,7 @@ const handleCancelEditExampleResource = () => {
                  </div>
                ))}
              </div>
-             <div className="field-hint"> </div>
+             <div className="field-hint">Press Enter or click + to add publication reference (IRI)</div>
            </div>
          </div>
     
@@ -4653,7 +4648,7 @@ const handleCancelEditExampleResource = () => {
                  </div>
                ))}
              </div>
-             <div className="field-hint"> </div>
+             <div className="field-hint">Press Enter or click + to add language</div>
            </div>
          </div>
     
@@ -4696,7 +4691,7 @@ const handleCancelEditExampleResource = () => {
                  </div>
                ))}
              </div>
-             <div className="field-hint"> </div>
+             <div className="field-hint">Press Enter or click + to add IRI template</div>
            </div>
          </div>
     
@@ -4926,45 +4921,6 @@ const handleCancelEditExampleResource = () => {
   </div>
 </div>
 
-{/* Example Resource Confirmation Overlay */}
-{showExampleResourceConfirmation && (
-  <div className="confirmation-overlay">
-    <div className="confirmation-dialog">
-      <h3>Confirm Example Resource Addition</h3>
-      <p>Are you sure you want to add this example resource?</p>
-      <div className="sparql-confirmation-preview">
-        {currentExampleResource.title && (
-          <div><strong>Title:</strong> {currentExampleResource.title}</div>
-        )}
-        {currentExampleResource.description && (
-          <div><strong>Description:</strong> {currentExampleResource.description}</div>
-        )}
-        {currentExampleResource.status && (
-          <div><strong>Status:</strong> {currentExampleResource.status}</div>
-        )}
-        {currentExampleResource.accessURL && (
-          <div><strong>Access URL:</strong> {currentExampleResource.accessURL}</div>
-        )}
-      </div>
-      <div className="confirmation-actions">
-        <button 
-          type="button" 
-          className="confirm-button"
-          onClick={confirmAddExampleResource}
-        >
-          Yes, Add Example Resource
-        </button>
-        <button 
-          type="button" 
-          className="cancel-button"
-          onClick={cancelAddExampleResource}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-)}
     
          {/* Access Statement [1] - Required, single value */}
          <div className="form-group">
@@ -5101,7 +5057,7 @@ const handleCancelEditExampleResource = () => {
                  </div>
                ))}
              </div>
-             <div className="field-hint"> </div>
+             <div className="field-hint">Press Enter or click + to add source (IRI)</div>
            </div>
          </div>
     
@@ -5145,7 +5101,7 @@ const handleCancelEditExampleResource = () => {
                  </div>
                ))}
              </div>
-             <div className="field-hint"> </div>
+             <div className="field-hint">Press Enter or click + to add namespace</div>
            </div>
          </div>
 
