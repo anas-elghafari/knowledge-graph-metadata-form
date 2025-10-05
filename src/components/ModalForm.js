@@ -543,6 +543,164 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         return;
       }
       
+      // Special handling for distributions field
+      if (fieldName === 'distributions') {
+        console.log('Processing distributions field...', suggestionText);
+        try {
+          const rawResponse = formattedSuggestions ? formattedSuggestions[fieldName + '_raw'] : null;
+          console.log('Raw distributions response:', rawResponse);
+          
+          if (rawResponse && rawResponse.suggestions) {
+            rawResponse.suggestions.forEach(suggestion => {
+              console.log('Processing distribution suggestion:', suggestion);
+              
+              try {
+                // Parse the JSON-like value string
+                const distData = typeof suggestion.value === 'string' ? 
+                  JSON.parse(suggestion.value) : suggestion.value;
+                
+                // Create distribution object with all fields
+                const newDistribution = {
+                  title: distData.title || '',
+                  description: distData.description || '',
+                  mediaType: distData.mediaType || '',
+                  downloadURL: distData.downloadURL || '',
+                  accessURL: distData.accessURL || '',
+                  accessService: distData.accessService || '',
+                  byteSize: distData.byteSize || '',
+                  compressionFormat: distData.compressionFormat || '',
+                  packagingFormat: distData.packagingFormat || '',
+                  hasPolicy: distData.hasPolicy || '',
+                  license: distData.license || '',
+                  rights: distData.rights || '',
+                  spatialResolution: distData.spatialResolution || '',
+                  temporalResolution: distData.temporalResolution || '',
+                  releaseDate: distData.releaseDate || '',
+                  modificationDate: distData.modificationDate || '',
+                  issued: distData.issued || ''
+                };
+                
+                // Add to distributions array
+                updatedFormData.distributions = [...(updatedFormData.distributions || []), newDistribution];
+                console.log('Added distribution:', newDistribution);
+              } catch (parseError) {
+                console.error('Error parsing distribution data:', parseError);
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error processing distributions field:', error);
+        }
+        return;
+      }
+      
+      // Special handling for sparqlEndpoint field
+      if (fieldName === 'sparqlEndpoint') {
+        console.log('Processing sparqlEndpoint field...', suggestionText);
+        try {
+          const rawResponse = formattedSuggestions ? formattedSuggestions[fieldName + '_raw'] : null;
+          console.log('Raw sparqlEndpoint response:', rawResponse);
+          
+          if (rawResponse && rawResponse.suggestions) {
+            rawResponse.suggestions.forEach(suggestion => {
+              console.log('Processing SPARQL endpoint suggestion:', suggestion);
+              
+              try {
+                const endpointData = typeof suggestion.value === 'string' ? 
+                  JSON.parse(suggestion.value) : suggestion.value;
+                
+                const newEndpoint = {
+                  endpointURL: endpointData.endpointURL || '',
+                  identifier: endpointData.identifier || '',
+                  title: endpointData.title || '',
+                  endpointDescription: endpointData.endpointDescription || endpointData.description || '',
+                  status: endpointData.status || ''
+                };
+                
+                // Add to sparqlEndpoints array (note: this is a separate state, not in formData)
+                setSparqlEndpoints(prev => [...prev, newEndpoint]);
+                console.log('Added SPARQL endpoint:', newEndpoint);
+              } catch (parseError) {
+                console.error('Error parsing SPARQL endpoint data:', parseError);
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error processing sparqlEndpoint field:', error);
+        }
+        return;
+      }
+      
+      // Special handling for exampleResource field
+      if (fieldName === 'exampleResource') {
+        console.log('Processing exampleResource field...', suggestionText);
+        try {
+          const rawResponse = formattedSuggestions ? formattedSuggestions[fieldName + '_raw'] : null;
+          console.log('Raw exampleResource response:', rawResponse);
+          
+          if (rawResponse && rawResponse.suggestions) {
+            rawResponse.suggestions.forEach(suggestion => {
+              console.log('Processing example resource suggestion:', suggestion);
+              
+              try {
+                const resourceData = typeof suggestion.value === 'string' ? 
+                  JSON.parse(suggestion.value) : suggestion.value;
+                
+                const newResource = {
+                  title: resourceData.title || '',
+                  description: resourceData.description || '',
+                  status: resourceData.status || '',
+                  accessURL: resourceData.accessURL || ''
+                };
+                
+                // Add to exampleResources array (note: this is a separate state, not in formData)
+                setExampleResources(prev => [...prev, newResource]);
+                console.log('Added example resource:', newResource);
+              } catch (parseError) {
+                console.error('Error parsing example resource data:', parseError);
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error processing exampleResource field:', error);
+        }
+        return;
+      }
+      
+      // Special handling for linkedResources field
+      if (fieldName === 'linkedResources') {
+        console.log('Processing linkedResources field...', suggestionText);
+        try {
+          const rawResponse = formattedSuggestions ? formattedSuggestions[fieldName + '_raw'] : null;
+          console.log('Raw linkedResources response:', rawResponse);
+          
+          if (rawResponse && rawResponse.suggestions) {
+            rawResponse.suggestions.forEach(suggestion => {
+              console.log('Processing linked resource suggestion:', suggestion);
+              
+              try {
+                const linkData = typeof suggestion.value === 'string' ? 
+                  JSON.parse(suggestion.value) : suggestion.value;
+                
+                const newLinkedResource = {
+                  target: linkData.target || '',
+                  triples: linkData.triples || ''
+                };
+                
+                // Add to linkedResources array (note: this is a separate state, not in formData)
+                setLinkedResources(prev => [...prev, newLinkedResource]);
+                console.log('Added linked resource:', newLinkedResource);
+              } catch (parseError) {
+                console.error('Error parsing linked resource data:', parseError);
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error processing linkedResources field:', error);
+        }
+        return;
+      }
+      
       // Special handling for license field
       if (fieldName === 'license') {
         const firstSuggestionMatch = suggestionText.match(/• (.+?)\n/);

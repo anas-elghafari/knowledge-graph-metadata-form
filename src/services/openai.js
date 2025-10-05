@@ -276,35 +276,54 @@ SPECIAL HANDLING FOR LICENSE FIELD:
 - Return only URLs that exactly match the available dropdown options
 
 SPECIAL HANDLING FOR DISTRIBUTIONS FIELD:
-- Distributions are complex subsections with multiple subfields (title, description, mediaType, downloadURL, accessURL, etc.)
+- Distributions are complex subsections with multiple subfields (title, description, mediaType, downloadURL, accessURL, byteSize, license, rights, spatialResolution, temporalResolution, releaseDate, modificationDate, issued)
 - Look for distribution-related data in the cheat sheet under names like: "distributions", "download", "access", "files", "downloadURL", "accessURL"
-- Extract ALL distribution-related information you find and format as JSON-like structure
-- Example: If you find downloadURL and accessURL, suggest: {"title": "YAGO files", "downloadURL": "http://yago-knowledge.org", "accessURL": "http://yago-knowledge.org"}
-- Return the full distribution object as the "value" field in your suggestion
-- Provide multiple suggestions if multiple distributions are found
+- CRITICAL: The "value" field MUST be a valid JSON string containing the distribution object
+- Extract ALL distribution-related information you find from the cheat sheet
+- Example format for the value field:
+  {
+    "value": "{\"title\": \"YAGO files\", \"description\": \"YAGO download page\", \"mediaType\": \"link\", \"downloadURL\": \"http://yago-knowledge.org\", \"accessURL\": \"http://yago-knowledge.org\"}",
+    "explanation": "Found distribution data in cheat sheet"
+  }
+- IMPORTANT: Escape quotes in the JSON string properly
+- Include ALL fields you can extract from the cheat sheet (title, description, mediaType, downloadURL, accessURL, etc.)
+- If the cheat sheet shows a JSON structure for distributions, parse it and extract each field
+- Provide multiple suggestions if multiple distributions are found in the cheat sheet
 
 SPECIAL HANDLING FOR SPARQL ENDPOINT FIELD:
 - SPARQL endpoints are complex subsections with subfields (endpointURL, identifier, title, endpointDescription, status)
 - Look for SPARQL-related data under names like: "sparql endpoint", "sparql", "query endpoint", "sparqlEndpoint", "endpoint"
-- Extract ALL SPARQL endpoint information and format as JSON-like structure
-- Example: If you find endpoint URL and description, suggest: {"endpointURL": "https://query.Yago.org/sparql", "title": "Yago Query Service", "endpointDescription": "The Wikidata Query Service"}
-- Return the full SPARQL endpoint object as the "value" field in your suggestion
+- CRITICAL: The "value" field MUST be a valid JSON string containing the endpoint object
+- Example format:
+  {
+    "value": "{\"endpointURL\": \"https://query.Yago.org/sparql\", \"title\": \"Yago Query Service\", \"endpointDescription\": \"The Wikidata Query Service\"}",
+    "explanation": "Found SPARQL endpoint data in cheat sheet"
+  }
+- Include ALL fields you can extract from the cheat sheet
 - Provide multiple suggestions if multiple endpoints are found
 
 SPECIAL HANDLING FOR EXAMPLE RESOURCE FIELD:
 - Example resources are complex subsections with subfields (title, description, status, accessURL)
 - Look for example resource data under names like: "example resource", "example", "sample resource", "sample", "exampleResource"
-- Extract ALL example resource information and format as JSON-like structure
-- Example: If you find title and accessURL, suggest: {"title": "Sample Entity", "description": "Example of a resource", "accessURL": "http://example.org/resource"}
-- Return the full example resource object as the "value" field in your suggestion
+- CRITICAL: The "value" field MUST be a valid JSON string containing the resource object
+- Example format:
+  {
+    "value": "{\"title\": \"Sample Entity\", \"description\": \"Example of a resource\", \"accessURL\": \"http://example.org/resource\"}",
+    "explanation": "Found example resource data in cheat sheet"
+  }
+- Include ALL fields you can extract from the cheat sheet
 - Provide multiple suggestions if multiple example resources are found
 
 SPECIAL HANDLING FOR LINKED RESOURCES FIELD:
 - Linked resources are complex subsections with subfields (target, triples)
 - Look for linked resource data under names like: "linked resources", "linkset", "links", "linkedResources", "void:linkset"
-- Extract ALL linked resource information and format as JSON-like structure
-- Example: If you find target and triples, suggest: {"target": "http://dbpedia.org", "triples": "1000000"}
-- Return the full linked resource object as the "value" field in your suggestion
+- CRITICAL: The "value" field MUST be a valid JSON string containing the linked resource object
+- Example format:
+  {
+    "value": "{\"target\": \"http://dbpedia.org\", \"triples\": \"1000000\"}",
+    "explanation": "Found linked resource data in cheat sheet"
+  }
+- Include ALL fields you can extract from the cheat sheet
 - Provide multiple suggestions if multiple linked resources are found
 
 RESPONSE FORMAT:
