@@ -509,7 +509,7 @@ select {
   width: 350px;
   background-color: var(--dark-bg);
   border-left: 1px solid var(--dark-border);
-  display: flex;
+  display: none !important; /* Hide AI panel */
   flex-direction: column;
   overflow: hidden;
   position: sticky;
@@ -1779,7 +1779,7 @@ label[data-tooltip]:hover::before {
 
 /* AI Suggestion Tooltips */
 .ai-suggestion-tooltip {
-  display: inline-block;
+  display: none !important; /* Hide robot emoji icons */
   font-size: 16px;
   margin-left: 8px;
   cursor: pointer;
