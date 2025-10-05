@@ -235,16 +235,22 @@ SPECIAL HANDLING FOR ROLES FIELD:
   * "ownedBy", "owner" → "owner"
 - IMPORTANT: Create separate suggestions for EACH role type found, even if multiple roles exist
 - Handle comma-separated values: if you find "Published by: Org A, Org B, Org C", create separate roleData for each
+- EMAIL HANDLING: The "mbox" field refers to email addresses
+  * If you find an email address (e.g., "contact@example.org", "john.doe@university.edu"), put it in the "email" field of roleData
+  * Use the email address exactly as found in the cheat sheet - do NOT add any prefix
+  * Look for email patterns in the cheat sheet: text containing "@" followed by a domain
+  * Common field names for emails: "email", "e-mail", "contact", "mbox"
 - For roles field, return multiple suggestions with roleData:
   {
     "suggestions": [
       {
-        "value": "publisher: XYZ Organization",
-        "explanation": "Found 'published by XYZ Organization' in cheat sheet",
+        "value": "publisher: XYZ Organization (contact@xyz.org)",
+        "explanation": "Found 'published by XYZ Organization' with email in cheat sheet",
         "roleData": {
           "roleType": "publisher",
           "mode": "name_mbox",
-          "name": "XYZ Organization"
+          "name": "XYZ Organization",
+          "email": "contact@xyz.org"
         }
       },
       {
@@ -259,15 +265,47 @@ SPECIAL HANDLING FOR ROLES FIELD:
     ]
   }
 - Extract actual names/organizations from the cheat sheet, don't use generic placeholders
-- Use "name_mbox" mode unless you find a clear IRI/URL for the entity
-- If multiple entities for same role type, put them in comma-separated format in the name field
+- Use "name_mbox" mode when you have name and/or email; use "iri" mode only if you find a clear IRI/URL for the entity
+- If multiple entities for same role type, create separate roleData entries for each (don't combine them)
 
 SPECIAL HANDLING FOR LICENSE FIELD:
 - For license field, the available options will be provided in the field instruction
 - Match license names (MIT, Apache, GPL, BSD, Creative Commons, etc.) to the corresponding URLs
 - If the cheat sheet contains a license URL directly, extract and match it exactly to one of the available options
 - Look for URLs in the cheat sheet content even if surrounded by other text (e.g., "Licensed under https://opensource.org/licenses/MIT for open use")
-- Return only URLs that exactly match the available dropdown options 
+- Return only URLs that exactly match the available dropdown options
+
+SPECIAL HANDLING FOR DISTRIBUTIONS FIELD:
+- Distributions are complex subsections with multiple subfields (title, description, mediaType, downloadURL, accessURL, etc.)
+- Look for distribution-related data in the cheat sheet under names like: "distributions", "download", "access", "files", "downloadURL", "accessURL"
+- Extract ALL distribution-related information you find and format as JSON-like structure
+- Example: If you find downloadURL and accessURL, suggest: {"title": "YAGO files", "downloadURL": "http://yago-knowledge.org", "accessURL": "http://yago-knowledge.org"}
+- Return the full distribution object as the "value" field in your suggestion
+- Provide multiple suggestions if multiple distributions are found
+
+SPECIAL HANDLING FOR SPARQL ENDPOINT FIELD:
+- SPARQL endpoints are complex subsections with subfields (endpointURL, identifier, title, endpointDescription, status)
+- Look for SPARQL-related data under names like: "sparql endpoint", "sparql", "query endpoint", "sparqlEndpoint", "endpoint"
+- Extract ALL SPARQL endpoint information and format as JSON-like structure
+- Example: If you find endpoint URL and description, suggest: {"endpointURL": "https://query.Yago.org/sparql", "title": "Yago Query Service", "endpointDescription": "The Wikidata Query Service"}
+- Return the full SPARQL endpoint object as the "value" field in your suggestion
+- Provide multiple suggestions if multiple endpoints are found
+
+SPECIAL HANDLING FOR EXAMPLE RESOURCE FIELD:
+- Example resources are complex subsections with subfields (title, description, status, accessURL)
+- Look for example resource data under names like: "example resource", "example", "sample resource", "sample", "exampleResource"
+- Extract ALL example resource information and format as JSON-like structure
+- Example: If you find title and accessURL, suggest: {"title": "Sample Entity", "description": "Example of a resource", "accessURL": "http://example.org/resource"}
+- Return the full example resource object as the "value" field in your suggestion
+- Provide multiple suggestions if multiple example resources are found
+
+SPECIAL HANDLING FOR LINKED RESOURCES FIELD:
+- Linked resources are complex subsections with subfields (target, triples)
+- Look for linked resource data under names like: "linked resources", "linkset", "links", "linkedResources", "void:linkset"
+- Extract ALL linked resource information and format as JSON-like structure
+- Example: If you find target and triples, suggest: {"target": "http://dbpedia.org", "triples": "1000000"}
+- Return the full linked resource object as the "value" field in your suggestion
+- Provide multiple suggestions if multiple linked resources are found
 
 RESPONSE FORMAT:
 You must return a JSON object with "fieldSuggestions" containing each field. For each field, provide either:

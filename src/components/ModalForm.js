@@ -178,6 +178,30 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         instruction: 'Roles and responsibilities for this dataset (e.g., creator, publisher, funder)'
       });
       
+      // Add special case for distributions (complex subsection)
+      fieldDefinitions.push({
+        name: 'distributions',
+        instruction: 'Distribution information for the dataset including title, description, mediaType, downloadURL, accessURL, byteSize, license, rights, spatial/temporal resolution, and dates. Look for fields like "distributions", "download", "access", "files", or similar in the cheat sheet.'
+      });
+      
+      // Add special case for SPARQL endpoints (complex subsection)
+      fieldDefinitions.push({
+        name: 'sparqlEndpoint',
+        instruction: 'SPARQL endpoint information including endpointURL, identifier, title, description, and status. Look for fields like "sparql endpoint", "sparql", "query endpoint", or similar in the cheat sheet.'
+      });
+      
+      // Add special case for Example Resources (complex subsection)
+      fieldDefinitions.push({
+        name: 'exampleResource',
+        instruction: 'Example resource information including title, description, status, and accessURL. Look for fields like "example resource", "example", "sample resource", or similar in the cheat sheet.'
+      });
+      
+      // Add special case for Linked Resources (complex subsection)
+      fieldDefinitions.push({
+        name: 'linkedResources',
+        instruction: 'Linked resources information including target and triples. Look for fields like "linked resources", "linkset", "links", or similar in the cheat sheet.'
+      });
+      
       // Add special case for license field with available options
       if (formData.license === '') {
         const licenseOptions = [
