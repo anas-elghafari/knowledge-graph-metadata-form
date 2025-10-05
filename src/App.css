@@ -490,7 +490,7 @@ select {
 }
 
 .modal-content.with-ai-panel {
-  max-width: 1200px;
+  max-width: 720px; /* Slightly wider than regular form (600px) */
 }
 
 .modal-content-wrapper {
