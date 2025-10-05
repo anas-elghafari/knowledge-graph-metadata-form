@@ -81,34 +81,39 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     
     const parser = new Parser();
     const errors = [];
-    let parseError = null;
     
     try {
+      // Parse and collect all quads - this will throw on syntax errors
+      const quads = [];
       parser.parse(content, (error, quad, prefixes) => {
         if (error) {
-          parseError = error;
+          // Capture parsing errors from callback
+          errors.push({
+            line: error.context?.line || 'unknown',
+            column: error.context?.column || 'unknown',
+            message: error.message || 'Parsing error'
+          });
+        }
+        if (quad) {
+          quads.push(quad);
         }
       });
-      
-      if (parseError) {
-        errors.push({
-          line: parseError.context?.line || 'unknown',
-          column: parseError.context?.column || 'unknown',
-          message: parseError.message || 'Parsing error'
-        });
-      }
       
       return {
         isValid: errors.length === 0,
         errors: errors
       };
     } catch (e) {
+      // Catch synchronous parsing errors
+      const errorLine = e.message?.match(/line (\d+)/)?.[1] || 'unknown';
+      const errorCol = e.message?.match(/column (\d+)/)?.[1] || 'unknown';
+      
       return {
         isValid: false,
         errors: [{
-          line: 'unknown',
-          column: 'unknown',
-          message: e.message || 'Unknown parsing error'
+          line: errorLine,
+          column: errorCol,
+          message: e.message || 'Turtle syntax error'
         }]
       };
     }
@@ -340,20 +345,22 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       // Auto-populate fields with top suggestions
       autoPopulateFieldsFromSuggestions(bulkSuggestionTexts, formattedSuggestions);
       
-      // Mark bulk suggestions as ready and calculate total processing duration
-      setBulkSuggestionsReady(true);
-      
-      // Calculate total processing duration using passed startTime
+      // Calculate total processing duration AFTER auto-population
       const currentTime = Date.now();
       console.log('About to calculate duration. startTime:', startTime, 'currentTime:', currentTime);
       if (startTime) {
         const totalDuration = currentTime - startTime;
         console.log('Calculated total processing duration:', totalDuration, 'ms');
+        console.log('OpenAI API time:', openaiDuration, 'ms');
+        console.log('Other processing time (parsing, auto-populate):', totalDuration - openaiDuration, 'ms');
         setProcessingDuration(totalDuration);
         console.log('Set processingDuration to:', totalDuration);
       } else {
         console.log('ERROR: No startTime parameter found for total duration calculation');
       }
+      
+      // Mark bulk suggestions as ready
+      setBulkSuggestionsReady(true);
       
     } catch (error) {
       console.error('Error processing bulk suggestions:', error);
