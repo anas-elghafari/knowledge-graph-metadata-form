@@ -343,6 +343,56 @@ select {
   cursor: not-allowed;
 }
 
+.download-button.semantic-export {
+  background-color: #2196F3;
+  margin-left: 8px;
+}
+
+.download-button.semantic-export:hover {
+  background-color: #1976D2;
+}
+
+.download-button.semantic-export:disabled {
+  background-color: #1565C0;
+  cursor: not-allowed;
+}
+
+/* Turtle Form Styles */
+.modal-body.turtle-mode {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.turtle-form-container {
+  width: 100%;
+}
+
+.turtle-textarea {
+  width: 100%;
+  min-height: 400px;
+  padding: 12px;
+  border: 2px solid var(--dark-border);
+  border-radius: 4px;
+  background-color: var(--dark-bg);
+  color: var(--text-color);
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.turtle-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.turtle-textarea::placeholder {
+  color: #888;
+  font-style: italic;
+}
+
 .clear-button {
   background-color: var(--error-red);
   color: white;
@@ -680,6 +730,7 @@ select {
 
 .modal-header-controls {
   display: flex;
+  justify-content: flex-end;
   align-items: flex-start;
   gap: 12px;
 }
@@ -699,7 +750,10 @@ select {
 .upload-status {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  align-items: flex-end;
+  min-height: 60px;
+  justify-content: flex-start;
 }
 
 .processing-indicator {
@@ -716,12 +770,30 @@ select {
   font-weight: 500;
 }
 
-.processing-time-indicator {
-  color: #6c757d;
-  font-size: 12px;
-  margin-left: 10px;
-  font-weight: 500;
-  font-family: 'Courier New', monospace;
+.processing-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-width: 200px;
+}
+
+.processing-time-text {
+  color: #ccc;
+  font-size: 11px;
+  font-weight: normal;
+  font-family: Arial, sans-serif;
+}
+
+.openai-time-text {
+  color: #ccc;
+  font-size: 11px;
+  font-weight: normal;
+  font-family: Arial, sans-serif;
 }
 
 .bypass-validation-container {

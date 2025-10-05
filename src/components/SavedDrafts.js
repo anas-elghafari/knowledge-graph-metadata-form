@@ -13,8 +13,9 @@ const SavedDrafts = forwardRef(({ onLoadDraft }, ref) => {
         
         
         parsedDrafts.sort((a, b) => {
-          const dateA = new Date(a.date);
-          const dateB = new Date(b.date);
+          // Handle different date field names for backward compatibility
+          const dateA = new Date(a.date || a.savedAt || '1970-01-01');
+          const dateB = new Date(b.date || b.savedAt || '1970-01-01');
           return dateB - dateA; // Descending order (newest first)
         });
         
@@ -52,7 +53,7 @@ const SavedDrafts = forwardRef(({ onLoadDraft }, ref) => {
   };
   
   const handleLoadDraft = (draft) => {
-    // Call the onLoadDraft callback directly without confirmation
+    // Call the onLoadDraft callback with the formData
     onLoadDraft(draft.formData);
   };
   
@@ -111,7 +112,7 @@ const SavedDrafts = forwardRef(({ onLoadDraft }, ref) => {
                   style={{ cursor: 'pointer' }}
                 >
                   <td>{draft.name}</td>
-                  <td>{formatDate(draft.date)}</td>
+                  <td>{formatDate(draft.date || draft.savedAt)}</td>
                   <td>
                     <div className="draft-actions">
                       <button 

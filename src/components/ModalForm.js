@@ -4,7 +4,7 @@ import fieldInstructions from '../fieldInstructions';
 import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
 
 
-function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null, aiEnabledByDefault = false }) {
+function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null, aiEnabledByDefault = false, turtleModeEnabled = false }) {
   // Initial form state
   const initialFormState = {
     identifier: [uuidv4()], // Auto-generate UUID
@@ -52,7 +52,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     nameSpace: []
   };
 
-  const [formData, setFormData] = useState(initialFormData || initialFormState);
+  const [formData, setFormData] = useState(initialFormState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState('');
@@ -65,6 +65,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [processingDuration, setProcessingDuration] = useState(0);
   const [currentProcessingTime, setCurrentProcessingTime] = useState(0);
   const [activeField, setActiveField] = useState(null);
+  const [openaiProcessingTime, setOpenaiProcessingTime] = useState(0);
+  
+  // Turtle mode state
+  const [turtleContent, setTurtleContent] = useState('');
+  const [showTurtleMode, setShowTurtleMode] = useState(turtleModeEnabled);
   
   // Cheat sheet upload state
   const [cheatSheetFile, setCheatSheetFile] = useState(null);
@@ -130,8 +135,10 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         console.log('Cheat sheet uploaded:', content.substring(0, 200) + '...');
         
         // Start timing and process bulk suggestions automatically
-        setProcessingStartTime(Date.now());
-        await processBulkSuggestions(content);
+        const startTime = Date.now();
+        setProcessingStartTime(startTime);
+        console.log('Setting processingStartTime to:', startTime);
+        await processBulkSuggestions(content, startTime);
       };
       
       reader.readAsText(file);
@@ -139,7 +146,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   };
 
   // Process bulk AI suggestions for all fields
-  const processBulkSuggestions = async (cheatSheetContent) => {
+  const processBulkSuggestions = async (cheatSheetContent, startTime = null) => {
     try {
       setLoadingSuggestions(true);
       console.log('Processing bulk suggestions with cheat sheet content');
@@ -210,8 +217,15 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       
       console.log('Dynamic field definitions:', fieldDefinitions);
       
+      // Track OpenAI API processing time specifically
+      const openaiStartTime = Date.now();
       const bulkResponse = await getBulkFieldSuggestions(fieldDefinitions, cheatSheetContent);
+      const openaiEndTime = Date.now();
+      const openaiDuration = openaiEndTime - openaiStartTime;
+      setOpenaiProcessingTime(openaiDuration);
+      
       console.log('Bulk response received:', bulkResponse);
+      console.log('OpenAI API processing time:', openaiDuration, 'ms');
       
       const formattedSuggestions = {};
       const bulkSuggestionTexts = {};
@@ -247,29 +261,107 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       // Auto-populate fields with top suggestions
       autoPopulateFieldsFromSuggestions(bulkSuggestionTexts, formattedSuggestions);
       
-      // Mark bulk suggestions as ready
+      // Mark bulk suggestions as ready and calculate total processing duration
       setBulkSuggestionsReady(true);
+      
+      // Calculate total processing duration using passed startTime
+      const currentTime = Date.now();
+      console.log('About to calculate duration. startTime:', startTime, 'currentTime:', currentTime);
+      if (startTime) {
+        const totalDuration = currentTime - startTime;
+        console.log('Calculated total processing duration:', totalDuration, 'ms');
+        setProcessingDuration(totalDuration);
+        console.log('Set processingDuration to:', totalDuration);
+      } else {
+        console.log('ERROR: No startTime parameter found for total duration calculation');
+      }
       
     } catch (error) {
       console.error('Error processing bulk suggestions:', error);
     } finally {
       setLoadingSuggestions(false);
-      // Calculate processing duration
-      if (processingStartTime) {
-        const duration = Date.now() - processingStartTime;
-        console.log('Setting processing duration:', duration, 'ms');
-        console.log('processingStartTime was:', processingStartTime);
-        console.log('Current time:', Date.now());
-        setProcessingDuration(duration);
-        
-        // Force a re-render by also updating a dummy state
-        setTimeout(() => {
-          console.log('Processing duration should now be:', duration);
-        }, 100);
-      } else {
-        console.log('No processingStartTime found');
-      }
     }
+  };
+
+  // Handle turtle form submission
+  const handleTurtleSubmit = async () => {
+    if (!turtleContent.trim()) {
+      setMessage('Please enter some Turtle content before submitting.');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const submissionData = {
+        formData: {
+          turtleContent: turtleContent.trim(),
+          submissionType: 'turtle',
+          title: 'Turtle Entry', // Default title for turtle submissions
+          timestamp: new Date().toISOString()
+        },
+        validationErrors: {},
+        metadata: {
+          submissionType: 'turtle',
+          contentLength: turtleContent.trim().length
+        }
+      };
+
+      const result = await onSubmit(submissionData);
+      
+      if (result.success) {
+        setMessage(result.message);
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      } else {
+        setMessage(result.message);
+        setTimeout(() => setMessage(''), 5000);
+      }
+    } catch (error) {
+      console.error('Error submitting turtle form:', error);
+      setMessage('Error submitting turtle content. Please try again.');
+      setTimeout(() => setMessage(''), 5000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle turtle draft saving
+  const handleTurtleSaveDraft = () => {
+    if (!turtleContent.trim()) {
+      setMessage('Please enter some Turtle content before saving draft.');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+
+    const draftId = `turtle-draft-${Date.now()}`;
+    const draft = {
+      id: draftId,
+      name: 'Turtle Text',
+      date: new Date().toISOString(),
+      formData: {
+        turtleContent: turtleContent.trim(),
+        submissionType: 'turtle',
+        draftId: draftId
+      }
+    };
+
+    // Save to localStorage
+    const existingDrafts = JSON.parse(localStorage.getItem('kg-metadata-drafts') || '[]');
+    existingDrafts.push(draft);
+    localStorage.setItem('kg-metadata-drafts', JSON.stringify(existingDrafts));
+
+    setMessage('Turtle draft saved successfully!');
+    
+    if (onDraftSaved) {
+      onDraftSaved();
+    }
+    
+    setTimeout(() => {
+      onClose();
+    }, 2000);
   };
 
   // Auto-populate fields with top suggestions from bulk results
@@ -912,6 +1004,57 @@ const handleCancelEditExampleResource = () => {
       if (interval) clearInterval(interval);
     };
   }, [loadingSuggestions, processingStartTime]);
+
+  // Handle loading drafts
+  const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
+  
+  useEffect(() => {
+    if (initialFormData && !hasLoadedDraft) {
+      // Check if this is a turtle draft
+      if (initialFormData.submissionType === 'turtle' || initialFormData.turtleContent) {
+        setTurtleContent(initialFormData.turtleContent || '');
+        setShowTurtleMode(true);
+        setFormData(prevData => ({
+          ...initialFormState,
+          ...prevData
+        }));
+      } else {
+        // Regular form data loading - ensure all arrays exist
+        const safeFormData = {
+          ...initialFormState,
+          ...initialFormData
+        };
+        
+        // Ensure all array fields are actually arrays
+        Object.keys(initialFormState).forEach(key => {
+          if (Array.isArray(initialFormState[key]) && !Array.isArray(safeFormData[key])) {
+            safeFormData[key] = initialFormState[key];
+          }
+        });
+        
+        setFormData(safeFormData);
+        
+        // Clear input states since data is now in formData
+        if (safeFormData.title) setTitleInput('');
+        if (safeFormData.description) setDescriptionInput('');
+        if (safeFormData.version) setVersionInput('');
+        if (safeFormData.accessStatement) setAccessStatementInput('');
+        
+        // Set validation states for loaded fields
+        if (safeFormData.title) setTitleValid(true);
+        if (safeFormData.description) setDescriptionValid(true);
+        if (safeFormData.license) setLicenseValid(true);
+        if (safeFormData.version) setVersionValid(true);
+      }
+      
+      setHasLoadedDraft(true);
+    }
+  }, [initialFormData, hasLoadedDraft]);
+
+  // Helper function to safely get array from formData
+  const safeArray = (fieldName) => {
+    return Array.isArray(formData[fieldName]) ? formData[fieldName] : [];
+  };
 
     const isValidIriString = (iriString) => {
       console.log('Validating IRI:', iriString);
@@ -1587,11 +1730,32 @@ const handleCancelEditExampleResource = () => {
     // Create a copy of the current form data that we'll update
     let updatedFormData = {...formData};
     
-    // Handle all tag input fields
-    // No longer need to check identifierInput since it's auto-generated
-    // identifier is already set with UUID
+    // Handle single-value fields first
+    if (titleInput.trim() && !updatedFormData.title) {
+      updatedFormData.title = titleInput.trim();
+    }
     
+    if (descriptionInput.trim() && !updatedFormData.description) {
+      updatedFormData.description = descriptionInput.trim();
+    }
     
+    if (versionInput.trim() && !updatedFormData.version) {
+      updatedFormData.version = versionInput.trim();
+    }
+    
+    if (accessStatementInput.trim() && !updatedFormData.accessStatement) {
+      updatedFormData.accessStatement = accessStatementInput.trim();
+    }
+    
+    if (createdDateInput.trim() && !updatedFormData.createdDate) {
+      updatedFormData.createdDate = createdDateInput.trim();
+    }
+    
+    if (publishedDateInput.trim() && !updatedFormData.publishedDate) {
+      updatedFormData.publishedDate = publishedDateInput.trim();
+    }
+    
+    // Handle all tag input fields (multi-value)
     if (alternativeTitleInput.trim()) {
       updatedFormData = {
         ...updatedFormData,
@@ -1756,6 +1920,42 @@ const handleCancelEditExampleResource = () => {
         ...updatedFormData,
         exampleQueries: [...updatedFormData.exampleQueries, exampleQueriesInput.trim()]
       };
+    }
+    
+    if (statisticsInput.trim()) {
+      const iriError = isValidIriString(statisticsInput);
+      if (!iriError) {
+        updatedFormData = {
+          ...updatedFormData,
+          statistics: [...updatedFormData.statistics, statisticsInput.trim()]
+        };
+      } else {
+        setStatisticsInputError(iriError);
+      }
+    }
+    
+    if (primaryReferenceDocInput.trim()) {
+      const iriError = isValidIriString(primaryReferenceDocInput);
+      if (!iriError) {
+        updatedFormData = {
+          ...updatedFormData,
+          primaryReferenceDocument: [...updatedFormData.primaryReferenceDocument, primaryReferenceDocInput.trim()]
+        };
+      } else {
+        setPrimaryReferenceDocInputError(iriError);
+      }
+    }
+    
+    if (metaGraphInput.trim()) {
+      const iriError = isValidIriString(metaGraphInput);
+      if (!iriError) {
+        updatedFormData = {
+          ...updatedFormData,
+          metaGraph: [...updatedFormData.metaGraph, metaGraphInput.trim()]
+        };
+      } else {
+        setMetaGraphInputError(iriError);
+      }
     }
     
     // Check if current distribution is partially filled and valid
@@ -2205,8 +2405,62 @@ const handleCancelEditExampleResource = () => {
         </div>
       </div>
     )}
-      <div className={`modal-header`}>
-        <h2>Knowledge Graph Metadata</h2>
+
+    {/* Turtle Form */}
+    {showTurtleMode ? (
+      <>
+        <div className={`modal-header`}>
+          <h2>Turtle Entry</h2>
+        </div>
+        
+        <div className="modal-body turtle-mode">
+          <div className="turtle-form-container">
+            <div className="form-group">
+              <label htmlFor="turtleContent" className="field-label">
+                Turtle Content <span className="field-indicator required-indicator">required</span>
+              </label>
+              <textarea
+                id="turtleContent"
+                value={turtleContent}
+                onChange={(e) => setTurtleContent(e.target.value)}
+                placeholder="Enter your Turtle/RDF content here..."
+                className="turtle-textarea"
+                rows={20}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="modal-footer">
+          <button 
+            className="cancel-button"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          
+          <button 
+            className="save-draft-button"
+            onClick={handleTurtleSaveDraft}
+            disabled={!turtleContent.trim()}
+          >
+            Save Draft
+          </button>
+          
+          <button 
+            className="submit-button"
+            onClick={handleTurtleSubmit}
+            disabled={isSubmitting || !turtleContent.trim()}
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit'}
+          </button>
+        </div>
+      </>
+    ) : (
+      <>
+        {/* Regular Form */}
+        <div className={`modal-header`}>
+          <h2>Knowledge Graph Metadata</h2>
         <div className="modal-header-controls">
           {showAISuggestions && (
             <div className="upload-section">
@@ -2232,18 +2486,28 @@ const handleCancelEditExampleResource = () => {
                 )}
                 {bulkSuggestionsReady && (
                   <div className="suggestions-ready-indicator">
-                    ✨ AI suggestions populated!
+                    AI suggestions populated!
                   </div>
                 )}
-                {processingDuration > 0 && (
-                  <div className="processing-time-indicator">
-                    🤖 gpt-4o-mini processed cheat sheet in {Math.floor(processingDuration / 1000)}s
+                {/* Always show stats area when cheat sheet is uploaded */}
+                {cheatSheetFile && (
+                  <div className="processing-stats">
+                    {processingDuration > 0 && (
+                      <div className="processing-time-text">
+                        Total processing time: {(processingDuration / 1000).toFixed(1)} seconds
+                      </div>
+                    )}
+                    {openaiProcessingTime > 0 && (
+                      <div className="openai-time-text">
+                        OpenAI API response time: {(openaiProcessingTime / 1000).toFixed(1)} seconds
+                      </div>
+                    )}
+                    {/* Debug info */}
+                    <div style={{fontSize: '10px', color: '#666', marginTop: '4px'}}>
+                      Debug: duration={processingDuration}, openai={openaiProcessingTime}, ready={bulkSuggestionsReady ? 'yes' : 'no'}
+                    </div>
                   </div>
                 )}
-                {/* Debug - remove later */}
-                <div style={{fontSize: '10px', color: '#999'}}>
-                  Debug: processingDuration={processingDuration}, bulkSuggestionsReady={bulkSuggestionsReady ? 'true' : 'false'}, processingStartTime={processingStartTime}
-                </div>
               </div>
               <input
                 ref={cheatSheetInputRef}
@@ -2270,7 +2534,7 @@ const handleCancelEditExampleResource = () => {
               Identifier <span className="field-indicator">auto-generated UUID</span>
             </label>
             <div>
-              {formData.identifier.map((id, index) => (
+              {safeArray('identifier').map((id, index) => (
                 <div key={`identifier-${index}`} className="uuid-display">
                   {id}
                 </div>
@@ -2372,7 +2636,7 @@ const handleCancelEditExampleResource = () => {
                 </button>
               </div>
               <div className="tag-list">
-                {formData.alternativeTitle.map((title, index) => (
+                {safeArray('alternativeTitle').map((title, index) => (
                   <div key={`alt-title-${index}`} className="tag-item tag-item-valid">
                     <span className="tag-text">{title}</span>
                     <button 
@@ -2719,7 +2983,7 @@ const handleCancelEditExampleResource = () => {
 
           {/* Display existing roles */}
           <div className="roles-list">
-            {formData.roles.map((role, index) => (
+            {safeArray('roles').map((role, index) => (
               <div key={`role-${role.id || index}`} className="distribution-item">
                 <div className="distribution-header">
                   <div className="distribution-title">{role.roleType}</div>
@@ -4511,7 +4775,7 @@ const handleCancelEditExampleResource = () => {
                  className="add-button"
                  onClick={handleAddLinkedResource}
                >
-                 {editingLinkedResourceIdx !== null ? 'Save Changes' : 'Add Another LinkSet'}
+                 {editingLinkedResourceIdx !== null ? 'Save Changes' : 'Add LinkSet'}
                </button>
                {editingLinkedResourceIdx !== null && (
                  <button 
@@ -5160,6 +5424,8 @@ const handleCancelEditExampleResource = () => {
          </label>
        </div>
       </div>
+      </>
+    )}
       
       {/* Processing Overlay */}
       {loadingSuggestions && (

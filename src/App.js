@@ -10,12 +10,13 @@ function App() {
   const [showModal, setShowModal] = useState(false);
   const [draftToLoad, setDraftToLoad] = useState(null);
   const [aiEnabledByDefault, setAiEnabledByDefault] = useState(false);
+  const [turtleModeEnabled, setTurtleModeEnabled] = useState(false);
   
   // Get the current view mode from URL parameters
   const getViewMode = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode');
-    return mode; // 'llm', 'regular', or null (both)
+    return mode; // 'llm', 'regular', 'turtle', or null (all)
   };
   
   const [viewMode, setViewMode] = useState(getViewMode());
@@ -79,12 +80,20 @@ function App() {
     setAiEnabledByDefault(true);
     setShowModal(true);
   };
+
+  // Handle opening the modal with Turtle mode enabled
+  const handleOpenModalWithTurtle = () => {
+    setDraftToLoad(null); // Reset any loaded draft
+    setTurtleModeEnabled(true);
+    setShowModal(true);
+  };
   
   // Handle closing the modal
   const handleCloseModal = () => {
     setShowModal(false);
     setDraftToLoad(null); // Reset the loaded draft when closing
     setAiEnabledByDefault(false); // Reset AI default state when closing
+    setTurtleModeEnabled(false); // Reset Turtle mode when closing
   };
   
   // Handle form submission
@@ -158,8 +167,19 @@ function App() {
           Create Metadata - AI Assisted
         </button>
       );
+    } else if (viewMode === 'turtle') {
+      // Only show Turtle entry button
+      return (
+        <button 
+          className="submit-button" 
+          onClick={handleOpenModalWithTurtle}
+          style={{ width: 'auto' }}
+        >
+          Create Metadata - Turtle Entry
+        </button>
+      );
     } else {
-      // Show both buttons (default homepage)
+      // Show all three buttons (default homepage)
       return (
         <>
           <button 
@@ -176,6 +196,13 @@ function App() {
           >
             Create Metadata - AI Assisted
           </button>
+          <button 
+            className="submit-button" 
+            onClick={handleOpenModalWithTurtle}
+            style={{ width: 'auto', marginTop: '10px' }}
+          >
+            Create Metadata - Turtle Entry
+          </button>
         </>
       );
     }
@@ -191,7 +218,7 @@ function App() {
             href="?" 
             className={!viewMode ? 'active' : ''}
           >
-            Both Tools
+            All Tools
           </a>
           <a 
             href="?mode=regular" 
@@ -204,6 +231,12 @@ function App() {
             className={viewMode === 'llm' ? 'active' : ''}
           >
             AI Only
+          </a>
+          <a 
+            href="?mode=turtle" 
+            className={viewMode === 'turtle' ? 'active' : ''}
+          >
+            Turtle Only
           </a>
         </div>
       </header>
@@ -228,6 +261,7 @@ function App() {
             initialFormData={draftToLoad}
             onDraftSaved={handleDraftSaved}
             aiEnabledByDefault={aiEnabledByDefault}
+            turtleModeEnabled={turtleModeEnabled}
           />
         )}
       </main>
