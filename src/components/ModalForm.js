@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { Parser } from 'n3';
 import fieldInstructions from '../fieldInstructions';
 import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
 
@@ -70,6 +71,60 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   // Turtle mode state
   const [turtleContent, setTurtleContent] = useState('');
   const [showTurtleMode, setShowTurtleMode] = useState(turtleModeEnabled);
+  const [turtleValidation, setTurtleValidation] = useState({ isValid: true, errors: [] });
+  
+  // Turtle validation function
+  const validateTurtleContent = (content) => {
+    if (!content.trim()) {
+      return { isValid: true, errors: [] }; // Empty content is valid (not required to validate)
+    }
+    
+    const parser = new Parser();
+    const errors = [];
+    let parseError = null;
+    
+    try {
+      parser.parse(content, (error, quad, prefixes) => {
+        if (error) {
+          parseError = error;
+        }
+      });
+      
+      if (parseError) {
+        errors.push({
+          line: parseError.context?.line || 'unknown',
+          column: parseError.context?.column || 'unknown',
+          message: parseError.message || 'Parsing error'
+        });
+      }
+      
+      return {
+        isValid: errors.length === 0,
+        errors: errors
+      };
+    } catch (e) {
+      return {
+        isValid: false,
+        errors: [{
+          line: 'unknown',
+          column: 'unknown',
+          message: e.message || 'Unknown parsing error'
+        }]
+      };
+    }
+  };
+  
+  // Debounced turtle validation
+  useEffect(() => {
+    if (!showTurtleMode) return;
+    
+    const timeoutId = setTimeout(() => {
+      const validation = validateTurtleContent(turtleContent);
+      setTurtleValidation(validation);
+    }, 500); // 500ms debounce
+    
+    return () => clearTimeout(timeoutId);
+  }, [turtleContent, showTurtleMode]);
   
   // Cheat sheet upload state
   const [cheatSheetFile, setCheatSheetFile] = useState(null);
@@ -2442,6 +2497,35 @@ const handleCancelEditExampleResource = () => {
                 className="turtle-textarea"
                 rows={20}
               />
+              
+              {/* Turtle Validation Panel */}
+              {turtleContent.trim() && (
+                <div className={`turtle-validation-panel ${turtleValidation.isValid ? 'valid' : 'invalid'}`}>
+                  {turtleValidation.isValid ? (
+                    <div className="validation-success">
+                      <span className="validation-icon">✅</span>
+                      <span className="validation-message">Valid Turtle syntax</span>
+                    </div>
+                  ) : (
+                    <div className="validation-errors">
+                      <div className="validation-header">
+                        <span className="validation-icon">❌</span>
+                        <span className="validation-message">Turtle Syntax Errors:</span>
+                      </div>
+                      <ul className="error-list">
+                        {turtleValidation.errors.map((error, index) => (
+                          <li key={index} className="error-item">
+                            <span className="error-location">
+                              Line {error.line}, Column {error.column}:
+                            </span>
+                            <span className="error-message">{error.message}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

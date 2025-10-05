@@ -2596,3 +2596,92 @@ input.tag-input.tag-input-valid:focus,
   border-color: var(--primary-blue) !important;
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25) !important;
 }
+
+/* Turtle Validation Panel */
+.turtle-validation-panel {
+  margin-top: 15px;
+  padding: 15px;
+  border-radius: 8px;
+  border: 2px solid;
+  font-size: 14px;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.turtle-validation-panel.valid {
+  background-color: rgba(40, 167, 69, 0.1);
+  border-color: var(--success-green);
+}
+
+.turtle-validation-panel.invalid {
+  background-color: rgba(220, 53, 69, 0.1);
+  border-color: var(--error-red);
+}
+
+.validation-success {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--success-green);
+}
+
+.validation-errors {
+  color: var(--error-red);
+}
+
+.validation-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.validation-icon {
+  font-size: 18px;
+}
+
+.validation-message {
+  font-weight: 600;
+}
+
+.error-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.error-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(220, 53, 69, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.error-item:last-child {
+  border-bottom: none;
+}
+
+.error-location {
+  font-weight: 600;
+  color: var(--error-red);
+  font-size: 13px;
+}
+
+.error-message {
+  color: var(--dark-text);
+  margin-left: 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
