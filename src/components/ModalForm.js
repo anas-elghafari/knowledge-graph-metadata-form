@@ -92,27 +92,44 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       }
       console.log('Defined prefixes:', Array.from(definedPrefixes));
       
-      // Extract used prefixes (prefix:localName pattern)
-      // Match word characters followed by colon and more word characters
-      const usedPrefixMatches = content.matchAll(/(\w+):(\w+)/g);
-      for (const match of usedPrefixMatches) {
-        const prefix = match[1];
-        const localName = match[2];
-        // Skip URL schemes and special Turtle keywords
-        if (prefix !== 'http' && prefix !== 'https' && prefix !== 'mailto' && 
-            // Skip if it looks like a URL (has // after colon)
-            !content.includes(`${prefix}://${localName}`)) {
-          usedPrefixes.add(prefix);
+      // Extract used prefixes with line numbers
+      const lines = content.split('\n');
+      const prefixUsageMap = new Map(); // Map prefix to first line number where it's used
+      
+      lines.forEach((line, lineIndex) => {
+        const lineNumber = lineIndex + 1;
+        const prefixMatches = line.matchAll(/(\w+):(\w+)/g);
+        
+        for (const match of prefixMatches) {
+          const prefix = match[1];
+          const localName = match[2];
+          const columnNumber = match.index + 1;
+          
+          // Skip URL schemes and special Turtle keywords
+          if (prefix !== 'http' && prefix !== 'https' && prefix !== 'mailto' && 
+              // Skip if it looks like a URL (has // after colon)
+              !line.includes(`${prefix}://${localName}`)) {
+            
+            usedPrefixes.add(prefix);
+            
+            // Store first occurrence of this prefix
+            if (!prefixUsageMap.has(prefix)) {
+              prefixUsageMap.set(prefix, { line: lineNumber, column: columnNumber });
+            }
+          }
         }
-      }
+      });
+      
       console.log('Used prefixes:', Array.from(usedPrefixes));
+      console.log('Prefix usage map:', Array.from(prefixUsageMap.entries()));
       
       // Check for undefined prefixes
       for (const prefix of usedPrefixes) {
         if (!definedPrefixes.has(prefix)) {
+          const location = prefixUsageMap.get(prefix) || { line: 'unknown', column: 'unknown' };
           errors.push({
-            line: 'unknown',
-            column: 'unknown',
+            line: location.line,
+            column: location.column,
             message: `Undefined prefix "${prefix}:" - add @prefix ${prefix}: <...> declaration`
           });
         }
@@ -2690,14 +2707,21 @@ const handleCancelEditExampleResource = () => {
               <label htmlFor="turtleContent" className="field-label">
                 Turtle Content <span className="field-indicator required-indicator">required</span>
               </label>
-              <textarea
-                id="turtleContent"
-                value={turtleContent}
-                onChange={(e) => setTurtleContent(e.target.value)}
-                placeholder="Enter your Turtle/RDF content here..."
-                className="turtle-textarea"
-                rows={20}
-              />
+              <div className="turtle-editor-container">
+                <div className="line-numbers">
+                  {turtleContent.split('\n').map((_, index) => (
+                    <div key={index} className="line-number">{index + 1}</div>
+                  ))}
+                </div>
+                <textarea
+                  id="turtleContent"
+                  value={turtleContent}
+                  onChange={(e) => setTurtleContent(e.target.value)}
+                  placeholder="Enter your Turtle/RDF content here..."
+                  className="turtle-textarea"
+                  rows={20}
+                />
+              </div>
               
               {/* Turtle Validation Panel */}
               {turtleContent.trim() && (

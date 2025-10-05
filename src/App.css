@@ -2685,3 +2685,46 @@ input.tag-input.tag-input-valid:focus,
   font-family: 'Courier New', monospace;
   font-size: 12px;
 }
+
+/* Turtle Editor with Line Numbers */
+.turtle-editor-container {
+  display: flex;
+  border: 1px solid var(--dark-border);
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: var(--dark-surface);
+}
+
+.line-numbers {
+  background-color: var(--dark-surface-lighter);
+  color: var(--dark-text-secondary);
+  padding: 10px 8px;
+  text-align: right;
+  user-select: none;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  border-right: 1px solid var(--dark-border);
+  min-width: 40px;
+}
+
+.line-number {
+  height: 21px; /* Match textarea line height */
+}
+
+.turtle-textarea {
+  flex: 1;
+  border: none !important;
+  padding: 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  background-color: var(--dark-surface);
+  color: var(--dark-text);
+}
+
+.turtle-textarea:focus {
+  outline: none;
+  box-shadow: none !important;
+}
