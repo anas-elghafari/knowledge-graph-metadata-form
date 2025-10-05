@@ -81,8 +81,37 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     
     const parser = new Parser();
     const errors = [];
+    const definedPrefixes = new Set();
+    const usedPrefixes = new Set();
     
     try {
+      // First, extract defined prefixes from the content
+      const prefixMatches = content.matchAll(/@prefix\s+(\w+):/g);
+      for (const match of prefixMatches) {
+        definedPrefixes.add(match[1]);
+      }
+      
+      // Extract used prefixes (prefix:localName pattern)
+      const usedPrefixMatches = content.matchAll(/\b(\w+):\w+/g);
+      for (const match of usedPrefixMatches) {
+        const prefix = match[1];
+        // Skip common keywords that aren't prefixes
+        if (prefix !== 'http' && prefix !== 'https' && prefix !== 'mailto') {
+          usedPrefixes.add(prefix);
+        }
+      }
+      
+      // Check for undefined prefixes
+      for (const prefix of usedPrefixes) {
+        if (!definedPrefixes.has(prefix)) {
+          errors.push({
+            line: 'unknown',
+            column: 'unknown',
+            message: `Undefined prefix "${prefix}:" - add @prefix ${prefix}: <...> declaration`
+          });
+        }
+      }
+      
       // Parse and collect all quads - this will throw on syntax errors
       const quads = [];
       parser.parse(content, (error, quad, prefixes) => {
