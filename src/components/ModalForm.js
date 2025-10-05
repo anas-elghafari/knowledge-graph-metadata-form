@@ -90,16 +90,22 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       for (const match of prefixMatches) {
         definedPrefixes.add(match[1]);
       }
+      console.log('Defined prefixes:', Array.from(definedPrefixes));
       
       // Extract used prefixes (prefix:localName pattern)
-      const usedPrefixMatches = content.matchAll(/\b(\w+):\w+/g);
+      // Match word characters followed by colon and more word characters
+      const usedPrefixMatches = content.matchAll(/(\w+):(\w+)/g);
       for (const match of usedPrefixMatches) {
         const prefix = match[1];
-        // Skip common keywords that aren't prefixes
-        if (prefix !== 'http' && prefix !== 'https' && prefix !== 'mailto') {
+        const localName = match[2];
+        // Skip URL schemes and special Turtle keywords
+        if (prefix !== 'http' && prefix !== 'https' && prefix !== 'mailto' && 
+            // Skip if it looks like a URL (has // after colon)
+            !content.includes(`${prefix}://${localName}`)) {
           usedPrefixes.add(prefix);
         }
       }
+      console.log('Used prefixes:', Array.from(usedPrefixes));
       
       // Check for undefined prefixes
       for (const prefix of usedPrefixes) {
@@ -111,6 +117,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
           });
         }
       }
+      console.log('Prefix validation errors:', errors);
       
       // Parse and collect all quads - this will throw on syntax errors
       const quads = [];
