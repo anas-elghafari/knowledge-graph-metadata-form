@@ -85,6 +85,44 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     const usedPrefixes = new Set();
     
     try {
+      // Remove comments for structure checking (but keep original content for parsing)
+      // Turtle comments start with # and go to end of line
+      const contentWithoutComments = content
+        .split('\n')
+        .map(line => {
+          const commentIndex = line.indexOf('#');
+          return commentIndex >= 0 ? line.substring(0, commentIndex) : line;
+        })
+        .join('\n')
+        .trim();
+      
+      // If only comments remain, it's valid (empty after removing comments)
+      if (!contentWithoutComments) {
+        return { isValid: true, errors: [] };
+      }
+      
+      // Check for basic Turtle structure indicators (on content without comments)
+      const hasTurtleStructure = 
+        contentWithoutComments.includes('<') || // IRIs
+        contentWithoutComments.includes('@prefix') || // Prefix declarations
+        contentWithoutComments.includes('@base') || // Base declaration
+        contentWithoutComments.includes(':') || // Prefixed names
+        contentWithoutComments.includes('.') || // Statement terminators
+        contentWithoutComments.includes(';') || // Predicate-object lists
+        contentWithoutComments.includes('[') || // Blank nodes
+        contentWithoutComments.includes('a '); // rdf:type shorthand
+      
+      if (!hasTurtleStructure) {
+        return {
+          isValid: false,
+          errors: [{
+            line: 1,
+            column: 1,
+            message: 'Content does not appear to be valid Turtle/RDF syntax. Turtle requires IRIs (<...>), prefix declarations (@prefix), or structured triples.'
+          }]
+        };
+      }
+      
       // First, extract defined prefixes from the content
       const prefixMatches = content.matchAll(/@prefix\s+(\w+):/g);
       for (const match of prefixMatches) {
@@ -151,6 +189,15 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
           quads.push(quad);
         }
       });
+      
+      // Additional validation: Check if any triples were actually parsed
+      if (errors.length === 0 && quads.length === 0) {
+        errors.push({
+          line: 1,
+          column: 1,
+          message: 'No valid RDF triples found. Turtle content must contain at least one subject-predicate-object statement.'
+        });
+      }
       
       return {
         isValid: errors.length === 0,
@@ -436,6 +483,9 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     setIsSubmitting(true);
 
     try {
+      // Validate turtle content and capture any errors
+      const validation = validateTurtleContent(turtleContent);
+      
       const submissionData = {
         formData: {
           turtleContent: turtleContent.trim(),
@@ -443,10 +493,18 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
           title: 'Turtle Entry', // Default title for turtle submissions
           timestamp: new Date().toISOString()
         },
-        validationErrors: {},
+        validationErrors: {
+          turtleValidation: {
+            isValid: validation.isValid,
+            errors: validation.errors,
+            errorCount: validation.errors.length
+          }
+        },
         metadata: {
           submissionType: 'turtle',
-          contentLength: turtleContent.trim().length
+          contentLength: turtleContent.trim().length,
+          hasValidationErrors: !validation.isValid,
+          validationErrorCount: validation.errors.length
         }
       };
 
@@ -2621,6 +2679,7 @@ const handleCancelEditExampleResource = () => {
     formData: finalFormData,
     validationErrors: validationErrors,
     metadata: {
+      submissionType: cheatSheetFile ? 'llm' : 'regular',
       hasValidationErrors: (missingFields.length > 0 || invalidDates.length > 0),
       submissionMode: forceSubmit ? 'FORCED_SUBMISSION' : 'NORMAL_SUBMISSION',
       timestamp: new Date().toISOString()
