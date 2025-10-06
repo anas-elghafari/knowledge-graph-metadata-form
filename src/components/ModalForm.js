@@ -240,6 +240,12 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       }
       
       setCheatSheetFile(file);
+      
+      // Start timing BEFORE file reading begins
+      const startTime = Date.now();
+      setProcessingStartTime(startTime);
+      console.log('Setting processingStartTime to:', startTime);
+      
       const reader = new FileReader();
       
       reader.onload = async (e) => {
@@ -247,10 +253,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         setCheatSheetContent(content);
         console.log('Cheat sheet uploaded:', content.substring(0, 200) + '...');
         
-        // Start timing and process bulk suggestions automatically
-        const startTime = Date.now();
-        setProcessingStartTime(startTime);
-        console.log('Setting processingStartTime to:', startTime);
+        // Process bulk suggestions with the startTime from upload
         await processBulkSuggestions(content, startTime);
       };
       
