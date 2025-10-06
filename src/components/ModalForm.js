@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Parser } from 'n3';
+import TurtleValidator from 'turtle-validator';
 import fieldInstructions from '../fieldInstructions';
 import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
 
@@ -73,47 +73,42 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [showTurtleMode, setShowTurtleMode] = useState(turtleModeEnabled);
   const [turtleValidation, setTurtleValidation] = useState({ isValid: true, errors: [] });
   
-  // Turtle validation function - relies ONLY on N3 parser
+  // Turtle validation function - uses TurtleValidator
   const validateTurtleContent = (content) => {
     if (!content.trim()) {
       return { isValid: true, errors: [] }; // Empty content is valid (not required to validate)
     }
     
-    const parser = new Parser();
-    const errors = [];
-    
     try {
-      // Let N3 parser be the ONLY authority on what's valid Turtle
-      parser.parse(content, (error, quad, prefixes) => {
-        if (error) {
-          // Capture parsing errors from callback
-          console.error('N3 Parser error:', error);
-          errors.push({
-            line: error.context?.line || 'unknown',
-            column: error.context?.column || 'unknown',
-            message: error.message || 'Parsing error'
-          });
-        }
-      });
+      // Use TurtleValidator to validate Turtle syntax
+      const validator = new TurtleValidator();
+      const result = validator.validate(content);
       
-      console.log('N3 Parser errors count:', errors.length);
+      console.log('TurtleValidator result:', result);
       
-      return {
-        isValid: errors.length === 0,
-        errors: errors
-      };
+      if (result.valid) {
+        return { isValid: true, errors: [] };
+      } else {
+        // Parse errors from TurtleValidator
+        const errors = result.errors.map(error => ({
+          line: error.line || 'unknown',
+          column: error.column || 'unknown',
+          message: error.message || 'Turtle syntax error'
+        }));
+        
+        return {
+          isValid: false,
+          errors: errors
+        };
+      }
     } catch (e) {
-      // Catch synchronous parsing errors
-      console.error('N3 Parse exception:', e);
-      const errorLine = e.message?.match(/line (\d+)/)?.[1] || 'unknown';
-      const errorCol = e.message?.match(/column (\d+)/)?.[1] || 'unknown';
-      
+      console.error('TurtleValidator exception:', e);
       return {
         isValid: false,
         errors: [{
-          line: errorLine,
-          column: errorCol,
-          message: e.message || 'Turtle syntax error'
+          line: 'unknown',
+          column: 'unknown',
+          message: e.message || 'Validation error'
         }]
       };
     }
