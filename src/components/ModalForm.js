@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import TurtleValidator from 'turtle-validator';
+import * as $rdf from 'rdflib';
 import fieldInstructions from '../fieldInstructions';
 import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
 
@@ -73,42 +73,39 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [showTurtleMode, setShowTurtleMode] = useState(turtleModeEnabled);
   const [turtleValidation, setTurtleValidation] = useState({ isValid: true, errors: [] });
   
-  // Turtle validation function - uses TurtleValidator
+  // Turtle validation function - uses rdflib (browser-compatible)
   const validateTurtleContent = (content) => {
     if (!content.trim()) {
       return { isValid: true, errors: [] }; // Empty content is valid (not required to validate)
     }
     
     try {
-      // Use TurtleValidator to validate Turtle syntax
-      const validator = new TurtleValidator();
-      const result = validator.validate(content);
+      const store = $rdf.graph();
+      const baseURI = 'http://example.org/';
       
-      console.log('TurtleValidator result:', result);
+      // Parse the Turtle content
+      $rdf.parse(content, store, baseURI, 'text/turtle');
       
-      if (result.valid) {
-        return { isValid: true, errors: [] };
-      } else {
-        // Parse errors from TurtleValidator
-        const errors = result.errors.map(error => ({
-          line: error.line || 'unknown',
-          column: error.column || 'unknown',
-          message: error.message || 'Turtle syntax error'
-        }));
-        
-        return {
-          isValid: false,
-          errors: errors
-        };
-      }
+      console.log('rdflib validation successful - triples parsed:', store.statements.length);
+      
+      // If parsing succeeded without throwing, it's valid
+      return {
+        isValid: true,
+        errors: []
+      };
     } catch (e) {
-      console.error('TurtleValidator exception:', e);
+      console.error('rdflib Parser error:', e);
+      
+      // Extract line/column info from error message if available
+      const lineMatch = e.message?.match(/line (\d+)/i);
+      const colMatch = e.message?.match(/column (\d+)/i);
+      
       return {
         isValid: false,
         errors: [{
-          line: 'unknown',
-          column: 'unknown',
-          message: e.message || 'Validation error'
+          line: lineMatch ? lineMatch[1] : 'unknown',
+          column: colMatch ? colMatch[1] : 'unknown',
+          message: e.message || 'Turtle syntax error'
         }]
       };
     }
