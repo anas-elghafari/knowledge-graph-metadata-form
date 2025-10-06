@@ -182,34 +182,39 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       
       // Parse and collect all quads - this will throw on syntax errors
       const quads = [];
+      let parseError = null;
       
-      parser.parse(content, (error, quad, prefixes) => {
-        if (error) {
-          // Capture parsing errors from callback
-          console.error('Parser error:', error);
-          errors.push({
-            line: error.context?.line || 'unknown',
-            column: error.context?.column || 'unknown',
-            message: error.message || 'Parsing error'
-          });
-        }
-        if (quad) {
-          quads.push(quad);
-        }
-      });
+      try {
+        // Parse synchronously - the callback will be called for each quad
+        parser.parse(content, (error, quad, prefixes) => {
+          if (error) {
+            // Capture parsing errors from callback
+            console.error('Parser error:', error);
+            parseError = error;
+            errors.push({
+              line: error.context?.line || 'unknown',
+              column: error.context?.column || 'unknown',
+              message: error.message || 'Parsing error'
+            });
+          }
+          if (quad) {
+            quads.push(quad);
+          }
+        });
+      } catch (e) {
+        console.error('Parse exception:', e);
+        errors.push({
+          line: 1,
+          column: 1,
+          message: e.message || 'Parsing exception'
+        });
+      }
       
       console.log('Parsed quads count:', quads.length);
       console.log('Parser errors count:', errors.length);
       
-      // Additional validation: Check if any triples were actually parsed
-      // If no errors but also no quads, the content is not valid Turtle
-      if (errors.length === 0 && quads.length === 0) {
-        errors.push({
-          line: 1,
-          column: 1,
-          message: 'No valid RDF triples found. Turtle content must contain at least one subject-predicate-object statement.'
-        });
-      }
+      // Don't check quad count - if the parser didn't throw errors, it's valid
+      // The structure check above already ensures it looks like Turtle
       
       return {
         isValid: errors.length === 0,
@@ -2843,9 +2848,30 @@ const handleCancelEditExampleResource = () => {
         <div className="modal-body turtle-mode">
           <div className="turtle-form-container">
             <div className="form-group">
-              <label htmlFor="turtleContent" className="field-label">
-                Turtle Content <span className="field-indicator required-indicator">required</span>
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label htmlFor="turtleContent" className="field-label" style={{ margin: 0 }}>
+                  Turtle Content <span className="field-indicator required-indicator">required</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const validation = validateTurtleContent(turtleContent);
+                    setTurtleValidation(validation);
+                  }}
+                  className="revalidate-button"
+                  style={{
+                    padding: '4px 12px',
+                    fontSize: '12px',
+                    backgroundColor: '#4169e1',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔄 Re-validate
+                </button>
+              </div>
               <div className="turtle-editor-container">
                 <div className="line-numbers">
                   {turtleContent.split('\n').map((_, index) => (
