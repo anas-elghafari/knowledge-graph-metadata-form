@@ -559,7 +559,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                 };
                 
                 if (roleData.mode === 'name_mbox' && roleData.name) {
-                  // Handle comma-separated names
+                  // NOTE: Splitting is now handled by OpenAI - it creates separate suggestions for each entity
+                  // Process single name/email from this roleData
+                  processRole(roleData.name, roleData.email || '');
+                  
+                  /* DEPRECATED: Client-side splitting - now handled by OpenAI
                   const names = roleData.name.split(',').map(n => n.trim()).filter(n => n.length > 0);
                   const emails = roleData.email ? roleData.email.split(',').map(e => e.trim()).filter(e => e.length > 0) : [''];
                   
@@ -567,8 +571,29 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     const email = emails[index] || emails[0] || '';
                     processRole(name, email);
                   });
+                  */
                 } else if (roleData.mode === 'iri' && roleData.iri) {
-                  // Handle comma-separated IRIs
+                  // NOTE: Splitting is now handled by OpenAI - it creates separate suggestions for each IRI
+                  // Process single IRI from this roleData
+                  const newRole = {
+                    roleType: roleData.roleType,
+                    agent: roleData.iri.trim(),
+                    givenName: '',
+                    mbox: ''
+                  };
+                  
+                  const existingRoles = updatedFormData.roles || [];
+                  const isDuplicate = existingRoles.some(existing => 
+                    existing.roleType === newRole.roleType &&
+                    existing.agent === newRole.agent
+                  );
+                  
+                  if (!isDuplicate) {
+                    updatedFormData.roles = [...(updatedFormData.roles || []), newRole];
+                    console.log(`Added IRI role: ${roleData.roleType}`, newRole);
+                  }
+                  
+                  /* DEPRECATED: Client-side splitting - now handled by OpenAI
                   const iris = roleData.iri.split(',').map(i => i.trim()).filter(i => i.length > 0);
                   iris.forEach(iri => {
                     const newRole = {
@@ -589,6 +614,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                       console.log(`Added IRI role: ${roleData.roleType}`, newRole);
                     }
                   });
+                  */
                 }
               } else {
                 console.log('No roleData found in suggestion:', suggestion);
@@ -773,6 +799,27 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       }
       
       // Special handling for multi-value fields
+      // NOTE: Splitting is now handled by OpenAI API - it returns separate suggestions for each value
+      const multiValueFields = ['vocabulariesUsed', 'keywords', 'category', 'language', 'otherPages', 'statistics', 'linkedResources', 'source'];
+      if (multiValueFields.includes(fieldName)) {
+        // OpenAI now returns multiple suggestions, one for each value
+        // We process all suggestions from the raw response
+        const rawResponse = formattedSuggestions ? formattedSuggestions[fieldName + '_raw'] : null;
+        if (rawResponse && rawResponse.suggestions) {
+          const values = rawResponse.suggestions.map(s => s.value.trim()).filter(v => v.length > 0);
+          
+          if (values.length > 0) {
+            // Add all values to the existing array, avoiding duplicates
+            const currentValues = updatedFormData[fieldName] || [];
+            const newValues = values.filter(val => !currentValues.includes(val));
+            updatedFormData[fieldName] = [...currentValues, ...newValues];
+            console.log(`Added multi-values to ${fieldName}:`, newValues);
+          }
+        }
+        return;
+      }
+      
+      /* DEPRECATED: Client-side splitting - now handled by OpenAI
       const multiValueFields = ['vocabulariesUsed', 'keywords', 'category', 'language', 'otherPages', 'statistics', 'linkedResources'];
       if (multiValueFields.includes(fieldName)) {
         const firstSuggestionMatch = suggestionText.match(/• (.+?)\n/);
@@ -791,6 +838,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         }
         return;
       }
+      */
       
       // Extract the first suggestion value from the formatted text
       const firstSuggestionMatch = suggestionText.match(/• (.+?)\n/);
@@ -4799,49 +4847,6 @@ const handleCancelEditExampleResource = () => {
             </span> */}
           </div>
     
-         {/* Keywords [1,∞] - Required, multiple values */}
-         <div className="form-group">
-           <label htmlFor="keywords">
-             Keywords <span className="field-indicator required-indicator">required, multiple values allowed</span>
-           </label>
-           <div className="tag-input-container">
-             <div className="tag-input-row">
-               <input
-                 type="text"
-                 id="keywords"
-                 name="keywords"
-                 value={keywordsInput}
-                 onChange={(e) => setKeywordsInput(e.target.value)}
-                 onBlur={validateRegularInput}
-                 onKeyPress={(e) => handleKeyPress(e, 'keywords', keywordsInput, setKeywordsInput)}
-                 className={`tag-input ${keywordsInputValid ? 'form-input-valid' : ''}`}
-               />
-               <button 
-                 type="button" 
-                 className="tag-add-button"
-                 onClick={() => handleAddTag('keywords', keywordsInput, setKeywordsInput)}
-               >
-                 +
-               </button>
-             </div>
-             <div className="tag-list">
-               {formData.keywords.map((keyword, index) => (
-                 <div key={`keyword-${index}`} className="tag-item">
-                   <span className="tag-text">{keyword}</span>
-                   <button 
-                     type="button"
-                     className="tag-remove"
-                     onClick={() => handleRemoveTag('keywords', index)}
-                   >
-                     ×
-                   </button>
-                 </div>
-               ))}
-             </div>
-             <div className="field-hint">Press Enter or click + to add keyword</div>
-           </div>
-         </div>
-    
          {/* Category [0,∞] - Optional, multiple values */}
          <div className="form-group">
            <label htmlFor="category">
@@ -4939,49 +4944,6 @@ const handleCancelEditExampleResource = () => {
                ))}
              </div>
              <div className="field-hint">Press Enter or click + to add publication reference (IRI)</div>
-           </div>
-         </div>
-    
-         {/* Language [1,∞] - Required, multiple values */}
-         <div className="form-group">
-           <label htmlFor="language">
-             Language <span className="field-indicator required-indicator">required, multiple values allowed</span>
-           </label>
-           <div className="tag-input-container">
-             <div className="tag-input-row">
-               <input
-                 type="text"
-                 id="language"
-                 name="language"
-                 value={languageInput}
-                 onChange={(e) => setLanguageInput(e.target.value)}
-                 onBlur={validateRegularInput}
-                 onKeyPress={(e) => handleKeyPress(e, 'language', languageInput, setLanguageInput)}
-                 className={`tag-input ${languageInputValid ? 'form-input-valid' : ''}`}
-               />
-               <button 
-                 type="button" 
-                 className="tag-add-button"
-                 onClick={() => handleAddTag('language', languageInput, setLanguageInput)}
-               >
-                 +
-               </button>
-             </div>
-             <div className="tag-list">
-               {formData.language.map((lang, index) => (
-                 <div key={`language-${index}`} className="tag-item">
-                   <span className="tag-text">{lang}</span>
-                   <button 
-                     type="button"
-                     className="tag-remove"
-                     onClick={() => handleRemoveTag('language', index)}
-                   >
-                     ×
-                   </button>
-                 </div>
-               ))}
-             </div>
-             <div className="field-hint">Press Enter or click + to add language</div>
            </div>
          </div>
     

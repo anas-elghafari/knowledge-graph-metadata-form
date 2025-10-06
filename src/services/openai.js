@@ -225,6 +225,19 @@ FIELD NAME MATCHING:
 - Field names in the form may NOT match exactly with names in the cheat sheet
 - Look for variations in capitalization, spacing, and slightly different wording or phrasing.
 
+MULTI-VALUE FIELDS HANDLING:
+- The following fields accept multiple values: vocabulariesUsed, keywords, category, language, otherPages, statistics, source
+- If the cheat sheet contains multiple values for these fields, you MUST split them into separate suggestions
+- Split on ANY of these delimiters: commas (,), semicolons (;), the word "and", pipe symbols (|), or line breaks
+- Each atomic value should be a separate suggestion
+- Examples:
+  * "English, French, German" → 3 separate suggestions: ["English", "French", "German"]
+  * "keyword1; keyword2 and keyword3" → 3 separate suggestions: ["keyword1", "keyword2", "keyword3"]
+  * "http://vocab1.org | http://vocab2.org" → 2 separate suggestions
+- Trim whitespace from each value
+- Do NOT combine multiple values into a single suggestion with commas
+- Return each atomic value as a separate item in the suggestions array
+
 SPECIAL HANDLING FOR ROLES FIELD:
 - Look for role-related fields in cheat sheet and map them to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder
 - Common mappings:
@@ -234,7 +247,8 @@ SPECIAL HANDLING FOR ROLES FIELD:
   * "maintainedBy", "maintainer" → "custodian"
   * "ownedBy", "owner" → "owner"
 - IMPORTANT: Create separate suggestions for EACH role type found, even if multiple roles exist
-- Handle comma-separated values: if you find "Published by: Org A, Org B, Org C", create separate roleData for each
+- If you find multiple entities for the same role (e.g., "Published by: Org A, Org B, Org C"), create separate roleData for EACH entity
+- Split on commas, semicolons, "and", or other delimiters to identify individual entities
 - EMAIL HANDLING: The "mbox" field refers to email addresses
   * If you find an email address (e.g., "contact@example.org", "john.doe@university.edu"), put it in the "email" field of roleData
   * Use the email address exactly as found in the cheat sheet - do NOT add any prefix
