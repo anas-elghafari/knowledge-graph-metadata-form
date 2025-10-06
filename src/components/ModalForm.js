@@ -100,12 +100,19 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       const lineMatch = e.message?.match(/line (\d+)/i);
       const colMatch = e.message?.match(/column (\d+)/i);
       
+      let errorMessage = e.message || 'Turtle syntax error';
+      
+      // Check for common mistakes and provide helpful hints
+      if (content.includes('PREFIX ') && !content.includes('@prefix')) {
+        errorMessage += ' (Hint: Use "@prefix" instead of "PREFIX" - Turtle requires lowercase with @)';
+      }
+      
       return {
         isValid: false,
         errors: [{
           line: lineMatch ? lineMatch[1] : 'unknown',
           column: colMatch ? colMatch[1] : 'unknown',
-          message: e.message || 'Turtle syntax error'
+          message: errorMessage
         }]
       };
     }
