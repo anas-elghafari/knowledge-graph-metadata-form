@@ -238,6 +238,18 @@ MULTI-VALUE FIELDS HANDLING:
 - Do NOT combine multiple values into a single suggestion with commas
 - Return each atomic value as a separate item in the suggestions array
 
+SPECIAL HANDLING FOR STATISTICS FIELD:
+- The statistics field requires SEMANTIC SPLITTING - each distinct fact or piece of information should be a separate suggestion
+- Split based on MEANING, not just delimiters - identify individual statistical facts
+- Remove conjunction words like "and", "also", but preserve the complete fact text
+- Examples:
+  * "900,000 entities and 5,000,000 facts" → 2 suggestions: ["900,000 entities", "5,000,000 facts"]
+  * "subClassOf: 126792 facts, type: 2011072 facts, context: 40000000 facts" → 3 suggestions: ["subClassOf: 126792 facts", "type: 2011072 facts", "context: 40000000 facts"]
+  * "describes: 997061 facts, bornInYear: 189950 facts, diedInYear: 93827 facts" → 3 suggestions: ["describes: 997061 facts", "bornInYear: 189950 facts", "diedInYear: 93827 facts"]
+- Each suggestion should be a complete, standalone statistical statement
+- Do NOT rewrite or paraphrase - use the exact text from the cheat sheet, only removing conjunctions
+- Look for patterns like "X: Y facts", "X entities", "X triples", etc. and split each into a separate suggestion
+
 SPECIAL HANDLING FOR ROLES FIELD:
 - Look for role-related fields in cheat sheet and map them to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder
 - Common mappings:
