@@ -176,9 +176,12 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       
       // Parse and collect all quads - this will throw on syntax errors
       const quads = [];
+      let parsingComplete = false;
+      
       parser.parse(content, (error, quad, prefixes) => {
         if (error) {
           // Capture parsing errors from callback
+          console.error('Parser error:', error);
           errors.push({
             line: error.context?.line || 'unknown',
             column: error.context?.column || 'unknown',
@@ -188,10 +191,19 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         if (quad) {
           quads.push(quad);
         }
+        // When quad is null and no error, parsing is complete
+        if (!quad && !error) {
+          parsingComplete = true;
+        }
       });
       
+      console.log('Parsed quads count:', quads.length);
+      console.log('Parser errors count:', errors.length);
+      console.log('Parsing complete:', parsingComplete);
+      
       // Additional validation: Check if any triples were actually parsed
-      if (errors.length === 0 && quads.length === 0) {
+      // Only check this if parsing completed successfully
+      if (errors.length === 0 && quads.length === 0 && parsingComplete) {
         errors.push({
           line: 1,
           column: 1,
