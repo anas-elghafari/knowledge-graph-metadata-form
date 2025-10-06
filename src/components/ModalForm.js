@@ -102,15 +102,21 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       }
       
       // Check for basic Turtle structure indicators (on content without comments)
-      const hasTurtleStructure = 
-        contentWithoutComments.includes('<') || // IRIs
-        contentWithoutComments.includes('@prefix') || // Prefix declarations
-        contentWithoutComments.includes('@base') || // Base declaration
-        contentWithoutComments.includes(':') || // Prefixed names
-        contentWithoutComments.includes('.') || // Statement terminators
-        contentWithoutComments.includes(';') || // Predicate-object lists
-        contentWithoutComments.includes('[') || // Blank nodes
-        contentWithoutComments.includes('a '); // rdf:type shorthand
+      // Must have at least ONE of these strong indicators
+      console.log('Checking Turtle structure for:', contentWithoutComments);
+      const hasIRI = contentWithoutComments.includes('<');
+      const hasPrefix = contentWithoutComments.includes('@prefix');
+      const hasBase = contentWithoutComments.includes('@base');
+      const hasPrefixedName = /\w+:\w+/.test(contentWithoutComments);
+      const hasBlankNode = contentWithoutComments.includes('[');
+      const hasRdfType = contentWithoutComments.match(/\ba\s+\w+:/);
+      
+      console.log('Structure checks:', { hasIRI, hasPrefix, hasBase, hasPrefixedName, hasBlankNode, hasRdfType });
+      
+      const hasStrongTurtleIndicators = hasIRI || hasPrefix || hasBase || hasPrefixedName || hasBlankNode || hasRdfType;
+      
+      const hasTurtleStructure = hasStrongTurtleIndicators;
+      console.log('Has Turtle structure:', hasTurtleStructure);
       
       if (!hasTurtleStructure) {
         return {
@@ -176,7 +182,6 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       
       // Parse and collect all quads - this will throw on syntax errors
       const quads = [];
-      let parsingComplete = false;
       
       parser.parse(content, (error, quad, prefixes) => {
         if (error) {
@@ -191,19 +196,14 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         if (quad) {
           quads.push(quad);
         }
-        // When quad is null and no error, parsing is complete
-        if (!quad && !error) {
-          parsingComplete = true;
-        }
       });
       
       console.log('Parsed quads count:', quads.length);
       console.log('Parser errors count:', errors.length);
-      console.log('Parsing complete:', parsingComplete);
       
       // Additional validation: Check if any triples were actually parsed
-      // Only check this if parsing completed successfully
-      if (errors.length === 0 && quads.length === 0 && parsingComplete) {
+      // If no errors but also no quads, the content is not valid Turtle
+      if (errors.length === 0 && quads.length === 0) {
         errors.push({
           line: 1,
           column: 1,
@@ -303,11 +303,16 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       // Start timing BEFORE file reading begins
       const startTime = Date.now();
       setProcessingStartTime(startTime);
-      console.log('Setting processingStartTime to:', startTime);
+      console.log('=== TIMING START ===');
+      console.log('Upload button clicked at:', startTime);
       
       const reader = new FileReader();
       
       reader.onload = async (e) => {
+        const fileReadTime = Date.now();
+        console.log('File read completed at:', fileReadTime);
+        console.log('File reading took:', fileReadTime - startTime, 'ms');
+        
         const content = e.target.result;
         setCheatSheetContent(content);
         console.log('Cheat sheet uploaded:', content.substring(0, 200) + '...');
@@ -418,13 +423,15 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       
       // Track OpenAI API processing time specifically
       const openaiStartTime = Date.now();
+      console.log('OpenAI API call started at:', openaiStartTime);
       const bulkResponse = await getBulkFieldSuggestions(fieldDefinitions, cheatSheetContent);
       const openaiEndTime = Date.now();
       const openaiDuration = openaiEndTime - openaiStartTime;
+      console.log('OpenAI API call ended at:', openaiEndTime);
+      console.log('OpenAI API took:', openaiDuration, 'ms');
       setOpenaiProcessingTime(openaiDuration);
       
       console.log('Bulk response received:', bulkResponse);
-      console.log('OpenAI API processing time:', openaiDuration, 'ms');
       
       const formattedSuggestions = {};
       const bulkSuggestionTexts = {};
@@ -458,18 +465,28 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       setAiSuggestions(formattedSuggestions);
       
       // Auto-populate fields with top suggestions
+      const autoPopulateStartTime = Date.now();
+      console.log('Auto-populate started at:', autoPopulateStartTime);
       autoPopulateFieldsFromSuggestions(bulkSuggestionTexts, formattedSuggestions);
+      const autoPopulateEndTime = Date.now();
+      console.log('Auto-populate ended at:', autoPopulateEndTime);
+      console.log('Auto-populate took:', autoPopulateEndTime - autoPopulateStartTime, 'ms');
       
       // Calculate total processing duration AFTER auto-population
       const currentTime = Date.now();
-      console.log('About to calculate duration. startTime:', startTime, 'currentTime:', currentTime);
+      console.log('=== TIMING END ===');
+      console.log('Total process ended at:', currentTime);
+      console.log('startTime:', startTime, 'currentTime:', currentTime);
       if (startTime) {
         const totalDuration = currentTime - startTime;
-        console.log('Calculated total processing duration:', totalDuration, 'ms');
+        console.log('TOTAL DURATION:', totalDuration, 'ms');
         console.log('OpenAI API time:', openaiDuration, 'ms');
-        console.log('Other processing time (parsing, auto-populate):', totalDuration - openaiDuration, 'ms');
+        console.log('Other processing time (file read + parsing + auto-populate):', totalDuration - openaiDuration, 'ms');
+        console.log('Setting processingDuration state to:', totalDuration);
         setProcessingDuration(totalDuration);
-        console.log('Set processingDuration to:', totalDuration);
+        console.log('Setting openaiProcessingTime state to:', openaiDuration);
+        // Re-set openaiProcessingTime to ensure it's updated
+        setOpenaiProcessingTime(openaiDuration);
       } else {
         console.log('ERROR: No startTime parameter found for total duration calculation');
       }
