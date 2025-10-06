@@ -1,5 +1,6 @@
 // src/components/DataTable.js
 import React from 'react';
+import JSZip from 'jszip';
 import fieldSemanticMapping from '../fieldSemanticMapping.json';
 
 function DataTable({ submissions }) {
@@ -42,69 +43,123 @@ function DataTable({ submissions }) {
     return obj;
   };
 
-  const downloadJSON = () => {
+  const downloadJSON = async () => {
     if (submissions.length === 0) {
       alert('No data to export');
       return;
     }
     
-    // Add browser type and ensure timestamp for all submissions
-    const enrichedData = submissions.map(submission => ({
-      ...submission,
-      browserType: navigator.userAgent,
-      timestamp: submission.timestamp || submission.date || new Date().toISOString(),
-      exportDate: new Date().toISOString()
-    }));
+    const zip = new JSZip();
     
-    // Convert to JSON string with proper formatting
-    const jsonData = JSON.stringify(enrichedData, null, 2);
+    // Create individual JSON files for each submission
+    submissions.forEach((submission, index) => {
+      // Enrich submission data
+      const enrichedSubmission = {
+        ...submission,
+        browserType: navigator.userAgent,
+        timestamp: submission.timestamp || submission.date || new Date().toISOString(),
+        exportDate: new Date().toISOString()
+      };
+      
+      // Determine submission type from metadata
+      const submissionType = submission.metadata?.submissionType || 
+                            submission.formData?.submissionType || 
+                            'regular';
+      
+      // Create timestamp for filename (remove colons and milliseconds for valid filename)
+      const timestamp = (submission.timestamp || submission.date || new Date().toISOString())
+        .replace(/:/g, '-')
+        .replace(/\..+/, ''); // Remove milliseconds
+      
+      // Create filename: submissionType-timestamp.json
+      const filename = `${submissionType}-${timestamp}.json`;
+      
+      // Add file to zip
+      const jsonData = JSON.stringify(enrichedSubmission, null, 2);
+      zip.file(filename, jsonData);
+    });
     
-    // Create download
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `kg-metadata-${new Date().toISOString().slice(0,10)}.json`);
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Generate zip file and trigger download
+    try {
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `kg-metadata-export-${new Date().toISOString().slice(0,10)}.zip`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error creating zip file:', error);
+      alert('Error creating export file. Please try again.');
+    }
   };
 
-  const downloadSemanticJSON = () => {
+  const downloadSemanticJSON = async () => {
     if (submissions.length === 0) {
       alert('No data to export');
       return;
     }
     
-    // Add browser type and ensure timestamp for all submissions
-    const enrichedData = submissions.map(submission => ({
-      ...submission,
-      browserType: navigator.userAgent,
-      timestamp: submission.timestamp || submission.date || new Date().toISOString(),
-      exportDate: new Date().toISOString()
-    }));
+    const zip = new JSZip();
     
-    // Convert to semantic field names
-    const semanticData = enrichedData.map(submission => convertToSemanticNames(submission));
+    // Create individual JSON files for each submission with semantic field names
+    submissions.forEach((submission, index) => {
+      // Enrich submission data
+      const enrichedSubmission = {
+        ...submission,
+        browserType: navigator.userAgent,
+        timestamp: submission.timestamp || submission.date || new Date().toISOString(),
+        exportDate: new Date().toISOString()
+      };
+      
+      // Convert to semantic field names
+      const semanticSubmission = convertToSemanticNames(enrichedSubmission);
+      
+      // Determine submission type from metadata
+      const submissionType = submission.metadata?.submissionType || 
+                            submission.formData?.submissionType || 
+                            'regular';
+      
+      // Create timestamp for filename (remove colons and milliseconds for valid filename)
+      const timestamp = (submission.timestamp || submission.date || new Date().toISOString())
+        .replace(/:/g, '-')
+        .replace(/\..+/, ''); // Remove milliseconds
+      
+      // Create filename: submissionType-timestamp-semantic.json
+      const filename = `${submissionType}-${timestamp}-semantic.json`;
+      
+      // Add file to zip
+      const jsonData = JSON.stringify(semanticSubmission, null, 2);
+      zip.file(filename, jsonData);
+    });
     
-    // Convert to JSON string with proper formatting
-    const jsonData = JSON.stringify(semanticData, null, 2);
-    
-    // Create download
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `kg-metadata-semantic-${new Date().toISOString().slice(0,10)}.json`);
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Generate zip file and trigger download
+    try {
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `kg-metadata-semantic-export-${new Date().toISOString().slice(0,10)}.zip`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error creating semantic zip file:', error);
+      alert('Error creating semantic export file. Please try again.');
+    }
   };
 
   const clearSubmissions = () => {
