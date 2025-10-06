@@ -73,7 +73,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [showTurtleMode, setShowTurtleMode] = useState(turtleModeEnabled);
   const [turtleValidation, setTurtleValidation] = useState({ isValid: true, errors: [] });
   
-  // Turtle validation function
+  // Turtle validation function - relies ONLY on N3 parser
   const validateTurtleContent = (content) => {
     if (!content.trim()) {
       return { isValid: true, errors: [] }; // Empty content is valid (not required to validate)
@@ -81,140 +81,22 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     
     const parser = new Parser();
     const errors = [];
-    const definedPrefixes = new Set();
-    const usedPrefixes = new Set();
     
     try {
-      // Remove comments for structure checking (but keep original content for parsing)
-      // Turtle comments start with # and go to end of line
-      const contentWithoutComments = content
-        .split('\n')
-        .map(line => {
-          const commentIndex = line.indexOf('#');
-          return commentIndex >= 0 ? line.substring(0, commentIndex) : line;
-        })
-        .join('\n')
-        .trim();
-      
-      // If only comments remain, it's valid (empty after removing comments)
-      if (!contentWithoutComments) {
-        return { isValid: true, errors: [] };
-      }
-      
-      // Check for basic Turtle structure indicators (on content without comments)
-      // Must have at least ONE of these strong indicators
-      console.log('Checking Turtle structure for:', contentWithoutComments);
-      const hasIRI = contentWithoutComments.includes('<');
-      const hasPrefix = contentWithoutComments.includes('@prefix');
-      const hasBase = contentWithoutComments.includes('@base');
-      const hasPrefixedName = /\w+:\w+/.test(contentWithoutComments);
-      const hasBlankNode = contentWithoutComments.includes('[');
-      const hasRdfType = contentWithoutComments.match(/\ba\s+\w+:/);
-      
-      console.log('Structure checks:', { hasIRI, hasPrefix, hasBase, hasPrefixedName, hasBlankNode, hasRdfType });
-      
-      const hasStrongTurtleIndicators = hasIRI || hasPrefix || hasBase || hasPrefixedName || hasBlankNode || hasRdfType;
-      
-      const hasTurtleStructure = hasStrongTurtleIndicators;
-      console.log('Has Turtle structure:', hasTurtleStructure);
-      
-      if (!hasTurtleStructure) {
-        return {
-          isValid: false,
-          errors: [{
-            line: 1,
-            column: 1,
-            message: 'Content does not appear to be valid Turtle/RDF syntax. Turtle requires IRIs (<...>), prefix declarations (@prefix), or structured triples.'
-          }]
-        };
-      }
-      
-      // First, extract defined prefixes from the content
-      const prefixMatches = content.matchAll(/@prefix\s+(\w+):/g);
-      for (const match of prefixMatches) {
-        definedPrefixes.add(match[1]);
-      }
-      console.log('Defined prefixes:', Array.from(definedPrefixes));
-      
-      // Extract used prefixes with line numbers
-      const lines = content.split('\n');
-      const prefixUsageMap = new Map(); // Map prefix to first line number where it's used
-      
-      lines.forEach((line, lineIndex) => {
-        const lineNumber = lineIndex + 1;
-        const prefixMatches = line.matchAll(/(\w+):(\w+)/g);
-        
-        for (const match of prefixMatches) {
-          const prefix = match[1];
-          const localName = match[2];
-          const columnNumber = match.index + 1;
-          
-          // Skip URL schemes and special Turtle keywords
-          if (prefix !== 'http' && prefix !== 'https' && prefix !== 'mailto' && 
-              // Skip if it looks like a URL (has // after colon)
-              !line.includes(`${prefix}://${localName}`)) {
-            
-            usedPrefixes.add(prefix);
-            
-            // Store first occurrence of this prefix
-            if (!prefixUsageMap.has(prefix)) {
-              prefixUsageMap.set(prefix, { line: lineNumber, column: columnNumber });
-            }
-          }
+      // Let N3 parser be the ONLY authority on what's valid Turtle
+      parser.parse(content, (error, quad, prefixes) => {
+        if (error) {
+          // Capture parsing errors from callback
+          console.error('N3 Parser error:', error);
+          errors.push({
+            line: error.context?.line || 'unknown',
+            column: error.context?.column || 'unknown',
+            message: error.message || 'Parsing error'
+          });
         }
       });
       
-      console.log('Used prefixes:', Array.from(usedPrefixes));
-      console.log('Prefix usage map:', Array.from(prefixUsageMap.entries()));
-      
-      // Check for undefined prefixes
-      for (const prefix of usedPrefixes) {
-        if (!definedPrefixes.has(prefix)) {
-          const location = prefixUsageMap.get(prefix) || { line: 'unknown', column: 'unknown' };
-          errors.push({
-            line: location.line,
-            column: location.column,
-            message: `Undefined prefix "${prefix}:" - add @prefix ${prefix}: <...> declaration`
-          });
-        }
-      }
-      console.log('Prefix validation errors:', errors);
-      
-      // Parse and collect all quads - this will throw on syntax errors
-      const quads = [];
-      let parseError = null;
-      
-      try {
-        // Parse synchronously - the callback will be called for each quad
-        parser.parse(content, (error, quad, prefixes) => {
-          if (error) {
-            // Capture parsing errors from callback
-            console.error('Parser error:', error);
-            parseError = error;
-            errors.push({
-              line: error.context?.line || 'unknown',
-              column: error.context?.column || 'unknown',
-              message: error.message || 'Parsing error'
-            });
-          }
-          if (quad) {
-            quads.push(quad);
-          }
-        });
-      } catch (e) {
-        console.error('Parse exception:', e);
-        errors.push({
-          line: 1,
-          column: 1,
-          message: e.message || 'Parsing exception'
-        });
-      }
-      
-      console.log('Parsed quads count:', quads.length);
-      console.log('Parser errors count:', errors.length);
-      
-      // Don't check quad count - if the parser didn't throw errors, it's valid
-      // The structure check above already ensures it looks like Turtle
+      console.log('N3 Parser errors count:', errors.length);
       
       return {
         isValid: errors.length === 0,
@@ -222,6 +104,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       };
     } catch (e) {
       // Catch synchronous parsing errors
+      console.error('N3 Parse exception:', e);
       const errorLine = e.message?.match(/line (\d+)/)?.[1] || 'unknown';
       const errorCol = e.message?.match(/column (\d+)/)?.[1] || 'unknown';
       
