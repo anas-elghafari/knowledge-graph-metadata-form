@@ -79,18 +79,20 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       return { isValid: true, errors: [] }; // Empty content is valid (not required to validate)
     }
     
+    let blobUrl = null;
+    
     try {
       const engine = new QueryEngine();
       
-      // Query Turtle string directly using stringSource
+      // Create a Blob URL for the Turtle content (browser-compatible)
+      const blob = new Blob([content], { type: 'text/turtle' });
+      blobUrl = URL.createObjectURL(blob);
+      
+      // Query using the Blob URL
       const bindingsStream = await engine.queryBindings(
         `SELECT * WHERE { ?s ?p ?o } LIMIT 1`,
         {
-          sources: [{
-            type: 'stringSource',
-            value: content,
-            mediaType: 'text/turtle'
-          }]
+          sources: [blobUrl]
         }
       );
       
@@ -121,6 +123,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
           message: errorMessage
         }]
       };
+    } finally {
+      // Clean up the Blob URL
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
     }
   };
   
