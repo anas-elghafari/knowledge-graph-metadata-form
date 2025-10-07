@@ -81,27 +81,26 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     
     // N3 supports both @prefix (Turtle) and PREFIX (SPARQL) syntax
     const parser = new Parser({ format: 'text/turtle' });
-    const errors = [];
+    let validationResult = { isValid: true, errors: [] };
     
     try {
-      // Parse the content - callback is called for each quad or error
+      // Parse the content - callback is called synchronously for each quad or error
       parser.parse(content, (error, quad, prefixes) => {
         if (error) {
           console.error('N3 Parser error:', error);
-          errors.push({
+          // Set result to invalid and add error
+          validationResult.isValid = false;
+          validationResult.errors.push({
             line: error.context?.line || 'unknown',
             column: error.context?.column || 'unknown',
             message: error.message || 'Turtle syntax error'
           });
+          console.log('Error added, current errors:', validationResult.errors);
         }
       });
       
-      console.log('N3 validation - errors:', errors);
-      
-      return {
-        isValid: errors.length === 0,
-        errors: errors
-      };
+      console.log('N3 validation - final result:', validationResult);
+      return validationResult;
       
     } catch (e) {
       console.error('N3 Parser exception:', e);
@@ -121,7 +120,9 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     if (!showTurtleMode) return;
     
     const timeoutId = setTimeout(() => {
+      console.log('Running validation on content:', turtleContent.substring(0, 50) + '...');
       const validation = validateTurtleContent(turtleContent);
+      console.log('Validation result:', validation);
       setTurtleValidation(validation);
     }, 500); // 500ms debounce
     
