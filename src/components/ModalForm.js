@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { QueryEngine } from '@comunica/query-sparql';
 import fieldInstructions from '../fieldInstructions';
 import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
 
@@ -71,132 +72,65 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [turtleContent, setTurtleContent] = useState('');
   const [showTurtleMode, setShowTurtleMode] = useState(turtleModeEnabled);
   const [turtleValidation, setTurtleValidation] = useState({ isValid: true, errors: [] });
-  const [turtleValidatorReady, setTurtleValidatorReady] = useState(false);
   
-  // Turtle validation function - uses TurtleValidator (browserified)
-  const validateTurtleContent = (content) => {
+  // Turtle validation function - uses Comunica (SPARQL 1.1 compliant, async)
+  const validateTurtleContent = async (content) => {
     if (!content.trim()) {
       return { isValid: true, errors: [] }; // Empty content is valid (not required to validate)
     }
     
-    // Check if TurtleValidator is available (loaded from script tag)
-    if (typeof window.TurtleValidator === 'undefined') {
-      console.error('TurtleValidator not loaded');
-      return {
-        isValid: false,
-        errors: [{
-          line: 'unknown',
-          column: 'unknown',
-          message: 'Turtle validator library not loaded'
-        }]
-      };
-    }
-    
     try {
-      const validator = new window.TurtleValidator();
-      let validationResult = { isValid: true, errors: [] };
+      const myEngine = new QueryEngine();
       
-      // Validate the content - callback is called synchronously
-      validator.validate(content, (err, result) => {
-        console.log('TurtleValidator callback - err:', err, 'result:', result);
-        
-        if (err) {
-          // Validation failed
-          validationResult = {
-            isValid: false,
-            errors: [{
-              line: err.line || 'unknown',
-              column: err.column || 'unknown',
-              message: err.message || 'Turtle syntax error'
-            }]
-          };
-        } else if (result && result.errors && result.errors.length > 0) {
-          // Result has errors
-          validationResult = {
-            isValid: false,
-            errors: result.errors.map(error => ({
-              line: error.line || 'unknown',
-              column: error.column || 'unknown',
-              message: error.message || 'Turtle syntax error'
-            }))
-          };
-        } else {
-          // Valid!
-          validationResult = {
-            isValid: true,
-            errors: []
-          };
-        }
+      // Try to parse the Turtle by querying it
+      // If parsing fails, Comunica will throw an error
+      await myEngine.queryQuads(`SELECT * WHERE { ?s ?p ?o } LIMIT 1`, {
+        sources: [{
+          type: 'stringSource',
+          value: content,
+          mediaType: 'text/turtle',
+          baseIRI: 'http://example.org/'
+        }]
       });
       
-      console.log('TurtleValidator result:', validationResult);
-      return validationResult;
+      console.log('Comunica validation: Valid Turtle');
+      return {
+        isValid: true,
+        errors: []
+      };
       
     } catch (e) {
-      console.error('TurtleValidator exception:', e);
+      console.error('Comunica validation error:', e);
       
+      // Extract error details
       let errorMessage = e.message || 'Turtle syntax error';
       
-      // Check for common mistakes and provide helpful hints
-      if (content.includes('PREFIX ') && !content.includes('@prefix')) {
-        errorMessage += ' (Hint: Use "@prefix" instead of "PREFIX" - Turtle requires lowercase with @)';
-      }
+      // Try to extract line/column info from error message
+      const lineMatch = errorMessage.match(/line (\d+)/i);
+      const colMatch = errorMessage.match(/column (\d+)/i);
       
       return {
         isValid: false,
         errors: [{
-          line: 'unknown',
-          column: 'unknown',
+          line: lineMatch ? lineMatch[1] : 'unknown',
+          column: colMatch ? colMatch[1] : 'unknown',
           message: errorMessage
         }]
       };
     }
   };
   
-  // Dynamically load TurtleValidator script
-  useEffect(() => {
-    if (typeof window.TurtleValidator !== 'undefined') {
-      console.log('✅ TurtleValidator already loaded');
-      setTurtleValidatorReady(true);
-      return;
-    }
-    
-    console.log('📥 Loading TurtleValidator...');
-    const script = document.createElement('script');
-    script.src = `${process.env.PUBLIC_URL}/js/turtle-validator.js`;
-    script.async = true;
-    script.onload = () => {
-      console.log('✅ TurtleValidator loaded successfully');
-      setTurtleValidatorReady(true);
-    };
-    script.onerror = (error) => {
-      console.error('❌ Failed to load TurtleValidator:', error);
-      console.error('Script path:', script.src);
-      setTurtleValidatorReady(false);
-    };
-    
-    document.body.appendChild(script);
-    
-    return () => {
-      // Cleanup: remove script on unmount
-      if (script.parentNode) {
-        document.body.removeChild(script);
-      }
-    };
-  }, []);
-  
-  // Debounced turtle validation
+  // Debounced turtle validation (async)
   useEffect(() => {
     if (!showTurtleMode) return;
-    if (!turtleValidatorReady) return; // Wait for validator to be ready
     
-    const timeoutId = setTimeout(() => {
-      const validation = validateTurtleContent(turtleContent);
+    const timeoutId = setTimeout(async () => {
+      const validation = await validateTurtleContent(turtleContent);
       setTurtleValidation(validation);
     }, 500); // 500ms debounce
     
     return () => clearTimeout(timeoutId);
-  }, [turtleContent, showTurtleMode, turtleValidatorReady]);
+  }, [turtleContent, showTurtleMode]);
   
   // Cheat sheet upload state
   const [cheatSheetFile, setCheatSheetFile] = useState(null);
