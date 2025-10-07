@@ -71,6 +71,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [turtleContent, setTurtleContent] = useState('');
   const [showTurtleMode, setShowTurtleMode] = useState(turtleModeEnabled);
   const [turtleValidation, setTurtleValidation] = useState({ isValid: true, errors: [] });
+  const [turtleValidatorReady, setTurtleValidatorReady] = useState(false);
   
   // Turtle validation function - uses TurtleValidator (browserified)
   const validateTurtleContent = (content) => {
@@ -93,32 +94,44 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     
     try {
       const validator = new window.TurtleValidator();
+      let validationResult = { isValid: true, errors: [] };
       
-      // Validate the content
+      // Validate the content - callback is called synchronously
       validator.validate(content, (err, result) => {
-        // This callback is synchronous in the browser version
+        console.log('TurtleValidator callback - err:', err, 'result:', result);
+        
+        if (err) {
+          // Validation failed
+          validationResult = {
+            isValid: false,
+            errors: [{
+              line: err.line || 'unknown',
+              column: err.column || 'unknown',
+              message: err.message || 'Turtle syntax error'
+            }]
+          };
+        } else if (result && result.errors && result.errors.length > 0) {
+          // Result has errors
+          validationResult = {
+            isValid: false,
+            errors: result.errors.map(error => ({
+              line: error.line || 'unknown',
+              column: error.column || 'unknown',
+              message: error.message || 'Turtle syntax error'
+            }))
+          };
+        } else {
+          // Valid!
+          validationResult = {
+            isValid: true,
+            errors: []
+          };
+        }
       });
       
-      // Check validation result
-      if (validator.isValid()) {
-        console.log('TurtleValidator: Valid Turtle');
-        return {
-          isValid: true,
-          errors: []
-        };
-      } else {
-        const errors = validator.getErrors().map(error => ({
-          line: error.line || 'unknown',
-          column: error.column || 'unknown',
-          message: error.message || 'Turtle syntax error'
-        }));
-        
-        console.log('TurtleValidator: Invalid Turtle', errors);
-        return {
-          isValid: false,
-          errors: errors
-        };
-      }
+      console.log('TurtleValidator result:', validationResult);
+      return validationResult;
+      
     } catch (e) {
       console.error('TurtleValidator exception:', e);
       
@@ -144,6 +157,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   useEffect(() => {
     if (typeof window.TurtleValidator !== 'undefined') {
       console.log('✅ TurtleValidator already loaded');
+      setTurtleValidatorReady(true);
       return;
     }
     
@@ -153,10 +167,12 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     script.async = true;
     script.onload = () => {
       console.log('✅ TurtleValidator loaded successfully');
+      setTurtleValidatorReady(true);
     };
     script.onerror = (error) => {
       console.error('❌ Failed to load TurtleValidator:', error);
       console.error('Script path:', script.src);
+      setTurtleValidatorReady(false);
     };
     
     document.body.appendChild(script);
@@ -172,6 +188,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   // Debounced turtle validation
   useEffect(() => {
     if (!showTurtleMode) return;
+    if (!turtleValidatorReady) return; // Wait for validator to be ready
     
     const timeoutId = setTimeout(() => {
       const validation = validateTurtleContent(turtleContent);
@@ -179,7 +196,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     }, 500); // 500ms debounce
     
     return () => clearTimeout(timeoutId);
-  }, [turtleContent, showTurtleMode]);
+  }, [turtleContent, showTurtleMode, turtleValidatorReady]);
   
   // Cheat sheet upload state
   const [cheatSheetFile, setCheatSheetFile] = useState(null);
