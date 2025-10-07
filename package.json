@@ -5,6 +5,7 @@
   "homepage": "https://anas-elghafari.github.io/knowledge-graph-metadata-form",
   "dependencies": {
     "@comunica/query-sparql": "^4.4.1",
+    "@comunica/query-sparql-rdfjs": "^4.4.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",

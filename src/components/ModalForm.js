@@ -80,16 +80,19 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     }
     
     try {
-      const myEngine = new QueryEngine();
+      const engine = new QueryEngine();
       
-      // Create a data URL with the Turtle content
-      const dataUrl = 'data:text/turtle;charset=utf-8,' + encodeURIComponent(content);
-      
-      // Try to parse the Turtle by querying it
-      // If parsing fails, Comunica will throw an error
-      const bindingsStream = await myEngine.queryBindings(`SELECT * WHERE { ?s ?p ?o } LIMIT 1`, {
-        sources: [dataUrl]
-      });
+      // Query Turtle string directly using stringSource
+      const bindingsStream = await engine.queryBindings(
+        `SELECT * WHERE { ?s ?p ?o } LIMIT 1`,
+        {
+          sources: [{
+            type: 'stringSource',
+            value: content,
+            mediaType: 'text/turtle'
+          }]
+        }
+      );
       
       // Consume the stream to trigger parsing
       await bindingsStream.toArray();
