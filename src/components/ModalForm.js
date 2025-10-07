@@ -140,6 +140,35 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     }
   };
   
+  // Dynamically load TurtleValidator script
+  useEffect(() => {
+    if (typeof window.TurtleValidator !== 'undefined') {
+      console.log('✅ TurtleValidator already loaded');
+      return;
+    }
+    
+    console.log('📥 Loading TurtleValidator...');
+    const script = document.createElement('script');
+    script.src = `${process.env.PUBLIC_URL}/js/turtle-validator.js`;
+    script.async = true;
+    script.onload = () => {
+      console.log('✅ TurtleValidator loaded successfully');
+    };
+    script.onerror = (error) => {
+      console.error('❌ Failed to load TurtleValidator:', error);
+      console.error('Script path:', script.src);
+    };
+    
+    document.body.appendChild(script);
+    
+    return () => {
+      // Cleanup: remove script on unmount
+      if (script.parentNode) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+  
   // Debounced turtle validation
   useEffect(() => {
     if (!showTurtleMode) return;
