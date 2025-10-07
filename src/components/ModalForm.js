@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import * as $rdf from 'rdflib';
 import fieldInstructions from '../fieldInstructions';
 import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
 
@@ -73,32 +72,55 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [showTurtleMode, setShowTurtleMode] = useState(turtleModeEnabled);
   const [turtleValidation, setTurtleValidation] = useState({ isValid: true, errors: [] });
   
-  // Turtle validation function - uses rdflib (browser-compatible)
+  // Turtle validation function - uses TurtleValidator (browserified)
   const validateTurtleContent = (content) => {
     if (!content.trim()) {
       return { isValid: true, errors: [] }; // Empty content is valid (not required to validate)
     }
     
-    try {
-      const store = $rdf.graph();
-      const baseURI = 'http://example.org/';
-      
-      // Parse the Turtle content
-      $rdf.parse(content, store, baseURI, 'text/turtle');
-      
-      console.log('rdflib validation successful - triples parsed:', store.statements.length);
-      
-      // If parsing succeeded without throwing, it's valid
+    // Check if TurtleValidator is available (loaded from script tag)
+    if (typeof window.TurtleValidator === 'undefined') {
+      console.error('TurtleValidator not loaded');
       return {
-        isValid: true,
-        errors: []
+        isValid: false,
+        errors: [{
+          line: 'unknown',
+          column: 'unknown',
+          message: 'Turtle validator library not loaded'
+        }]
       };
-    } catch (e) {
-      console.error('rdflib Parser error:', e);
+    }
+    
+    try {
+      const validator = new window.TurtleValidator();
       
-      // Extract line/column info from error message if available
-      const lineMatch = e.message?.match(/line (\d+)/i);
-      const colMatch = e.message?.match(/column (\d+)/i);
+      // Validate the content
+      validator.validate(content, (err, result) => {
+        // This callback is synchronous in the browser version
+      });
+      
+      // Check validation result
+      if (validator.isValid()) {
+        console.log('TurtleValidator: Valid Turtle');
+        return {
+          isValid: true,
+          errors: []
+        };
+      } else {
+        const errors = validator.getErrors().map(error => ({
+          line: error.line || 'unknown',
+          column: error.column || 'unknown',
+          message: error.message || 'Turtle syntax error'
+        }));
+        
+        console.log('TurtleValidator: Invalid Turtle', errors);
+        return {
+          isValid: false,
+          errors: errors
+        };
+      }
+    } catch (e) {
+      console.error('TurtleValidator exception:', e);
       
       let errorMessage = e.message || 'Turtle syntax error';
       
@@ -110,8 +132,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       return {
         isValid: false,
         errors: [{
-          line: lineMatch ? lineMatch[1] : 'unknown',
-          column: colMatch ? colMatch[1] : 'unknown',
+          line: 'unknown',
+          column: 'unknown',
           message: errorMessage
         }]
       };
