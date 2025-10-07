@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { QueryEngine } from '@comunica/query-sparql';
+import { Parser } from 'n3';
 import fieldInstructions from '../fieldInstructions';
 import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
 
@@ -73,70 +73,55 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [showTurtleMode, setShowTurtleMode] = useState(turtleModeEnabled);
   const [turtleValidation, setTurtleValidation] = useState({ isValid: true, errors: [] });
   
-  // Turtle validation function - uses Comunica (SPARQL 1.1 compliant, async)
-  const validateTurtleContent = async (content) => {
+  // Turtle validation function - uses N3.js (works reliably in browsers, GitHub Pages compatible)
+  const validateTurtleContent = (content) => {
     if (!content.trim()) {
       return { isValid: true, errors: [] }; // Empty content is valid (not required to validate)
     }
     
-    let blobUrl = null;
+    // N3 supports both @prefix (Turtle) and PREFIX (SPARQL) syntax
+    const parser = new Parser({ format: 'text/turtle' });
+    const errors = [];
     
     try {
-      const engine = new QueryEngine();
-      
-      // Create a Blob URL for the Turtle content (browser-compatible)
-      const blob = new Blob([content], { type: 'text/turtle' });
-      blobUrl = URL.createObjectURL(blob);
-      
-      // Query using the Blob URL
-      const bindingsStream = await engine.queryBindings(
-        `SELECT * WHERE { ?s ?p ?o } LIMIT 1`,
-        {
-          sources: [blobUrl]
+      // Parse the content - callback is called for each quad or error
+      parser.parse(content, (error, quad, prefixes) => {
+        if (error) {
+          console.error('N3 Parser error:', error);
+          errors.push({
+            line: error.context?.line || 'unknown',
+            column: error.context?.column || 'unknown',
+            message: error.message || 'Turtle syntax error'
+          });
         }
-      );
+      });
       
-      // Consume the stream to trigger parsing
-      await bindingsStream.toArray();
+      console.log('N3 validation - errors:', errors);
       
-      console.log('Comunica validation: Valid Turtle');
       return {
-        isValid: true,
-        errors: []
+        isValid: errors.length === 0,
+        errors: errors
       };
       
     } catch (e) {
-      console.error('Comunica validation error:', e);
-      
-      // Extract error details
-      let errorMessage = e.message || 'Turtle syntax error';
-      
-      // Try to extract line/column info from error message
-      const lineMatch = errorMessage.match(/line (\d+)/i);
-      const colMatch = errorMessage.match(/column (\d+)/i);
-      
+      console.error('N3 Parser exception:', e);
       return {
         isValid: false,
         errors: [{
-          line: lineMatch ? lineMatch[1] : 'unknown',
-          column: colMatch ? colMatch[1] : 'unknown',
-          message: errorMessage
+          line: 'unknown',
+          column: 'unknown',
+          message: e.message || 'Turtle syntax error'
         }]
       };
-    } finally {
-      // Clean up the Blob URL
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
-      }
     }
   };
   
-  // Debounced turtle validation (async)
+  // Debounced turtle validation
   useEffect(() => {
     if (!showTurtleMode) return;
     
-    const timeoutId = setTimeout(async () => {
-      const validation = await validateTurtleContent(turtleContent);
+    const timeoutId = setTimeout(() => {
+      const validation = validateTurtleContent(turtleContent);
       setTurtleValidation(validation);
     }, 500); // 500ms debounce
     
