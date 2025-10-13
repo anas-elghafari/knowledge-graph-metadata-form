@@ -68,6 +68,12 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [activeField, setActiveField] = useState(null);
   const [openaiProcessingTime, setOpenaiProcessingTime] = useState(0);
   
+  // Countdown timer state (5 minutes = 300 seconds)
+  const [timeRemaining, setTimeRemaining] = useState(300);
+  const [timerActive, setTimerActive] = useState(true);
+  const [formOpenedAt] = useState(new Date().toISOString());
+  const [autoSubmittedByTimer, setAutoSubmittedByTimer] = useState(false);
+  
   // Turtle mode state
   const [turtleContent, setTurtleContent] = useState('');
   const [showTurtleMode, setShowTurtleMode] = useState(turtleModeEnabled);
@@ -114,6 +120,38 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       };
     }
   };
+  
+  // Countdown timer effect
+  useEffect(() => {
+    if (!timerActive || timeRemaining <= 0) return;
+    
+    const intervalId = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          setTimerActive(false);
+          setAutoSubmittedByTimer(true);
+          // Show message before auto-submit
+          setMessage('⏱️ Time expired! Form is being automatically submitted...');
+          // Auto-submit when timer reaches zero
+          setTimeout(() => {
+            if (showTurtleMode) {
+              handleTurtleSubmit();
+            } else {
+              // Create a synthetic event for handleSubmit
+              const syntheticEvent = {
+                preventDefault: () => {}
+              };
+              handleSubmit(syntheticEvent, true);
+            }
+          }, 100);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    return () => clearInterval(intervalId);
+  }, [timerActive, timeRemaining, showTurtleMode]);
   
   // Debounced turtle validation
   useEffect(() => {
@@ -419,7 +457,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
           submissionType: 'turtle',
           contentLength: turtleContent.trim().length,
           hasValidationErrors: !validation.isValid,
-          validationErrorCount: validation.errors.length
+          validationErrorCount: validation.errors.length,
+          formOpenedAt: formOpenedAt,
+          formSubmittedAt: new Date().toISOString(),
+          autoSubmittedByTimer: autoSubmittedByTimer,
+          timeSpentSeconds: Math.round((new Date() - new Date(formOpenedAt)) / 1000)
         }
       };
 
@@ -2597,7 +2639,11 @@ const handleCancelEditExampleResource = () => {
       submissionType: cheatSheetFile ? 'llm' : 'regular',
       hasValidationErrors: (missingFields.length > 0 || invalidDates.length > 0),
       submissionMode: forceSubmit ? 'FORCED_SUBMISSION' : 'NORMAL_SUBMISSION',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      formOpenedAt: formOpenedAt,
+      formSubmittedAt: new Date().toISOString(),
+      autoSubmittedByTimer: autoSubmittedByTimer,
+      timeSpentSeconds: Math.round((new Date() - new Date(formOpenedAt)) / 1000)
     }
   };
   
@@ -2700,8 +2746,26 @@ const handleCancelEditExampleResource = () => {
 
 
   return (
-    <div className={`modal-overlay`}>
+    <div className="modal-overlay">
     <div className={`modal-content ${showAISuggestions ? 'with-ai-panel' : ''}`} onClick={e => e.stopPropagation()}>
+      
+      {/* Countdown Timer */}
+      <div className="countdown-timer" style={{
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        backgroundColor: timeRemaining <= 60 ? '#f39c12' : '#27ae60',
+        color: 'white',
+        padding: '10px 15px',
+        borderRadius: '8px',
+        fontWeight: 'bold',
+        fontSize: '16px',
+        zIndex: 1000,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        transition: 'background-color 0.3s ease'
+      }}>
+        ⏱️ {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
+      </div>
     
     {message && (
       <div className={`floating-message`}>
