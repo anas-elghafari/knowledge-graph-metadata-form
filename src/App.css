@@ -493,6 +493,11 @@ select {
   max-width: 720px; /* Slightly wider than regular form (600px) */
 }
 
+.modal-content.turtle-mode-wide {
+  max-width: 1200px; /* Much wider for turtle mode */
+  width: 95%;
+}
+
 .modal-content-wrapper {
   display: flex;
   flex: 1;
@@ -2603,8 +2608,26 @@ input.tag-input.tag-input-valid:focus,
   padding: 15px;
   border-radius: 8px;
   border: 2px solid;
-  font-size: 14px;
-  animation: slideIn 0.3s ease-out;
+  transition: all 0.3s ease;
+}
+
+/* Custom scrollbar for validation panel */
+.turtle-validation-panel::-webkit-scrollbar {
+  width: 10px;
+}
+
+.turtle-validation-panel::-webkit-scrollbar-track {
+  background: var(--dark-surface-lighter);
+  border-radius: 4px;
+}
+
+.turtle-validation-panel::-webkit-scrollbar-thumb {
+  background: var(--dark-border);
+  border-radius: 4px;
+}
+
+.turtle-validation-panel::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
 }
 
 @keyframes slideIn {
@@ -2618,75 +2641,6 @@ input.tag-input.tag-input-valid:focus,
   }
 }
 
-.turtle-validation-panel.valid {
-  background-color: rgba(40, 167, 69, 0.1);
-  border-color: var(--success-green);
-}
-
-.turtle-validation-panel.invalid {
-  background-color: rgba(220, 53, 69, 0.1);
-  border-color: var(--error-red);
-}
-
-.validation-success {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--success-green);
-}
-
-.validation-errors {
-  color: var(--error-red);
-}
-
-.validation-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  font-weight: 600;
-}
-
-.validation-icon {
-  font-size: 18px;
-}
-
-.validation-message {
-  font-weight: 600;
-}
-
-.error-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.error-item {
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(220, 53, 69, 0.2);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.error-item:last-child {
-  border-bottom: none;
-}
-
-.error-location {
-  font-weight: 600;
-  color: var(--error-red);
-  font-size: 13px;
-}
-
-.error-message {
-  color: var(--dark-text);
-  margin-left: 10px;
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-}
-
-/* Turtle Editor with Line Numbers */
 .turtle-editor-container {
   display: flex;
   border: 1px solid var(--dark-border);
@@ -2697,15 +2651,19 @@ input.tag-input.tag-input-valid:focus,
 
 .line-numbers {
   background-color: var(--dark-surface-lighter);
-  color: var(--dark-text-secondary);
   padding: 10px 8px;
   text-align: right;
   user-select: none;
-  font-family: 'Courier New', monospace;
+  color: var(--dark-text-secondary);
+  font-family: 'Courier New', Courier, monospace;
   font-size: 14px;
   line-height: 1.5;
   border-right: 1px solid var(--dark-border);
-  min-width: 40px;
+}
+
+/* Hide scrollbar for line numbers but keep functionality */
+.line-numbers::-webkit-scrollbar {
+  display: none;
 }
 
 .line-number {
@@ -2716,15 +2674,39 @@ input.tag-input.tag-input-valid:focus,
   flex: 1;
   border: none !important;
   padding: 10px;
-  font-family: 'Courier New', monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 14px;
   line-height: 1.5;
-  resize: vertical;
-  background-color: var(--dark-surface);
+  resize: none;
+  background-color: var(--dark-bg);
   color: var(--dark-text);
+}
+
+/* Custom scrollbar for turtle textarea */
+.turtle-textarea::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.turtle-textarea::-webkit-scrollbar-track {
+  background: var(--dark-surface-lighter);
+  border-radius: 4px;
+}
+
+.turtle-textarea::-webkit-scrollbar-thumb {
+  background: #4169e1;
+  border-radius: 4px;
+  border: 2px solid var(--dark-surface-lighter);
+}
+
+.turtle-textarea::-webkit-scrollbar-thumb:hover {
+  background: #345bd3;
+}
+
+.turtle-textarea::-webkit-scrollbar-corner {
+  background: var(--dark-surface-lighter);
 }
 
 .turtle-textarea:focus {
   outline: none;
   box-shadow: none !important;
-}
