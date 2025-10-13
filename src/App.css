@@ -2711,3 +2711,29 @@ input.tag-input.tag-input-valid:focus,
   outline: none;
   box-shadow: none !important;
 }
+
+/* Force scrollbar to always be visible */
+.turtle-textarea-always-scroll {
+  overflow-y: scroll !important;
+}
+
+.turtle-textarea-always-scroll::-webkit-scrollbar {
+  width: 14px !important;
+  display: block !important;
+}
+
+.turtle-textarea-always-scroll::-webkit-scrollbar-track {
+  background: var(--dark-surface-lighter) !important;
+  border-radius: 4px !important;
+}
+
+.turtle-textarea-always-scroll::-webkit-scrollbar-thumb {
+  background: #4169e1 !important;
+  border-radius: 4px !important;
+  border: 2px solid var(--dark-surface-lighter) !important;
+  min-height: 40px !important;
+}
+
+.turtle-textarea-always-scroll::-webkit-scrollbar-thumb:hover {
+  background: #345bd3 !important;
+}

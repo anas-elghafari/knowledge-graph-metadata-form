@@ -2791,95 +2791,95 @@ const handleCancelEditExampleResource = () => {
         </div>
         
         <div className="modal-body turtle-mode" style={{ display: 'flex', flexDirection: 'column', height: 'calc(90vh - 180px)', padding: '20px' }}>
-          <div className="turtle-form-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div className="form-group" style={{ display: 'flex', flexDirection: 'column', height: '100%', marginBottom: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label htmlFor="turtleContent" className="field-label" style={{ margin: 0 }}>
-                  Turtle Content <span className="field-indicator required-indicator">required</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const validation = validateTurtleContent(turtleContent);
-                    setTurtleValidation(validation);
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <label htmlFor="turtleContent" className="field-label" style={{ margin: 0 }}>
+              Turtle Content <span className="field-indicator required-indicator">required</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                const validation = validateTurtleContent(turtleContent);
+                setTurtleValidation(validation);
+              }}
+              className="revalidate-button"
+              style={{
+                padding: '4px 12px',
+                fontSize: '12px',
+                backgroundColor: '#4169e1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              🔄 Re-validate
+            </button>
+          </div>
+          
+          {/* Side-by-side layout: 70% editor, 30% validation */}
+          <div style={{ display: 'flex', gap: '16px', height: 'calc(100% - 40px)' }}>
+            {/* Editor section - 70% */}
+            <div style={{ flex: '0 0 70%', display: 'flex', flexDirection: 'column' }}>
+              <div className="turtle-editor-container" style={{ height: '100%', display: 'flex' }}>
+                <div className="line-numbers" style={{ overflowY: 'scroll', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                  {turtleContent.split('\n').map((_, index) => (
+                    <div key={index} className="line-number">{index + 1}</div>
+                  ))}
+                </div>
+                <textarea
+                  id="turtleContent"
+                  value={turtleContent}
+                  onChange={(e) => setTurtleContent(e.target.value)}
+                  placeholder="Enter your Turtle/RDF content here..."
+                  className="turtle-textarea turtle-textarea-always-scroll"
+                  style={{ 
+                    height: '100%',
+                    resize: 'none',
+                    overflowY: 'scroll !important'
                   }}
-                  className="revalidate-button"
-                  style={{
-                    padding: '4px 12px',
-                    fontSize: '12px',
-                    backgroundColor: '#4169e1',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  🔄 Re-validate
-                </button>
+                />
               </div>
-              
-              {/* Editor section - 75% */}
-              <div style={{ flex: '0 0 75%', display: 'flex', flexDirection: 'column', marginBottom: '12px' }}>
-                <div className="turtle-editor-container" style={{ height: '100%', display: 'flex' }}>
-                  <div className="line-numbers" style={{ overflowY: 'scroll', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    {turtleContent.split('\n').map((_, index) => (
-                      <div key={index} className="line-number">{index + 1}</div>
-                    ))}
+            </div>
+            
+            {/* Validation Panel - 30% - Always visible */}
+            <div style={{ flex: '0 0 30%', display: 'flex', flexDirection: 'column' }}>
+              <h4 style={{ margin: '0 0 8px 0', color: 'var(--dark-text)', fontSize: '14px', fontWeight: '600' }}>
+                Validation Results
+              </h4>
+              <div className={`turtle-validation-panel ${turtleValidation.isValid ? 'valid' : 'invalid'}`} style={{ 
+                height: '100%',
+                overflowY: 'auto',
+                marginTop: 0,
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                {!turtleContent.trim() ? (
+                  <div style={{ color: 'var(--dark-text-secondary)', fontStyle: 'italic', padding: '20px', textAlign: 'center', fontSize: '13px' }}>
+                    Enter Turtle content to see validation results
                   </div>
-                  <textarea
-                    id="turtleContent"
-                    value={turtleContent}
-                    onChange={(e) => setTurtleContent(e.target.value)}
-                    placeholder="Enter your Turtle/RDF content here..."
-                    className="turtle-textarea"
-                    style={{ 
-                      height: '100%',
-                      resize: 'none',
-                      overflowY: 'scroll',
-                      scrollbarWidth: 'auto',
-                      scrollbarColor: '#4169e1 #2a2a2a'
-                    }}
-                  />
-                </div>
-              </div>
-              
-              {/* Validation Panel - 25% - Always visible */}
-              <div style={{ flex: '0 0 25%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                <div className={`turtle-validation-panel ${turtleValidation.isValid ? 'valid' : 'invalid'}`} style={{ 
-                  height: '100%',
-                  overflowY: 'auto',
-                  marginTop: 0,
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}>
-                  {!turtleContent.trim() ? (
-                    <div style={{ color: 'var(--dark-text-secondary)', fontStyle: 'italic', padding: '20px', textAlign: 'center' }}>
-                      Enter Turtle content to see validation results
+                ) : turtleValidation.isValid ? (
+                  <div className="validation-success">
+                    <span className="validation-icon">✅</span>
+                    <span className="validation-message">Valid Turtle syntax</span>
+                  </div>
+                ) : (
+                  <div className="validation-errors" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                    <div className="validation-header">
+                      <span className="validation-icon">❌</span>
+                      <span className="validation-message">Turtle Syntax Errors:</span>
                     </div>
-                  ) : turtleValidation.isValid ? (
-                    <div className="validation-success">
-                      <span className="validation-icon">✅</span>
-                      <span className="validation-message">Valid Turtle syntax</span>
-                    </div>
-                  ) : (
-                    <div className="validation-errors" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                      <div className="validation-header">
-                        <span className="validation-icon">❌</span>
-                        <span className="validation-message">Turtle Syntax Errors:</span>
-                      </div>
-                      <ul className="error-list" style={{ flex: 1, overflowY: 'auto', margin: '8px 0', paddingLeft: '20px' }}>
-                        {turtleValidation.errors.map((error, index) => (
-                          <li key={index} className="error-item">
-                            <span className="error-location">
-                              Line {error.line}, Column {error.column}:
-                            </span>
-                            <span className="error-message">{error.message}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
+                    <ul className="error-list" style={{ flex: 1, overflowY: 'auto', margin: '8px 0', paddingLeft: '20px' }}>
+                      {turtleValidation.errors.map((error, index) => (
+                        <li key={index} className="error-item">
+                          <span className="error-location">
+                            Line {error.line}, Column {error.column}:
+                          </span>
+                          <span className="error-message">{error.message}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           </div>
