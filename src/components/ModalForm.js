@@ -3,6 +3,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { Parser } from 'n3';
 import fieldInstructions from '../fieldInstructions';
 import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
+import CodeMirror from '@uiw/react-codemirror';
+import { StreamLanguage } from '@codemirror/language';
+import { turtle } from '@codemirror/legacy-modes/mode/turtle';
 
 
 function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null, aiEnabledByDefault = false, turtleModeEnabled = false }) {
@@ -2820,25 +2823,42 @@ const handleCancelEditExampleResource = () => {
           <div style={{ display: 'flex', gap: '16px', height: 'calc(100% - 40px)' }}>
             {/* Editor section - 70% */}
             <div style={{ flex: '0 0 70%', display: 'flex', flexDirection: 'column' }}>
-              <div className="turtle-editor-container" style={{ height: '100%', display: 'flex' }}>
-                <div className="line-numbers" style={{ overflowY: 'scroll', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                  {turtleContent.split('\n').map((_, index) => (
-                    <div key={index} className="line-number">{index + 1}</div>
-                  ))}
-                </div>
-                <textarea
-                  id="turtleContent"
-                  value={turtleContent}
-                  onChange={(e) => setTurtleContent(e.target.value)}
-                  placeholder="Enter your Turtle/RDF content here..."
-                  className="turtle-textarea turtle-textarea-always-scroll"
-                  style={{ 
-                    height: '100%',
-                    resize: 'none',
-                    overflowY: 'scroll !important'
-                  }}
-                />
-              </div>
+              <CodeMirror
+                value={turtleContent}
+                height="100%"
+                extensions={[StreamLanguage.define(turtle)]}
+                onChange={(value) => setTurtleContent(value)}
+                theme="dark"
+                basicSetup={{
+                  lineNumbers: true,
+                  highlightActiveLineGutter: true,
+                  highlightSpecialChars: true,
+                  foldGutter: true,
+                  drawSelection: true,
+                  dropCursor: true,
+                  allowMultipleSelections: true,
+                  indentOnInput: true,
+                  syntaxHighlighting: true,
+                  bracketMatching: true,
+                  closeBrackets: true,
+                  autocompletion: true,
+                  rectangularSelection: true,
+                  crosshairCursor: true,
+                  highlightActiveLine: true,
+                  highlightSelectionMatches: true,
+                  closeBracketsKeymap: true,
+                  searchKeymap: true,
+                  foldKeymap: true,
+                  completionKeymap: true,
+                  lintKeymap: true,
+                }}
+                style={{
+                  fontSize: '14px',
+                  fontFamily: "'Courier New', Courier, monospace",
+                  height: '100%',
+                  overflow: 'auto'
+                }}
+              />
             </div>
             
             {/* Validation Panel - 30% - Always visible */}

@@ -2737,3 +2737,143 @@ input.tag-input.tag-input-valid:focus,
 .turtle-textarea-always-scroll::-webkit-scrollbar-thumb:hover {
   background: #345bd3 !important;
 }
+
+/* CodeMirror Dark Theme Customization */
+.cm-editor {
+  height: 100%;
+  background-color: var(--dark-bg) !important;
+  color: var(--dark-text) !important;
+}
+
+.cm-scroller {
+  overflow: auto !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.cm-gutters {
+  background-color: var(--dark-surface-lighter) !important;
+  color: var(--dark-text-secondary) !important;
+  border-right: 1px solid var(--dark-border) !important;
+}
+
+.cm-activeLineGutter {
+  background-color: rgba(74, 144, 226, 0.1) !important;
+}
+
+.cm-activeLine {
+  background-color: rgba(74, 144, 226, 0.05) !important;
+}
+
+.cm-selectionBackground {
+  background-color: rgba(74, 144, 226, 0.3) !important;
+}
+
+.cm-cursor {
+  border-left-color: var(--dark-text) !important;
+}
+
+/* Turtle Syntax Highlighting */
+.cm-keyword {
+  color: #c678dd !important;
+}
+
+.cm-atom {
+  color: #d19a66 !important;
+}
+
+.cm-number {
+  color: #d19a66 !important;
+}
+
+.cm-def {
+  color: #61afef !important;
+}
+
+.cm-variable {
+  color: #e06c75 !important;
+}
+
+.cm-variable-2 {
+  color: #56b6c2 !important;
+}
+
+.cm-variable-3 {
+  color: #c678dd !important;
+}
+
+.cm-property {
+  color: #61afef !important;
+}
+
+.cm-operator {
+  color: #abb2bf !important;
+}
+
+.cm-comment {
+  color: #5c6370 !important;
+  font-style: italic !important;
+}
+
+.cm-string {
+  color: #98c379 !important;
+}
+
+.cm-string-2 {
+  color: #98c379 !important;
+}
+
+.cm-meta {
+  color: #e5c07b !important;
+}
+
+.cm-qualifier {
+  color: #e5c07b !important;
+}
+
+.cm-builtin {
+  color: #e06c75 !important;
+}
+
+.cm-bracket {
+  color: #abb2bf !important;
+}
+
+.cm-tag {
+  color: #e06c75 !important;
+}
+
+.cm-attribute {
+  color: #d19a66 !important;
+}
+
+.cm-link {
+  color: #56b6c2 !important;
+  text-decoration: underline !important;
+}
+
+/* Custom scrollbar for CodeMirror */
+.cm-scroller::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.cm-scroller::-webkit-scrollbar-track {
+  background: var(--dark-surface-lighter);
+  border-radius: 4px;
+}
+
+.cm-scroller::-webkit-scrollbar-thumb {
+  background: #4169e1;
+  border-radius: 4px;
+  border: 2px solid var(--dark-surface-lighter);
+}
+
+.cm-scroller::-webkit-scrollbar-thumb:hover {
+  background: #345bd3;
+}
+
+.cm-scroller::-webkit-scrollbar-corner {
+  background: var(--dark-surface-lighter);
+}
