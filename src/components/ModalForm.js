@@ -71,8 +71,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [activeField, setActiveField] = useState(null);
   const [openaiProcessingTime, setOpenaiProcessingTime] = useState(0);
   
-  // Countdown timer state (20 minutes = 1200 seconds)
-  const [timeRemaining, setTimeRemaining] = useState(1200);
+  // Countdown timer state (45 minutes = 2700 seconds)
+  const [timeRemaining, setTimeRemaining] = useState(2700);
   const [timerActive, setTimerActive] = useState(true);
   const [formOpenedAt] = useState(new Date().toISOString());
   const [autoSubmittedByTimer, setAutoSubmittedByTimer] = useState(false);
