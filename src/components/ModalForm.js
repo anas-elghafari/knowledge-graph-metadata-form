@@ -62,7 +62,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [message, setMessage] = useState('');
   const [bypassValidation, setBypassValidation] = useState(true);
   // State for AI suggestions
-  const [showAISuggestions, setShowAISuggestions] = useState(aiEnabledByDefault);
+  const [showAISuggestions, setShowAISuggestions] = useState(true); // Always show AI panel
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [processingStartTime, setProcessingStartTime] = useState(null);

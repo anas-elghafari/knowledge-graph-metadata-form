@@ -46,36 +46,22 @@ const suggestionSchema = {
 export const getFieldSuggestions = async (fieldName, context, cheatSheetContent = '') => {
   try {
      
-    let prompt = `You are helping fill out metadata form based on a provided cheat sheet.
+    let prompt = `You are helping fill out metadata form for a knowledge graph dataset about the YAGO ontology.
     
 Field: "${fieldName}"
 Dataset Context: "${context}"
 
-${cheatSheetContent ? `Reference Information (Cheat Sheet):
-${cheatSheetContent}
-
-Use the above reference information to provide more accurate and relevant suggestions.
-` : ''}
+This metadata form is specifically for the YAGO ontology, a large semantic knowledge base.
 
 Provide 1 to 3 candidate values for this field, ordered by likelihood of being correct (most likely first).
-For each suggestion, provide both the value and a short explanation of why you suggested it.
-
-If you cannot find good candidates, provide a "noSuggestionsReason" explaining why:
-- Does the field name not appear in the cheat sheet?
-- Does the field name appear but without a valid value?
-- Is the cheat sheet data unclear or incomplete for this field?
-
-Consider:
-- the cheat sheet provided is a spreadsheet of 3 columns
-- The field names are in the first column in cheatsheet  
-- The values (answers to be filled in) are in the third column in cheatsheet`;
+For each suggestion, provide both the value and a short explanation of why you suggested it based on your knowledge of YAGO and knowledge graph metadata best practices.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { 
           role: "system", 
-          content: "Your task is to fill a metadata form based on cheat sheet data. For each suggestion, provide both the value and a brief explanation of why you suggested it based on the cheat sheet content." 
+          content: "Your task is to fill a metadata form for the YAGO ontology knowledge graph. For each suggestion, provide both the value and a brief explanation of why you suggested it based on your knowledge of YAGO and knowledge graph best practices." 
         },
         { role: "user", content: prompt }
       ],
@@ -204,26 +190,16 @@ export const getBulkFieldSuggestions = async (fieldDefinitions, cheatSheetConten
       `- ${field.name}: ${field.instruction || 'No specific instruction provided'}`
     ).join('\n');
 
-    const prompt = `You are helping fill out metadata for a knowledge graph dataset. The cheat sheet provided below contains ALL the information you need to generate accurate suggestions.
+    const prompt = `You are helping fill out metadata for a knowledge graph dataset about the YAGO ontology. This metadata form is specifically for the YAGO ontology, a large semantic knowledge base.
 
 Field Definitions:
 ${fieldDescriptions}
 
-CRITICAL REFERENCE INFORMATION (Cheat Sheet):
-${cheatSheetContent}
-
 IMPORTANT INSTRUCTIONS:
-- The cheat sheet above is your PRIMARY and MOST IMPORTANT source of information
-- Extract specific values, names, URLs, dates, and details DIRECTLY from the cheat sheet content
-- Do NOT use generic or placeholder suggestions - use ACTUAL data from the cheat sheet
-- For each field, scan the cheat sheet thoroughly to find relevant information
-- If the cheat sheet mentions specific datasets, organizations, people, URLs, or technical details, use those exact values
-- Prioritize information that appears explicitly in the cheat sheet over general knowledge
-- SPECIAL CASE: If a field contains "NS" (not supplied), return empty suggestions with explanation that the field exists but has no value provided
-
-FIELD NAME MATCHING:
-- Field names in the form may NOT match exactly with names in the cheat sheet
-- Look for variations in capitalization, spacing, and slightly different wording or phrasing.
+- Use your knowledge of the YAGO ontology to provide accurate and relevant suggestions
+- Provide specific values, names, URLs, dates, and details based on YAGO's characteristics
+- Do NOT use generic or placeholder suggestions - use information relevant to YAGO
+- For each field, consider what would be appropriate metadata for the YAGO knowledge graph
 
 MULTI-VALUE FIELDS HANDLING:
 - The following fields accept multiple values: vocabulariesUsed, keywords, category, language, otherPages, statistics, source
@@ -382,7 +358,7 @@ HANDLING "NS" VALUES:
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. Your PRIMARY task is to extract specific information from the provided cheat sheet content. NEVER use generic suggestions - only use actual data found in the cheat sheet. Use semantic matching to find relevant data even when field names don't match exactly - look for variations in capitalization, spacing, and wording. IMPORTANT: If a field value is 'NS' (not supplied), return empty suggestions with explanation that the field exists but no value is provided. For each suggestion, provide both the value and a brief explanation of why you suggested it based on the cheat sheet content." },
+        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging, with specific expertise in the YAGO ontology. Your task is to provide accurate metadata suggestions for YAGO based on your knowledge of this knowledge graph. Provide specific, relevant suggestions based on YAGO's characteristics, structure, and purpose. For each suggestion, provide both the value and a brief explanation of why you suggested it based on your knowledge of YAGO." },
         { role: "user", content: prompt }
       ],
       response_format: {
