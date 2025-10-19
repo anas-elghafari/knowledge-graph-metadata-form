@@ -71,6 +71,8 @@ function App() {
   // Handle opening the modal with a new form
   const handleOpenModal = () => {
     setDraftToLoad(null); // Reset any loaded draft
+    setAiEnabledByDefault(false); // Ensure AI mode is off for normal form
+    setTurtleModeEnabled(false); // Ensure Turtle mode is off
     setShowModal(true);
   };
 
@@ -78,12 +80,14 @@ function App() {
   const handleOpenModalWithAI = () => {
     setDraftToLoad(null); // Reset any loaded draft
     setAiEnabledByDefault(true);
+    setTurtleModeEnabled(false); // Ensure Turtle mode is off
     setShowModal(true);
   };
 
   // Handle opening the modal with Turtle mode enabled
   const handleOpenModalWithTurtle = () => {
     setDraftToLoad(null); // Reset any loaded draft
+    setAiEnabledByDefault(false); // Ensure AI mode is off
     setTurtleModeEnabled(true);
     setShowModal(true);
   };

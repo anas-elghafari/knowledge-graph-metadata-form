@@ -40,10 +40,10 @@ const suggestionSchema = {
  * Get AI suggestions for a form field with structured output
  * @param {string} fieldName - The field name
  * @param {string} context - Context about the dataset
- * @param {string} cheatSheetContent - Optional cheat sheet content to help generate better suggestions
+ * @param {string} narrativeContent - Optional ontology narrative content to help generate better suggestions
  * @returns {Promise<string>} - Formatted AI response
  */
-export const getFieldSuggestions = async (fieldName, context, cheatSheetContent = '') => {
+export const getFieldSuggestions = async (fieldName, context, narrativeContent = '') => {
   try {
      
     let prompt = `You are helping fill out metadata form for a knowledge graph dataset about the YAGO ontology.
@@ -183,29 +183,30 @@ const bulkSuggestionSchema = {
   required: ["fieldSuggestions"]
 };
 
-// Function to get bulk suggestions for all fields at once
-export const getBulkFieldSuggestions = async (fieldDefinitions, cheatSheetContent) => {
-  try {
-    const fieldDescriptions = fieldDefinitions.map(field => 
-      `- ${field.name}: ${field.instruction || 'No specific instruction provided'}`
-    ).join('\n');
+// Build the prompt for bulk field suggestions
+export const buildBulkSuggestionsPrompt = (fieldDefinitions, narrativeContent) => {
+  const fieldDescriptions = fieldDefinitions.map(field => 
+    `- ${field.name}: ${field.instruction || 'No specific instruction provided'}`
+  ).join('\n');
 
-    const prompt = `You are helping fill out metadata for a knowledge graph dataset about the YAGO ontology. This metadata form is specifically for the YAGO ontology, a large semantic knowledge base.
+  return `We would like to fill out the following form based on the information in the following narrative file.
 
-Field Definitions:
+Form Fields and Descriptions:
 ${fieldDescriptions}
 
+Ontology Narrative Description:
+${narrativeContent}
+
+Please find all potential answers for each field from the narrative description above.
+
 IMPORTANT INSTRUCTIONS:
-- Use your knowledge of the YAGO ontology to provide accurate and relevant suggestions
-- Provide specific values, names, URLs, dates, and details based on YAGO's characteristics
-- Do NOT use generic or placeholder suggestions - use information relevant to YAGO
-- For each field, consider what would be appropriate metadata for the YAGO knowledge graph
 
 MULTI-VALUE FIELDS HANDLING:
-- The following fields accept multiple values: vocabulariesUsed, keywords, category, language, otherPages, statistics, source
-- If the cheat sheet contains multiple values for these fields, you MUST split them into separate suggestions
+- The following fields accept multiple values: vocabulariesUsed, keywords, category, language, otherPages, statistics, source, alternativeTitle, acronym, homepageURL, modifiedDate, primaryReferenceDocument, metaGraph, kgSchema, restAPI, exampleQueries, publicationReferences, iriTemplate, nameSpace
+- If the narrative contains multiple values for these fields, you MUST split them into separate suggestions
 - Split on ANY of these delimiters: commas (,), semicolons (;), the word "and", pipe symbols (|), or line breaks
 - Each atomic value should be a separate suggestion
+- IMPORTANT: For multi-value fields, provide ALL relevant values as a LIST of separate suggestions so users can select and add them all at once
 - Examples:
   * "English, French, German" → 3 separate suggestions: ["English", "French", "German"]
   * "keyword1; keyword2 and keyword3" → 3 separate suggestions: ["keyword1", "keyword2", "keyword3"]
@@ -213,6 +214,7 @@ MULTI-VALUE FIELDS HANDLING:
 - Trim whitespace from each value
 - Do NOT combine multiple values into a single suggestion with commas
 - Return each atomic value as a separate item in the suggestions array
+- The UI will display an "Add All" button for multi-value fields so users can populate all values in one click
 
 SPECIAL HANDLING FOR STATISTICS FIELD:
 - The statistics field requires SEMANTIC SPLITTING - each distinct fact or piece of information should be a separate suggestion
@@ -223,11 +225,11 @@ SPECIAL HANDLING FOR STATISTICS FIELD:
   * "subClassOf: 126792 facts, type: 2011072 facts, context: 40000000 facts" → 3 suggestions: ["subClassOf: 126792 facts", "type: 2011072 facts", "context: 40000000 facts"]
   * "describes: 997061 facts, bornInYear: 189950 facts, diedInYear: 93827 facts" → 3 suggestions: ["describes: 997061 facts", "bornInYear: 189950 facts", "diedInYear: 93827 facts"]
 - Each suggestion should be a complete, standalone statistical statement
-- Do NOT rewrite or paraphrase - use the exact text from the cheat sheet, only removing conjunctions
+- Do NOT rewrite or paraphrase - use the exact text from the narrative, only removing conjunctions
 - Look for patterns like "X: Y facts", "X entities", "X triples", etc. and split each into a separate suggestion
 
 SPECIAL HANDLING FOR ROLES FIELD:
-- Look for role-related fields in cheat sheet and map them to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder
+- Look for role-related fields in narrative and map them to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder
 - Common mappings:
   * "publishedBy", "publisher", "published by" → "publisher"
   * "fundedBy", "funder", "funded by", "funding" → "funder" 
@@ -239,15 +241,15 @@ SPECIAL HANDLING FOR ROLES FIELD:
 - Split on commas, semicolons, "and", or other delimiters to identify individual entities
 - EMAIL HANDLING: The "mbox" field refers to email addresses
   * If you find an email address (e.g., "contact@example.org", "john.doe@university.edu"), put it in the "email" field of roleData
-  * Use the email address exactly as found in the cheat sheet - do NOT add any prefix
-  * Look for email patterns in the cheat sheet: text containing "@" followed by a domain
+  * Use the email address exactly as found in the narrative - do NOT add any prefix
+  * Look for email patterns in the narrative: text containing "@" followed by a domain
   * Common field names for emails: "email", "e-mail", "contact", "mbox"
 - For roles field, return multiple suggestions with roleData:
   {
     "suggestions": [
       {
         "value": "publisher: XYZ Organization (contact@xyz.org)",
-        "explanation": "Found 'published by XYZ Organization' with email in cheat sheet",
+        "explanation": "Found 'published by XYZ Organization' with email in narrative",
         "roleData": {
           "roleType": "publisher",
           "mode": "name_mbox",
@@ -257,7 +259,7 @@ SPECIAL HANDLING FOR ROLES FIELD:
       },
       {
         "value": "funder: ABC Foundation", 
-        "explanation": "Found 'funded by ABC Foundation' in cheat sheet",
+        "explanation": "Found 'funded by ABC Foundation' in narrative",
         "roleData": {
           "roleType": "funder",
           "mode": "name_mbox", 
@@ -266,31 +268,31 @@ SPECIAL HANDLING FOR ROLES FIELD:
       }
     ]
   }
-- Extract actual names/organizations from the cheat sheet, don't use generic placeholders
+- Extract actual names/organizations from the narrative, don't use generic placeholders
 - Use "name_mbox" mode when you have name and/or email; use "iri" mode only if you find a clear IRI/URL for the entity
 - If multiple entities for same role type, create separate roleData entries for each (don't combine them)
 
 SPECIAL HANDLING FOR LICENSE FIELD:
 - For license field, the available options will be provided in the field instruction
 - Match license names (MIT, Apache, GPL, BSD, Creative Commons, etc.) to the corresponding URLs
-- If the cheat sheet contains a license URL directly, extract and match it exactly to one of the available options
-- Look for URLs in the cheat sheet content even if surrounded by other text (e.g., "Licensed under https://opensource.org/licenses/MIT for open use")
+- If the narrative contains a license URL directly, extract and match it exactly to one of the available options
+- Look for URLs in the narrative content even if surrounded by other text (e.g., "Licensed under https://opensource.org/licenses/MIT for open use")
 - Return only URLs that exactly match the available dropdown options
 
 SPECIAL HANDLING FOR DISTRIBUTIONS FIELD:
 - Distributions are complex subsections with multiple subfields (title, description, mediaType, downloadURL, accessURL, byteSize, license, rights, spatialResolution, temporalResolution, releaseDate, modificationDate, issued)
-- Look for distribution-related data in the cheat sheet under names like: "distributions", "download", "access", "files", "downloadURL", "accessURL"
+- Look for distribution-related data in the narrative under names like: "distributions", "download", "access", "files", "downloadURL", "accessURL"
 - CRITICAL: The "value" field MUST be a valid JSON string containing the distribution object
-- Extract ALL distribution-related information you find from the cheat sheet
+- Extract ALL distribution-related information you find from the narrative
 - Example format for the value field:
   {
     "value": "{\"title\": \"YAGO files\", \"description\": \"YAGO download page\", \"mediaType\": \"link\", \"downloadURL\": \"http://yago-knowledge.org\", \"accessURL\": \"http://yago-knowledge.org\"}",
-    "explanation": "Found distribution data in cheat sheet"
+    "explanation": "Found distribution data in narrative"
   }
 - IMPORTANT: Escape quotes in the JSON string properly
-- Include ALL fields you can extract from the cheat sheet (title, description, mediaType, downloadURL, accessURL, etc.)
-- If the cheat sheet shows a JSON structure for distributions, parse it and extract each field
-- Provide multiple suggestions if multiple distributions are found in the cheat sheet
+- Include ALL fields you can extract from the narrative (title, description, mediaType, downloadURL, accessURL, etc.)
+- If the narrative shows a JSON structure for distributions, parse it and extract each field
+- Provide multiple suggestions if multiple distributions are found in the narrative
 
 SPECIAL HANDLING FOR SPARQL ENDPOINT FIELD:
 - SPARQL endpoints are complex subsections with subfields (endpointURL, identifier, title, endpointDescription, status)
@@ -299,9 +301,9 @@ SPECIAL HANDLING FOR SPARQL ENDPOINT FIELD:
 - Example format:
   {
     "value": "{\"endpointURL\": \"https://query.Yago.org/sparql\", \"title\": \"Yago Query Service\", \"endpointDescription\": \"The Wikidata Query Service\"}",
-    "explanation": "Found SPARQL endpoint data in cheat sheet"
+    "explanation": "Found SPARQL endpoint data in narrative"
   }
-- Include ALL fields you can extract from the cheat sheet
+- Include ALL fields you can extract from the narrative
 - Provide multiple suggestions if multiple endpoints are found
 
 SPECIAL HANDLING FOR EXAMPLE RESOURCE FIELD:
@@ -311,9 +313,9 @@ SPECIAL HANDLING FOR EXAMPLE RESOURCE FIELD:
 - Example format:
   {
     "value": "{\"title\": \"Sample Entity\", \"description\": \"Example of a resource\", \"accessURL\": \"http://example.org/resource\"}",
-    "explanation": "Found example resource data in cheat sheet"
+    "explanation": "Found example resource data in narrative"
   }
-- Include ALL fields you can extract from the cheat sheet
+- Include ALL fields you can extract from the narrative
 - Provide multiple suggestions if multiple example resources are found
 
 SPECIAL HANDLING FOR LINKED RESOURCES FIELD:
@@ -323,9 +325,9 @@ SPECIAL HANDLING FOR LINKED RESOURCES FIELD:
 - Example format:
   {
     "value": "{\"target\": \"http://dbpedia.org\", \"triples\": \"1000000\"}",
-    "explanation": "Found linked resource data in cheat sheet"
+    "explanation": "Found linked resource data in narrative"
   }
-- Include ALL fields you can extract from the cheat sheet
+- Include ALL fields you can extract from the narrative
 - Provide multiple suggestions if multiple linked resources are found
 
 RESPONSE FORMAT:
@@ -338,11 +340,11 @@ Example:
   "fieldSuggestions": {
     "title": {
       "suggestions": [
-        {"value": "QuoteKG Dataset", "explanation": "Found in cheat sheet as main dataset name"}
+        {"value": "QuoteKG Dataset", "explanation": "Found in narrative as main dataset name"}
       ]
     },
     "someField": {
-      "noSuggestionsReason": "Field name does not appear in the cheat sheet"
+      "noSuggestionsReason": "Field name does not appear in the narrative"
     }
   }
 }
@@ -350,15 +352,21 @@ Example:
 Provide 1-4 candidate values for each field, ordered by likelihood of being correct.
 
 HANDLING "NS" VALUES:
-- If you find a field in the cheat sheet but its value is "NS" (not supplied), return:
+- If you find a field in the narrative but its value is "NS" (not supplied), return:
   {
-    "noSuggestionsReason": "Field found in cheat sheet but marked as 'NS' (not supplied) - no value provided"
+    "noSuggestionsReason": "Field found in narrative but marked as 'NS' (not supplied) - no value provided"
   }`;
+};
+
+// Function to get bulk suggestions for all fields at once
+export const getBulkFieldSuggestions = async (fieldDefinitions, narrativeContent) => {
+  try {
+    const prompt = buildBulkSuggestionsPrompt(fieldDefinitions, narrativeContent);
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging, with specific expertise in the YAGO ontology. Your task is to provide accurate metadata suggestions for YAGO based on your knowledge of this knowledge graph. Provide specific, relevant suggestions based on YAGO's characteristics, structure, and purpose. For each suggestion, provide both the value and a brief explanation of why you suggested it based on your knowledge of YAGO." },
+        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. Your task is to extract information from the provided ontology narrative description to fill out metadata form fields. For each suggestion, provide both the value and a brief explanation of where you found it in the narrative." },
         { role: "user", content: prompt }
       ],
       response_format: {
@@ -368,16 +376,25 @@ HANDLING "NS" VALUES:
           schema: bulkSuggestionSchema
         }
       },
-      max_tokens: 4000,
+      max_tokens: 16000,
       temperature: 0.2
     });
 
     const rawContent = response.choices[0].message.content;
+    const finishReason = response.choices[0].finish_reason;
     console.log('Raw AI response:', rawContent);
+    console.log('Raw AI response length:', rawContent.length);
+    console.log('Finish reason:', finishReason);
+    
+    if (finishReason === 'length') {
+      console.warn('⚠️ WARNING: OpenAI response was truncated due to max_tokens limit!');
+      console.warn('Some field suggestions may be missing. Consider increasing max_tokens or reducing field count.');
+    }
     
     try {
       const result = JSON.parse(rawContent);
       console.log('Bulk suggestion result:', result);
+      console.log('Number of fields in parsed result:', result.fieldSuggestions ? Object.keys(result.fieldSuggestions).length : 0);
       return result;
     } catch (parseError) {
       console.error('JSON parse error:', parseError);

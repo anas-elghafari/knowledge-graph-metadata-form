@@ -30,7 +30,7 @@ body {
 }
 
 .App {
-  max-width: 1200px;
+  max-width: 95vw;
   margin: 0 auto;
   padding: 20px;
   overflow-x: hidden;
@@ -138,7 +138,7 @@ main {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   border: 1px solid var(--dark-border); 
   width: 100%;
-  max-width: 1000px; 
+  max-width: 75vw; 
   overflow-x: hidden;
   margin: 0 auto;
   box-sizing: border-box; 
@@ -480,8 +480,8 @@ select {
 .modal-content {
   background-color: var(--dark-surface);
   border-radius: 8px;
-  width: 90%;
-  max-width: 600px;
+  width: 75%;
+  max-width: 75vw;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
@@ -490,12 +490,12 @@ select {
 }
 
 .modal-content.with-ai-panel {
-  max-width: 720px; /* Slightly wider than regular form (600px) */
+  max-width: 85vw; /* Wider to accommodate AI panel */
 }
 
 .modal-content.turtle-mode-wide {
-  max-width: 1200px; /* Much wider for turtle mode */
-  width: 95%;
+  max-width: 90vw; /* Much wider for turtle mode */
+  width: 90%;
 }
 
 .modal-content-wrapper {
@@ -514,7 +514,7 @@ select {
   width: 350px;
   background-color: var(--dark-bg);
   border-left: 1px solid var(--dark-border);
-  display: none !important; /* Hide AI panel */
+  display: flex;
   flex-direction: column;
   overflow: hidden;
   position: sticky;
@@ -543,7 +543,29 @@ select {
 .ai-panel-content {
   flex: 1;
   padding: 16px;
-  overflow-y: auto;
+  overflow-y: scroll; /* Force scrollbar to always show */
+}
+
+/* Custom scrollbar for AI panel */
+.ai-panel-content::-webkit-scrollbar {
+  width: 10px;
+  display: block;
+}
+
+.ai-panel-content::-webkit-scrollbar-track {
+  background: var(--dark-surface-lighter);
+  border-radius: 4px;
+}
+
+.ai-panel-content::-webkit-scrollbar-thumb {
+  background: #4169e1;
+  border-radius: 4px;
+  border: 2px solid var(--dark-surface-lighter);
+  min-height: 40px; /* Ensure thumb has minimum height */
+}
+
+.ai-panel-content::-webkit-scrollbar-thumb:hover {
+  background: #345bd3;
 }
 
 .ai-waiting-message {
@@ -658,6 +680,118 @@ select {
   color: white;
 }
 
+.add-all-container {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--dark-border);
+}
+
+.add-all-button {
+  width: 100%;
+  background: linear-gradient(135deg, var(--primary-blue) 0%, #5a8fd9 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+}
+
+.add-all-button:hover {
+  background: linear-gradient(135deg, #5a8fd9 0%, var(--primary-blue) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+}
+
+.add-all-button:active {
+  transform: translateY(0);
+}
+
+/* LLM Mode Toggle Styles */
+.llm-mode-toggle-container {
+  margin: 16px 0;
+  padding: 12px;
+  background-color: var(--dark-surface);
+  border: 1px solid var(--dark-border);
+  border-radius: 8px;
+}
+
+.llm-mode-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.llm-mode-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--primary-blue);
+}
+
+.llm-mode-text {
+  color: var(--dark-text);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.llm-mode-toggle-label:hover .llm-mode-text {
+  color: var(--primary-blue);
+}
+
+/* Prompt Preview Styles */
+.prompt-preview-section {
+  background-color: var(--dark-surface);
+  border: 1px solid var(--dark-border);
+  border-radius: 8px;
+  margin: 12px 0;
+  overflow: hidden;
+}
+
+.prompt-preview-toggle {
+  width: 100%;
+  background: var(--dark-surface-lighter);
+  color: var(--dark-text);
+  border: none;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prompt-preview-toggle:hover {
+  background-color: var(--dark-surface);
+  color: var(--primary-blue);
+}
+
+.prompt-preview-content {
+  max-height: 400px;
+  overflow-y: auto;
+  background-color: var(--dark-bg);
+  border-top: 1px solid var(--dark-border);
+}
+
+.prompt-preview-content pre {
+  margin: 0;
+  padding: 16px;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--dark-text-secondary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
 .suggestion-explanation {
   padding: 12px 20px;
   color: var(--dark-text-secondary);
@@ -696,7 +830,7 @@ select {
   font-style: italic;
 }
 
-.waiting-for-cheatsheet-message {
+.waiting-for-narrative-message {
   text-align: center;
   padding: 40px 20px;
   color: var(--dark-text-secondary);
@@ -721,7 +855,7 @@ select {
 }
 
 .large-modal .modal-content {
-  max-width: 800px;
+  max-width: 80vw;
 }
 
 .modal-header {
@@ -1155,7 +1289,7 @@ select {
   display: flex;
   align-items: center;
   background-color: rgba(74, 144, 226, 0.1);
-  border: 1px solid rgba(74, 144, 226, 0.2);
+  border: 1px solid rgba(76, 175, 80, 0.6);
   border-radius: 16px;
   padding: 4px 8px 4px 12px;
   font-size: 14px;
@@ -1784,7 +1918,7 @@ label[data-tooltip]:hover::before {
 
 /* AI Suggestion Tooltips */
 .ai-suggestion-tooltip {
-  display: none !important; /* Hide robot emoji icons */
+  display: inline-block;
   font-size: 16px;
   margin-left: 8px;
   cursor: pointer;
@@ -2108,8 +2242,8 @@ label:has(+ .form-input-error) .field-indicator {
 }
 
 .tag-item-valid {
-  /* Remove green validation styling from tag items */
-  border: 1px solid rgba(74, 144, 226, 0.2) !important;
+  /* Green validation styling for tag items */
+  border: 1px solid rgba(76, 175, 80, 0.6) !important;
   box-shadow: none !important;
 }
 

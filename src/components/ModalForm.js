@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Parser } from 'n3';
 import fieldInstructions from '../fieldInstructions';
-import { getFieldSuggestions, getBulkFieldSuggestions } from '../services/openai';
+import { getFieldSuggestions, getBulkFieldSuggestions, buildBulkSuggestionsPrompt } from '../services/openai';
 import CodeMirror from '@uiw/react-codemirror';
 import { StreamLanguage } from '@codemirror/language';
 import { turtle } from '@codemirror/legacy-modes/mode/turtle';
+import mammoth from 'mammoth';
 
 
 function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null, aiEnabledByDefault = false, turtleModeEnabled = false }) {
@@ -62,7 +63,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [message, setMessage] = useState('');
   const [bypassValidation, setBypassValidation] = useState(true);
   // State for AI suggestions
-  const [showAISuggestions, setShowAISuggestions] = useState(true); // Always show AI panel
+  const [showAISuggestions, setShowAISuggestions] = useState(false); // Hidden by default, user can toggle
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [processingStartTime, setProcessingStartTime] = useState(null);
@@ -71,8 +72,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [activeField, setActiveField] = useState(null);
   const [openaiProcessingTime, setOpenaiProcessingTime] = useState(0);
   
-  // Countdown timer state (45 minutes = 2700 seconds)
-  const [timeRemaining, setTimeRemaining] = useState(2700);
+  // Countdown timer state (20 minutes = 1200 seconds)
+  const [timeRemaining, setTimeRemaining] = useState(1200);
   const [timerActive, setTimerActive] = useState(true);
   const [formOpenedAt] = useState(new Date().toISOString());
   const [autoSubmittedByTimer, setAutoSubmittedByTimer] = useState(false);
@@ -170,11 +171,135 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     return () => clearTimeout(timeoutId);
   }, [turtleContent, showTurtleMode]);
   
-  // Cheat sheet upload state
-  const [cheatSheetFile, setCheatSheetFile] = useState(null);
-  const [cheatSheetContent, setCheatSheetContent] = useState('');
-  const [processingCheatSheet, setProcessingCheatSheet] = useState(false);
+  // Use aiEnabledByDefault prop to determine if this is LLM mode
+  const isLlmMode = aiEnabledByDefault;
+
+  // Ontology narrative description upload state
+  const [narrativeFile, setNarrativeFile] = useState(null);
+  const [narrativeContent, setNarrativeContent] = useState('');
+  const [processingNarrative, setProcessingNarrative] = useState(false);
   const [bulkSuggestionsReady, setBulkSuggestionsReady] = useState(false);
+
+  // State for prompt preview
+  const [showPromptPreview, setShowPromptPreview] = useState(false);
+
+  // Auto-show AI panel when narrative file is uploaded (LLM form), hide for normal entry
+  useEffect(() => {
+    console.log('=== AI PANEL VISIBILITY CHECK ===');
+    console.log('isLlmMode:', isLlmMode);
+    console.log('narrativeFile:', narrativeFile);
+    console.log('Should show AI panel:', isLlmMode && narrativeFile);
+    
+    if (isLlmMode && narrativeFile) {
+      console.log('Setting showAISuggestions to TRUE');
+      setShowAISuggestions(true); // Show AI panel for LLM-assisted form
+    } else {
+      console.log('Setting showAISuggestions to FALSE');
+      setShowAISuggestions(false); // Hide AI panel for normal manual entry
+    }
+  }, [narrativeFile, isLlmMode]);
+
+  // Debug logging for AI suggestions state
+  useEffect(() => {
+    console.log('=== AI SUGGESTIONS STATE DEBUG ===');
+    console.log('showAISuggestions:', showAISuggestions);
+    console.log('bulkSuggestionsReady:', bulkSuggestionsReady);
+    console.log('activeField:', activeField);
+    console.log('aiSuggestions keys:', Object.keys(aiSuggestions));
+    console.log('Number of suggestions:', Object.keys(aiSuggestions).length);
+  }, [showAISuggestions, bulkSuggestionsReady, activeField, aiSuggestions]);
+
+  // Function to generate prompt preview using the same prompt builder as the actual API call
+  const generatePromptPreview = () => {
+    // Build field definitions (same as processBulkSuggestions)
+    const fieldDefinitions = [];
+    
+    // Get all simple string/text fields from formData
+    Object.keys(formData).forEach(fieldName => {
+      const fieldValue = formData[fieldName];
+      const instruction = fieldInstructions[fieldName];
+      
+      if (instruction && (
+        typeof fieldValue === 'string' || 
+        (Array.isArray(fieldValue) && fieldValue.length === 0)
+      )) {
+        fieldDefinitions.push({
+          name: fieldName,
+          instruction: instruction
+        });
+      }
+    });
+    
+    // Add special case fields
+    fieldDefinitions.push({
+      name: 'roles',
+      instruction: 'Roles and responsibilities for this dataset (e.g., creator, publisher, funder)'
+    });
+    
+    fieldDefinitions.push({
+      name: 'distributions',
+      instruction: 'Distribution information for the dataset including title, description, mediaType, downloadURL, accessURL, byteSize, license, rights, spatial/temporal resolution, and dates. Look for fields like "distributions", "download", "access", "files", or similar in the cheat sheet.'
+    });
+    
+    fieldDefinitions.push({
+      name: 'sparqlEndpoint',
+      instruction: 'SPARQL endpoint information including endpointURL, identifier, title, description, and status. Look for fields like "sparql endpoint", "sparql", "query endpoint", or similar in the cheat sheet.'
+    });
+    
+    fieldDefinitions.push({
+      name: 'exampleResource',
+      instruction: 'Example resource information including title, description, status, and accessURL. Look for fields like "example resource", "example", "sample resource", or similar in the cheat sheet.'
+    });
+    
+    fieldDefinitions.push({
+      name: 'linkedResources',
+      instruction: 'Linked resources information including target and triples. Look for fields like "linked resources", "linkset", "links", or similar in the cheat sheet.'
+    });
+    
+    // Add special case for license field with available options (same as processBulkSuggestions)
+    if (formData.license === '') {
+      const licenseOptions = [
+        'https://opensource.org/licenses/MIT',
+        'https://opensource.org/licenses/Apache-2.0',
+        'https://opensource.org/licenses/GPL-3.0',
+        'https://opensource.org/licenses/GPL-2.0',
+        'https://opensource.org/licenses/LGPL-3.0',
+        'https://opensource.org/licenses/BSD-3-Clause',
+        'https://opensource.org/licenses/BSD-2-Clause',
+        'https://opensource.org/licenses/ISC',
+        'https://www.boost.org/LICENSE_1_0.txt',
+        'https://opensource.org/licenses/Zlib',
+        'http://www.wtfpl.net/',
+        'https://opensource.org/licenses/AGPL-3.0',
+        'https://opensource.org/licenses/MPL-2.0',
+        'https://opensource.org/licenses/EPL-1.0',
+        'https://opensource.org/licenses/EUPL-1.1',
+        'https://opensource.org/licenses/MS-PL',
+        'https://opensource.org/licenses/MS-RL',
+        'https://opensource.org/licenses/CDDL-1.0',
+        'https://opensource.org/licenses/Artistic-2.0',
+        'https://opensource.org/licenses/AFL-3.0',
+        'https://creativecommons.org/licenses/by/4.0/',
+        'https://creativecommons.org/licenses/by-sa/4.0/',
+        'https://creativecommons.org/licenses/by-nc/4.0/',
+        'https://creativecommons.org/licenses/by-nc-sa/4.0/',
+        'https://creativecommons.org/publicdomain/zero/1.0/',
+        'https://unlicense.org/'
+      ];
+      
+      fieldDefinitions.push({
+        name: 'license',
+        instruction: `License for the metadata. Available options: ${licenseOptions.join(', ')}. Match license names (MIT, Apache, GPL, etc.) or extract exact URLs from cheat sheet content.`
+      });
+    }
+    
+    // Use placeholder text if narrative not uploaded yet
+    const contentForPreview = narrativeContent || 
+      `[NARRATIVE FILE CONTENT - ${narrativeFile ? narrativeFile.name : 'No file uploaded'} - ${narrativeContent ? `${narrativeContent.length} characters` : '0 characters'}]`;
+    
+    // Use the same prompt builder function that's used for the actual API call
+    return buildBulkSuggestionsPrompt(fieldDefinitions, contentForPreview);
+  };
 
   // Function to get AI suggestion for a field
   const getAISuggestion = async (fieldName) => {
@@ -185,7 +310,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       // Create context from current form data
       const context = formData.title || formData.description || 'Dataset metadata form';
       
-      const suggestion = await getFieldSuggestions(fieldName, context, cheatSheetContent);
+      const suggestion = await getFieldSuggestions(fieldName, context, narrativeContent);
       setAiSuggestions(prev => ({ ...prev, [fieldName]: suggestion }));
     } catch (error) {
       console.error(`Error getting AI suggestion for ${fieldName}:`, error);
@@ -195,7 +320,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     }
   };
 
-  // Function to populate field with selected suggestion
+  // Function to populate field with selected suggestion (single or multiple values)
   const populateFieldWithSuggestion = (fieldName, value) => {
     // Handle different field types
     if (fieldName === 'title' || fieldName === 'description') {
@@ -203,10 +328,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     } else if (fieldName === 'createdDate' || fieldName === 'publishedDate') {
       setFormData(prev => ({ ...prev, [fieldName]: value }));
     } else if (Array.isArray(formData[fieldName])) {
-      // For array fields, add to the array if not already present
+      // For array fields, value can be a single string or an array of strings
+      const valuesToAdd = Array.isArray(value) ? value : [value];
       setFormData(prev => ({
         ...prev,
-        [fieldName]: prev[fieldName].includes(value) ? prev[fieldName] : [...prev[fieldName], value]
+        [fieldName]: [...prev[fieldName], ...valuesToAdd.filter(v => !prev[fieldName].includes(v))]
       }));
     } else {
       // For other fields, set directly
@@ -214,18 +340,21 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     }
   };
 
-  // Handle file upload for cheat sheet (CSV only)
-  const handleCheatSheetUpload = async (event) => {
+  // Handle file upload for ontology narrative description (TXT or DOCX)
+  const handleNarrativeUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Check if it's a CSV file
-      if (!file.name.endsWith('.csv')) {
-        alert('Please upload a CSV file only.');
+      // Check if it's a TXT or DOCX file
+      const isText = file.name.endsWith('.txt');
+      const isDocx = file.name.endsWith('.docx');
+      
+      if (!isText && !isDocx) {
+        alert('Please upload a TXT or DOCX file only.');
         event.target.value = ''; // Clear the input
         return;
       }
       
-      setCheatSheetFile(file);
+      setNarrativeFile(file);
       
       // Start timing BEFORE file reading begins
       const startTime = Date.now();
@@ -233,30 +362,55 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       console.log('=== TIMING START ===');
       console.log('Upload button clicked at:', startTime);
       
-      const reader = new FileReader();
-      
-      reader.onload = async (e) => {
-        const fileReadTime = Date.now();
-        console.log('File read completed at:', fileReadTime);
-        console.log('File reading took:', fileReadTime - startTime, 'ms');
+      try {
+        let content = '';
         
-        const content = e.target.result;
-        setCheatSheetContent(content);
-        console.log('Cheat sheet uploaded:', content.substring(0, 200) + '...');
-        
-        // Process bulk suggestions with the startTime from upload
-        await processBulkSuggestions(content, startTime);
-      };
-      
-      reader.readAsText(file);
+        if (isText) {
+          // Handle TXT files
+          const reader = new FileReader();
+          
+          reader.onload = async (e) => {
+            const fileReadTime = Date.now();
+            console.log('File read completed at:', fileReadTime);
+            console.log('File reading took:', fileReadTime - startTime, 'ms');
+            
+            content = e.target.result;
+            setNarrativeContent(content);
+            console.log('Ontology narrative uploaded (TXT):', content.substring(0, 200) + '...');
+            
+            // Process bulk suggestions with the startTime from upload
+            await processBulkSuggestions(content, startTime);
+          };
+          
+          reader.readAsText(file);
+        } else if (isDocx) {
+          // Handle DOCX files using mammoth
+          const arrayBuffer = await file.arrayBuffer();
+          const fileReadTime = Date.now();
+          console.log('File read completed at:', fileReadTime);
+          console.log('File reading took:', fileReadTime - startTime, 'ms');
+          
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          content = result.value;
+          setNarrativeContent(content);
+          console.log('Ontology narrative uploaded (DOCX):', content.substring(0, 200) + '...');
+          
+          // Process bulk suggestions with the startTime from upload
+          await processBulkSuggestions(content, startTime);
+        }
+      } catch (error) {
+        console.error('Error reading file:', error);
+        alert('Error reading file. Please try again.');
+        event.target.value = ''; // Clear the input
+      }
     }
   };
 
   // Process bulk AI suggestions for all fields
-  const processBulkSuggestions = async (cheatSheetContent, startTime = null) => {
+  const processBulkSuggestions = async (narrativeContent, startTime = null) => {
     try {
       setLoadingSuggestions(true);
-      console.log('Processing bulk suggestions with cheat sheet content');
+      console.log('Processing bulk suggestions with narrative content');
       
       // Dynamically construct field definitions from form data and field instructions
       const fieldDefinitions = [];
@@ -347,11 +501,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       }
       
       console.log('Dynamic field definitions:', fieldDefinitions);
+      console.log('Number of field definitions being sent to OpenAI:', fieldDefinitions.length);
+      console.log('Field names being sent:', fieldDefinitions.map(f => f.name));
       
       // Track OpenAI API processing time specifically
       const openaiStartTime = Date.now();
       console.log('OpenAI API call started at:', openaiStartTime);
-      const bulkResponse = await getBulkFieldSuggestions(fieldDefinitions, cheatSheetContent);
+      const bulkResponse = await getBulkFieldSuggestions(fieldDefinitions, narrativeContent);
       const openaiEndTime = Date.now();
       const openaiDuration = openaiEndTime - openaiStartTime;
       console.log('OpenAI API call ended at:', openaiEndTime);
@@ -359,6 +515,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       setOpenaiProcessingTime(openaiDuration);
       
       console.log('Bulk response received:', bulkResponse);
+      console.log('Fields in bulkResponse:', bulkResponse?.fieldSuggestions ? Object.keys(bulkResponse.fieldSuggestions) : 'no fieldSuggestions');
+      console.log('Number of fields in response:', bulkResponse?.fieldSuggestions ? Object.keys(bulkResponse.fieldSuggestions).length : 0);
       
       const formattedSuggestions = {};
       const bulkSuggestionTexts = {};
@@ -370,6 +528,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       }
       
       Object.entries(bulkResponse.fieldSuggestions).forEach(([fieldName, fieldData]) => {
+        console.log(`Processing field: ${fieldName}`, fieldData);
         if (fieldData.suggestions && fieldData.suggestions.length > 0) {
           // Format suggestions with explanations
           const suggestionText = fieldData.suggestions.map(suggestion => 
@@ -389,17 +548,21 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       });
       
       console.log('Formatted suggestions:', formattedSuggestions);
+      console.log('Number of fields with suggestions:', Object.keys(formattedSuggestions).length);
+      console.log('Fields with suggestions (detailed):', Object.keys(formattedSuggestions)
+        .filter(key => !key.endsWith('_raw')) // Skip raw objects
+        .map(key => {
+          const value = formattedSuggestions[key];
+          const preview = typeof value === 'string' ? value.substring(0, 100) : 'non-string value';
+          return `${key}: ${preview}`;
+        }));
       setAiSuggestions(formattedSuggestions);
       
-      // Auto-populate fields with top suggestions
-      const autoPopulateStartTime = Date.now();
-      console.log('Auto-populate started at:', autoPopulateStartTime);
-      autoPopulateFieldsFromSuggestions(bulkSuggestionTexts, formattedSuggestions);
-      const autoPopulateEndTime = Date.now();
-      console.log('Auto-populate ended at:', autoPopulateEndTime);
-      console.log('Auto-populate took:', autoPopulateEndTime - autoPopulateStartTime, 'ms');
+      // No longer auto-populating fields - users will manually select from AI panel
+      console.log('Suggestions ready for manual selection in AI panel');
+      console.log('AI suggestions state updated with fields:', Object.keys(formattedSuggestions));
       
-      // Calculate total processing duration AFTER auto-population
+      // Calculate total processing duration
       const currentTime = Date.now();
       console.log('=== TIMING END ===');
       console.log('Total process ended at:', currentTime);
@@ -419,7 +582,9 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       }
       
       // Mark bulk suggestions as ready
+      console.log('Setting bulkSuggestionsReady to TRUE');
       setBulkSuggestionsReady(true);
+      console.log('Bulk suggestions processing complete!');
       
     } catch (error) {
       console.error('Error processing bulk suggestions:', error);
@@ -892,7 +1057,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
 
   // Handle upload button click
   const handleUploadClick = () => {
-    cheatSheetInputRef.current?.click();
+    narrativeInputRef.current?.click();
   };
 
   // No longer need identifierInput state since it's auto-generated
@@ -932,7 +1097,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   });
 
   const fileInputRef = useRef(null);
-  const cheatSheetInputRef = useRef(null);
+  const narrativeInputRef = useRef(null);
 
   const [createdDateError, setCreatedDateError] = useState('');
   const [publishedDateError, setPublishedDateError] = useState('');
@@ -1303,9 +1468,9 @@ const handleCancelEditExampleResource = () => {
           // If we have bulk suggestions ready, use them directly
           if (bulkSuggestionsReady) {
             setActiveField(fieldId);
-          } else if (!cheatSheetFile) {
-            // Show waiting message if no cheat sheet has been uploaded
-            setActiveField('waiting-for-cheatsheet');
+          } else if (!narrativeFile) {
+            // Show waiting message if no narrative file has been uploaded
+            setActiveField('waiting-for-narrative');
           }
         });
 
@@ -1323,8 +1488,8 @@ const handleCancelEditExampleResource = () => {
             // Auto-trigger AI suggestions when field is focused
             if (bulkSuggestionsReady) {
               setActiveField(fieldId);
-            } else if (!cheatSheetFile) {
-              setActiveField('waiting-for-cheatsheet');
+            } else if (!narrativeFile) {
+              setActiveField('waiting-for-narrative');
             }
           });
         }
@@ -2639,7 +2804,7 @@ const handleCancelEditExampleResource = () => {
     formData: finalFormData,
     validationErrors: validationErrors,
     metadata: {
-      submissionType: cheatSheetFile ? 'llm' : 'regular',
+      submissionType: narrativeFile ? 'llm' : 'regular',
       hasValidationErrors: (missingFields.length > 0 || invalidDates.length > 0),
       submissionMode: forceSubmit ? 'FORCED_SUBMISSION' : 'NORMAL_SUBMISSION',
       timestamp: new Date().toISOString(),
@@ -2935,61 +3100,62 @@ const handleCancelEditExampleResource = () => {
         {/* Regular Form */}
         <div className={`modal-header`}>
           <h2>Knowledge Graph Metadata</h2>
+          
+          {/* Prompt Preview - Only visible in LLM mode */}
+          {isLlmMode && (
+            <div className="prompt-preview-section">
+              <button 
+                className="prompt-preview-toggle"
+                onClick={() => setShowPromptPreview(!showPromptPreview)}
+                type="button"
+              >
+                {showPromptPreview ? '▼' : '▶'} View OpenAI Prompt
+              </button>
+              {showPromptPreview && (
+                <div className="prompt-preview-content">
+                  <pre>{generatePromptPreview()}</pre>
+                </div>
+              )}
+            </div>
+          )}
+          
         <div className="modal-header-controls">
-          {showAISuggestions && (
+          {/* Upload section only visible in LLM mode */}
+          {isLlmMode && (
             <div className="upload-section">
-              <div className="upload-controls">
-                <button 
-                  className="upload-button"
-                  onClick={handleUploadClick}
-                  title="Upload cheat sheet to help AI generate better suggestions"
-                >
-                  📄 Upload Cheat Sheet
-                </button>
-                {cheatSheetFile && (
-                  <span className="file-indicator">
-                    ✅ {cheatSheetFile.name}
-                  </span>
-                )}
-              </div>
-              <div className="upload-status">
-                {processingCheatSheet && (
-                  <div className="processing-indicator">
-                    🔄 Processing cheat sheet...
-                  </div>
-                )}
-                {bulkSuggestionsReady && (
-                  <div className="suggestions-ready-indicator">
-                    AI suggestions populated!
-                  </div>
-                )}
-                {/* Always show stats area when cheat sheet is uploaded */}
-                {cheatSheetFile && (
-                  <div className="processing-stats">
-                    {processingDuration > 0 && (
-                      <div className="processing-time-text">
-                        Total processing time: {(processingDuration / 1000).toFixed(1)} seconds
-                      </div>
-                    )}
-                    {openaiProcessingTime > 0 && (
-                      <div className="openai-time-text">
-                        OpenAI API response time: {(openaiProcessingTime / 1000).toFixed(1)} seconds
-                      </div>
-                    )}
-                    {/* Debug info */}
-                    <div style={{fontSize: '10px', color: '#666', marginTop: '4px'}}>
-                      Debug: duration={processingDuration}, openai={openaiProcessingTime}, ready={bulkSuggestionsReady ? 'yes' : 'no'}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <input
-                ref={cheatSheetInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleCheatSheetUpload}
-                style={{ display: 'none' }}
-              />
+            <div className="upload-controls">
+              <button 
+                className="upload-button"
+                onClick={handleUploadClick}
+                title="Upload ontology narrative description (.txt or .docx) to help AI generate better suggestions"
+              >
+                📄 Upload Ontology Narrative Description
+              </button>
+              {narrativeFile && (
+                <span className="file-indicator">
+                  ✅ {narrativeFile.name}
+                </span>
+              )}
+            </div>
+            <div className="upload-status">
+              {processingNarrative && (
+                <div className="processing-indicator">
+                  🔄 Processing ontology narrative...
+                </div>
+              )}
+              {bulkSuggestionsReady && (
+                <div className="suggestions-ready-indicator">
+                  AI suggestions ready! Click suggestions in the AI panel to populate fields.
+                </div>
+              )}
+            </div>
+            <input
+              ref={narrativeInputRef}
+              type="file"
+              accept=".txt,.docx"
+              onChange={handleNarrativeUpload}
+              style={{ display: 'none' }}
+            />
             </div>
           )}
           <button className={`modal-close-button`} onClick={onClose}>×</button>
@@ -3649,6 +3815,7 @@ const handleCancelEditExampleResource = () => {
                 Add Role
               </button>
             </div>
+            <div style={{borderTop: '1px solid #333', margin: '24px 0'}}></div>
           </div>
 
           {/* Date fields */}
@@ -5641,7 +5808,7 @@ const handleCancelEditExampleResource = () => {
               </div>
               
               <div className="ai-panel-content">
-                {activeField && activeField !== 'waiting-for-cheatsheet' && bulkSuggestionsReady && (
+                {activeField && activeField !== 'waiting-for-narrative' && bulkSuggestionsReady && (
                   <div className="ai-suggestions-list">
                     {(() => {
                       const suggestionText = aiSuggestions[activeField];
@@ -5651,7 +5818,7 @@ const handleCancelEditExampleResource = () => {
                         return (
                           <div className="no-answers-found">
                             <div className="no-answers-title">No answers found for this field</div>
-                            <div className="no-answers-explanation">No suggestions were generated for this field from the cheat sheet.</div>
+                            <div className="no-answers-explanation">No suggestions were generated for this field from the ontology narrative description.</div>
                           </div>
                         );
                       }
@@ -5689,32 +5856,62 @@ const handleCancelEditExampleResource = () => {
                         suggestions.push(currentSuggestion);
                       }
                       
-                      return suggestions.map((suggestion, index) => (
-                        <div key={index} className="suggestion-card">
-                          <button
-                            className="suggestion-value"
-                            onClick={() => populateFieldWithSuggestion(activeField, suggestion.value)}
-                            type="button"
-                          >
-                            {suggestion.value}
-                          </button>
-                          {suggestion.explanation && (
-                            <div className="suggestion-explanation">
-                              {suggestion.explanation}
+                      // Check if this is a multi-value field (simple arrays, not complex objects)
+                      const multiValueFields = [
+                        'vocabulariesUsed', 'keywords', 'category', 'language', 'otherPages', 
+                        'statistics', 'source', 'alternativeTitle', 'acronym', 'homepageURL',
+                        'modifiedDate', 'primaryReferenceDocument', 'metaGraph', 'kgSchema',
+                        'restAPI', 'exampleQueries', 'publicationReferences', 'iriTemplate',
+                        'nameSpace', 'identifier'
+                      ];
+                      const isMultiValueField = multiValueFields.includes(activeField);
+                      
+                      // For multi-value fields, show "Add All" button
+                      return (
+                        <>
+                          {isMultiValueField && suggestions.length > 1 && (
+                            <div className="add-all-container">
+                              <button
+                                className="add-all-button"
+                                onClick={() => {
+                                  const allValues = suggestions.map(s => s.value);
+                                  populateFieldWithSuggestion(activeField, allValues);
+                                }}
+                                type="button"
+                              >
+                                ➕ Add All {suggestions.length} Suggestions
+                              </button>
                             </div>
                           )}
-                        </div>
-                      ));
+                          
+                          {suggestions.map((suggestion, index) => (
+                            <div key={index} className="suggestion-card">
+                              <button
+                                className="suggestion-value"
+                                onClick={() => populateFieldWithSuggestion(activeField, suggestion.value)}
+                                type="button"
+                              >
+                                {suggestion.value}
+                              </button>
+                              {suggestion.explanation && (
+                                <div className="suggestion-explanation">
+                                  {suggestion.explanation}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </>
+                      );
                     })()}
                   </div>
                 )}
                 
-                {(!bulkSuggestionsReady || activeField === 'waiting-for-cheatsheet') && (
-                  <div className="waiting-for-cheatsheet-message">
+                {(!bulkSuggestionsReady || activeField === 'waiting-for-narrative') && (
+                  <div className="waiting-for-narrative-message">
                     <div className="waiting-icon">📋</div>
                     <div className="waiting-text">
-                      <strong>Waiting for cheat sheet</strong>
-                      <p>Please upload a relevant cheat sheet to get AI explanations for your fields.</p>
+                      <strong>Waiting for ontology narrative description</strong>
+                      <p>Please upload an ontology narrative description file (.txt or .docx) to get AI suggestions for your fields.</p>
                     </div>
                   </div>
                 )}
@@ -5731,17 +5928,8 @@ const handleCancelEditExampleResource = () => {
       </div>
      
       <div className="modal-footer">
-       <div className="ai-toggle-container" style={{ display: 'none' }}>
-         <label className="ai-toggle-label">
-           <input
-             type="checkbox"
-             checked={showAISuggestions}
-             onChange={(e) => setShowAISuggestions(e.target.checked)}
-             className="ai-toggle-checkbox"
-           />
-           Show AI Explanation
-         </label>
-       </div>
+       {/* AI panel now automatically shows with LLM form (narrative file upload) */}
+       {/* Toggle removed - panel visibility is automatic based on narrative file */}
        
        <button 
          className="cancel-button"
@@ -5785,8 +5973,8 @@ const handleCancelEditExampleResource = () => {
         <div className="processing-overlay">
           <div className="processing-content">
             <div className="processing-spinner"></div>
-            <h3>Processing Cheat Sheet</h3>
-            <p>AI is analyzing your cheat sheet and generating suggestions...</p>
+            <h3>Processing Ontology Description</h3>
+            <p>openAI's API is analyzing your description file and generating suggestions...</p>
             <div className="processing-timer">
               {processingStartTime && (
                 <span>Processing time: {Math.floor(currentProcessingTime / 1000)}s</span>
