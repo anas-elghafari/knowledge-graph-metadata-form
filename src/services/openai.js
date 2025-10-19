@@ -57,7 +57,7 @@ Provide 1 to 3 candidate values for this field, ordered by likelihood of being c
 For each suggestion, provide both the value and a short explanation of why you suggested it based on your knowledge of YAGO and knowledge graph metadata best practices.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         { 
           role: "system", 
@@ -73,7 +73,7 @@ For each suggestion, provide both the value and a short explanation of why you s
         }
       },
       max_tokens: 1000,
-      temperature: 0.7
+      temperature: 0.3
     });
 
     const result = JSON.parse(response.choices[0].message.content);
@@ -201,6 +201,52 @@ Please find all potential answers for each field from the narrative description 
 
 IMPORTANT INSTRUCTIONS:
 
+FORMAT CONSTRAINTS AND VALIDATION REQUIREMENTS:
+- Many fields have specific format requirements that MUST be respected
+- IRI/URL FIELDS: The following fields require valid IRI (Internationalized Resource Identifier) values:
+  * homepageURL, otherPages, vocabulariesUsed, primaryReferenceDocument, category, publicationReferences, source, kgSchema, statistics, restAPI, metaGraph, iriTemplate, nameSpace
+  * Distribution subfields: downloadURL, accessURL, accessService, hasPolicy, license (when not from dropdown)
+  * SPARQL endpoint: endpointURL
+  * Example resource: accessURL
+  * Role: agent (when using Agent IRI mode)
+- IRI FORMAT RULES:
+  * IRIs must be complete, valid URLs with proper scheme (http://, https://, ftp://, etc.)
+  * If you find a partial identifier or name that should be an IRI, try to construct a valid IRI if you know the proper format
+  * Examples of converting to IRIs:
+    - "DBpedia" → "http://dbpedia.org" or "http://dbpedia.org/resource/"
+    - "schema.org" → "http://schema.org/" or "https://schema.org/"
+    - "YAGO" → "http://yago-knowledge.org" or the full resource URI if known
+  * If the narrative provides a domain/base URI, use it to construct full IRIs for entities
+  * If you cannot determine a valid IRI format, provide the value as-is (the user can fix it later)
+  * CRITICAL: Hierarchical URI schemes (http, https, ftp, ftps, sftp, file, ws, wss, git, ssh) MUST use :// format (not just :/)
+
+- DATE FIELDS: Dates must be formatted as YYYY-MM-DD (ISO 8601 format):
+  * createdDate, publishedDate, modifiedDate (array of dates)
+  * Distribution subfields: releaseDate, modificationDate, issued
+  * Examples: "2023-05-15", "2022-01-01", "2024-12-31"
+  * If you find dates in other formats (e.g., "May 15, 2023", "15/05/2023"), convert them to YYYY-MM-DD
+  * If only year is provided (e.g., "2023"), use "2023-01-01" or indicate year-only format appropriately
+  * If only month and year (e.g., "May 2023"), use "2023-05-01"
+
+- LANGUAGE CODES: Language field values MUST follow BCP-47 (IETF language tag) format:
+  * Use lowercase 2-letter ISO 639-1 codes: "en", "fr", "de", "es", "it", "ja", "zh", "ar", "ru", "pt"
+  * Convert language names to codes: "English" → "en", "French" → "fr", "German" → "de", "Spanish" → "es"
+  * Regional variants: "en-US", "en-GB", "zh-CN", "zh-TW", "pt-BR", "pt-PT"
+  * If you find language names in the narrative, always convert them to BCP-47 codes
+
+- EMAIL ADDRESSES: Email fields must be valid email format (name@domain.com)
+  * Role subfield: email (when using Name + Email mode)
+
+- NUMERIC FIELDS: Some fields expect numeric values:
+  * byteSize - file size in bytes (numeric string, e.g., "3200000000" for 3.2 GB)
+  * spatialResolution - value in meters (numeric)
+  * triples - number of RDF triples (numeric string)
+
+PRIORITY OF FORMAT ADHERENCE:
+1. ALWAYS try to provide values in the correct format first
+2. If you can infer or construct the correct format, do so
+3. Only as a last resort, provide the value in its original format with a note in the explanation that it may need formatting
+
 MULTI-VALUE FIELDS HANDLING:
 - The following fields accept multiple values: vocabulariesUsed, keywords, category, language, otherPages, statistics, source, alternativeTitle, acronym, homepageURL, modifiedDate, primaryReferenceDocument, metaGraph, kgSchema, restAPI, exampleQueries, publicationReferences, iriTemplate, nameSpace
 - If the narrative contains multiple values for these fields, you MUST split them into separate suggestions
@@ -215,19 +261,17 @@ MULTI-VALUE FIELDS HANDLING:
 - Return each atomic value as a separate item in the suggestions array
 - The UI will display an "Add All" button for multi-value fields so users can populate all values in one click
 
-SPECIAL HANDLING FOR LANGUAGE FIELD:
-- Language values MUST follow BCP-47 (IETF language tag) format
-- Use lowercase 2-letter ISO 639-1 language codes (e.g., "en", "fr", "de", "es", "ja", "zh")
-
-
 SPECIAL HANDLING FOR STATISTICS FIELD:
 - The statistics field requires SEMANTIC SPLITTING - each distinct fact or piece of information should be a separate suggestion
 - Split based on MEANING, not just delimiters - identify individual statistical facts
 - Remove conjunction words like "and", "also", but preserve the complete fact text
+- IMPORTANT: Statistics field requires IRI values - each statistic should ideally be a valid IRI pointing to a statistical resource
+- If statistics are provided as text descriptions, try to format them as IRIs or provide them as-is if no IRI format is known
 - Examples:
   * "subClassOf: 126792 facts, type: 2011072 facts, context: 40000000 facts" → 3 suggestions: ["subClassOf: 126792 facts", "type: 2011072 facts", "context: 40000000 facts"]
   * "describes: 997061 facts, bornInYear: 189950 facts, diedInYear: 93827 facts" → 3 suggestions: ["describes: 997061 facts", "bornInYear: 189950 facts", "diedInYear: 93827 facts"]
-- Each suggestion should be a complete, standalone statistical statement
+  * If statistics IRIs are provided: "http://stats.example.org/classCount", "http://stats.example.org/propertyCount" → keep as separate IRI suggestions
+- Each suggestion should be a complete, standalone statistical statement or IRI
 - Do NOT rewrite or paraphrase - use the exact text from the narrative, only removing conjunctions
 
 SPECIAL HANDLING FOR ROLES FIELD:
@@ -279,55 +323,97 @@ SPECIAL HANDLING FOR LICENSE FIELD:
 - Return only URLs that exactly match the available dropdown options
 
 SPECIAL HANDLING FOR DISTRIBUTIONS FIELD:
-- Distributions are complex subsections with multiple subfields (title, description, mediaType, downloadURL, accessURL, byteSize, license, rights, spatialResolution, temporalResolution, releaseDate, modificationDate, issued)
-- Look for distribution-related data in the narrative under names like: "distributions", "download", "access", "files", "downloadURL", "accessURL"
+- Distributions are complex subsections with multiple subfields (title, description, mediaType, downloadURL, accessURL, byteSize, license, rights, spatialResolution, temporalResolution, releaseDate, modificationDate, issued, accessService, compressionFormat, packagingFormat, hasPolicy)
 - CRITICAL: The "value" field MUST be a valid JSON string containing the distribution object
-- Extract ALL distribution-related information you find from the narrative
+- IMPORTANT: Escape quotes in the JSON string properly
+
+SEMANTIC INFERENCE FOR DISTRIBUTIONS:
+- Distribution information may NOT be explicitly labeled - you must INFER it from context
+- Think semantically about what each field means and match narrative content accordingly:
+  * "title" - Any mention of file names, dataset versions, download packages, or distribution names
+  * "description" - Text describing what the distribution contains, how to access it, or what format it's in
+  * "downloadURL" - Any URL for downloading files, data dumps, or accessing downloadable content (look for: "download", "get", "fetch", "files available at")
+  * "accessURL" - Any URL for accessing the dataset, web interfaces, landing pages, or information pages (look for: "access", "visit", "available at", "hosted at", "home page")
+  * "mediaType" - File formats, MIME types, or data formats mentioned (e.g., "RDF", "Turtle", "N-Triples", "JSON", "CSV", "XML", "TSV", "application/ld+json", "text/turtle")
+  * "license" - Any licensing information (MIT, Apache, CC-BY, etc.)
+  * "byteSize" - File sizes mentioned anywhere (e.g., "3.2 GB", "450 MB", "2.1 TB")
+  * "spatialResolution" - Geographic or spatial precision mentioned (in meters)
+  * "temporalResolution" - Time-based precision or update frequency (e.g., "daily", "monthly", "yearly")
+  * "releaseDate", "modificationDate", "issued" - Any dates associated with releases, updates, or publications
+
+INFERENCE STRATEGIES:
+- If the narrative mentions URLs, web pages, or online resources → likely downloadURL or accessURL
+- If file formats or data formats are mentioned → use as mediaType and create a distribution around it
+- If the narrative describes "where to get the data" → create a distribution with that information
+- If dates are mentioned in relation to data releases → use as releaseDate or issued
+- If file sizes are mentioned → use as byteSize
+- Even if only partial information is available, create a distribution suggestion with the fields you can infer
+- Look for implicit distribution info like: "The dataset is available in RDF format", "Data can be downloaded from...", "Access the knowledge graph at...", "Files are hosted at..."
+
+EXAMPLE INFERENCES:
+- "YAGO is available at http://yago-knowledge.org" → {"accessURL": "http://yago-knowledge.org", "title": "YAGO Dataset", "description": "Access point for YAGO dataset"}
+- "Download the Turtle files from ftp://example.org/data" → {"downloadURL": "ftp://example.org/data", "mediaType": "text/turtle", "title": "Turtle Format Download"}
+- "The RDF dump is 3.2 GB" → {"mediaType": "application/rdf+xml", "byteSize": "3200000000", "description": "RDF dump"}
+- "Data is provided under CC-BY 4.0 license" → {"license": "https://creativecommons.org/licenses/by/4.0/"}
+
 - Example format for the value field:
   {
     "value": "{\"title\": \"YAGO files\", \"description\": \"YAGO download page\", \"mediaType\": \"link\", \"downloadURL\": \"http://yago-knowledge.org\", \"accessURL\": \"http://yago-knowledge.org\"}",
     "explanation": "Found distribution data in narrative"
   }
-- IMPORTANT: Escape quotes in the JSON string properly
-- Include ALL fields you can extract from the narrative (title, description, mediaType, downloadURL, accessURL, etc.)
-- If the narrative shows a JSON structure for distributions, parse it and extract each field
-- Provide multiple suggestions if multiple distributions are found in the narrative
+- Include ALL fields you can extract or infer from the narrative (title, description, mediaType, downloadURL, accessURL, byteSize, etc.)
+- Provide multiple suggestions if multiple distributions are found or can be inferred from the narrative
 
 SPECIAL HANDLING FOR SPARQL ENDPOINT FIELD:
 - SPARQL endpoints are complex subsections with subfields (endpointURL, identifier, title, endpointDescription, status)
-- Look for SPARQL-related data under names like: "sparql endpoint", "sparql", "query endpoint", "sparqlEndpoint", "endpoint"
 - CRITICAL: The "value" field MUST be a valid JSON string containing the endpoint object
+- SEMANTIC INFERENCE: Look for any mention of SPARQL, query services, query endpoints, or interactive query interfaces
+  * "endpointURL" - Any URL mentioning "sparql", "query", or providing a query interface
+  * "title" - Name of the query service (e.g., "YAGO Query Service", "Dataset SPARQL Endpoint")
+  * "endpointDescription" - Any text describing the query capabilities or how to use the endpoint
+  * "status" - If mentioned, whether the endpoint is active, stable, beta, etc.
+- INFER from phrases like: "query the data at...", "SPARQL endpoint available at...", "interactive queries via...", "query interface: ..."
 - Example format:
   {
-    "value": "{\"endpointURL\": \"https://query.Yago.org/sparql\", \"title\": \"Yago Query Service\", \"endpointDescription\": \"The Wikidata Query Service\"}",
-    "explanation": "Found SPARQL endpoint data in narrative"
+    "value": "{\"endpointURL\": \"https://query.yago.org/sparql\", \"title\": \"Yago Query Service\", \"endpointDescription\": \"SPARQL endpoint for querying YAGO knowledge graph\"}",
+    "explanation": "Inferred SPARQL endpoint from narrative"
   }
-- Include ALL fields you can extract from the narrative
-- Provide multiple suggestions if multiple endpoints are found
+- Include ALL fields you can extract or infer from the narrative
+- Provide multiple suggestions if multiple endpoints are found or can be inferred
 
 SPECIAL HANDLING FOR EXAMPLE RESOURCE FIELD:
 - Example resources are complex subsections with subfields (title, description, status, accessURL)
-- Look for example resource data under names like: "example resource", "example", "sample resource", "sample", "exampleResource"
 - CRITICAL: The "value" field MUST be a valid JSON string containing the resource object
+- SEMANTIC INFERENCE: Look for mentions of specific entities, examples, sample data, or representative resources
+  * "title" - Name of an example entity or resource (e.g., "Albert Einstein", "Paris", "example:Person123")
+  * "description" - Any text describing what the example represents or demonstrates
+  * "accessURL" - URL to access or view this specific example resource
+  * "status" - Whether the example is stable, available, or demonstrative
+- INFER from phrases like: "for example, ...", "such as ...", "e.g., entity ...", "sample resource: ...", "instance of ...", "example entity: ..."
+- Look for specific URIs or entity mentions that could serve as examples (e.g., "http://yago-knowledge.org/resource/Albert_Einstein")
 - Example format:
   {
-    "value": "{\"title\": \"Sample Entity\", \"description\": \"Example of a resource\", \"accessURL\": \"http://example.org/resource\"}",
-    "explanation": "Found example resource data in narrative"
+    "value": "{\"title\": \"Albert Einstein\", \"description\": \"Example person entity in YAGO\", \"accessURL\": \"http://yago-knowledge.org/resource/Albert_Einstein\"}",
+    "explanation": "Found example resource mentioned in narrative"
   }
-- Include ALL fields you can extract from the narrative
-- Provide multiple suggestions if multiple example resources are found
+- Include ALL fields you can extract or infer from the narrative
+- Provide multiple suggestions if multiple example resources are found or mentioned
 
 SPECIAL HANDLING FOR LINKED RESOURCES FIELD:
 - Linked resources are complex subsections with subfields (target, triples)
-- Look for linked resource data under names like: "linked resources", "linkset", "links", "linkedResources", "void:linkset"
 - CRITICAL: The "value" field MUST be a valid JSON string containing the linked resource object
+- SEMANTIC INFERENCE: Look for mentions of connections to other datasets, interlinking, or relationships with external knowledge bases
+  * "target" - Name or URL of another dataset/knowledge base that this dataset links to (e.g., "DBpedia", "Wikidata", "http://dbpedia.org")
+  * "triples" - Number of links/triples connecting to that target (look for numbers associated with links, connections, or triples)
+- INFER from phrases like: "linked to ...", "connects to ...", "interlinked with ...", "... links to DBpedia", "aligned with ...", "mappings to ...", "... triples to Wikidata"
+- Look for dataset names mentioned in context of linking: DBpedia, Wikidata, Schema.org, UMBEL, GeoNames, etc.
 - Example format:
   {
-    "value": "{\"target\": \"http://dbpedia.org\", \"triples\": \"1000000\"}",
-    "explanation": "Found linked resource data in narrative"
+    "value": "{\"target\": \"http://dbpedia.org\", \"triples\": \"1523000\"}",
+    "explanation": "Found linkset information to DBpedia in narrative"
   }
-- Include ALL fields you can extract from the narrative
-- Provide multiple suggestions if multiple linked resources are found
+- Include ALL fields you can extract or infer from the narrative
+- Provide multiple suggestions if multiple linked resources are found or mentioned
 
 RESPONSE FORMAT:
 You must return a JSON object with "fieldSuggestions" containing each field. For each field, provide either:
@@ -359,7 +445,7 @@ export const getBulkFieldSuggestions = async (fieldDefinitions, narrativeContent
     const prompt = buildBulkSuggestionsPrompt(fieldDefinitions, narrativeContent);
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. Your task is to extract information from the provided ontology narrative description to fill out metadata form fields. For each suggestion, provide both the value and a brief explanation of where you found it in the narrative." },
         { role: "user", content: prompt }
@@ -372,7 +458,7 @@ export const getBulkFieldSuggestions = async (fieldDefinitions, narrativeContent
         }
       },
       max_tokens: 16000,
-      temperature: 0.2
+      temperature: 0.3
     });
 
     const rawContent = response.choices[0].message.content;

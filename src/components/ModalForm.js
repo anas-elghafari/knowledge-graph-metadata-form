@@ -323,7 +323,34 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   };
 
   // Function to populate field with selected suggestion (single or multiple values)
-  const populateFieldWithSuggestion = (fieldName, value) => {
+  const populateFieldWithSuggestion = (fieldName, value, suggestionIndex = null) => {
+    // Special handling for roles field
+    if (fieldName === 'roles') {
+      const rawData = aiSuggestions['roles_raw'];
+      if (rawData && rawData.suggestions) {
+        const suggestions = Array.isArray(value) ? 
+          rawData.suggestions : 
+          [rawData.suggestions[suggestionIndex]];
+        
+        suggestions.forEach(suggestion => {
+          if (suggestion.roleData) {
+            const roleData = suggestion.roleData;
+            const newRole = {
+              roleType: roleData.roleType,
+              agent: roleData.mode === 'iri' ? (roleData.iri || '') : '',
+              givenName: roleData.mode === 'name_mbox' ? (roleData.name || '') : '',
+              email: roleData.mode === 'name_mbox' ? (roleData.email || '') : ''
+            };
+            setFormData(prev => ({
+              ...prev,
+              roles: [...prev.roles, newRole]
+            }));
+          }
+        });
+      }
+      return;
+    }
+    
     // Handle different field types
     if (fieldName === 'title' || fieldName === 'description') {
       setFormData(prev => ({ ...prev, [fieldName]: value }));
@@ -1829,6 +1856,8 @@ const handleCancelEditExampleResource = () => {
     const [currentRoleEmailError, setCurrentRoleEmailError] = useState('');
     const [distDownloadURLError, setDistDownloadURLError] = useState('');
     const [distAccessURLError, setDistAccessURLError] = useState('');
+    const [distAccessServiceError, setDistAccessServiceError] = useState('');
+    const [distHasPolicyError, setDistHasPolicyError] = useState('');
     
     // State for custom license input
     const [customLicenseInput, setCustomLicenseInput] = useState('');
@@ -1840,6 +1869,7 @@ const handleCancelEditExampleResource = () => {
     const [currentRoleEmailValid, setCurrentRoleEmailValid] = useState(false);
     const [distDownloadURLValid, setDistDownloadURLValid] = useState(false);
     const [distAccessURLValid, setDistAccessURLValid] = useState(false);
+    const [distAccessServiceValid, setDistAccessServiceValid] = useState(false);
     
     // 3. Update handleAddTag to include IRI validation for new fields:
     
@@ -3908,7 +3938,19 @@ const handleCancelEditExampleResource = () => {
 
           {/* Roles Section */}
           <div className="form-section">
-            <h3 className="section-title">Roles</h3>
+            <h3 className="section-title">
+              Roles
+              {showAISuggestions && bulkSuggestionsReady && (
+                <span 
+                  className="ai-suggestion-tooltip"
+                  onClick={() => setActiveField('roles')}
+                  style={{ cursor: 'pointer', marginLeft: '8px', fontSize: '1.2em' }}
+                  title="Click to view AI suggestions for roles"
+                >
+                  🤖
+                </span>
+              )}
+            </h3>
             <div className="field-indicator required-indicator">required, at least 1 role must be added</div>
           </div>
 
@@ -5015,15 +5057,34 @@ const handleCancelEditExampleResource = () => {
            {/* Optional distribution fields */}
            <div className="form-group">
              <label htmlFor="distAccessService">
-               Access Service <span className="field-indicator optional-indicator">optional</span>
+               Access Service <span className="field-indicator optional-indicator">optional (IRI)</span>
              </label>
              <input
               type="text"
               id="distAccessService"
               value={currentDistribution.accessService}
-              onChange={(e) => handleDistributionChange('accessService', e.target.value)}
-              className="subfield-input"
+              onChange={(e) => {
+                handleDistributionChange('accessService', e.target.value);
+                
+                // Real-time IRI validation
+                const value = e.target.value;
+                if (!value || !value.trim()) {
+                  setDistAccessServiceError('');
+                  setDistAccessServiceValid(false);
+                } else {
+                  const iriError = isValidIriString(value);
+                  if (iriError) {
+                    setDistAccessServiceError(iriError);
+                    setDistAccessServiceValid(false);
+                  } else {
+                    setDistAccessServiceError('');
+                    setDistAccessServiceValid(true);
+                  }
+                }
+              }}
+              className={`subfield-input ${distAccessServiceError ? 'form-input-error' : ''} ${distAccessServiceValid ? 'form-input-valid' : ''}`}
              />
+             {distAccessServiceError && <div className="iri-error-message">{distAccessServiceError}</div>}
            </div>
            
            <div className="form-group">
@@ -5068,16 +5129,35 @@ const handleCancelEditExampleResource = () => {
            </div>
            <div className="form-group">
              <label htmlFor="distHasPolicy">
-               Has Policy <span className="field-indicator optional-indicator">optional</span>
+               Has Policy <span className="field-indicator optional-indicator">optional (IRI)</span>
              </label>
              <input
                type="text"
                id="distHasPolicy"
                name="distHasPolicy"
                value={currentDistribution.hasPolicy}
-               onChange={(e) => handleDistributionChange('hasPolicy', e.target.value)}
-               className={`subfield-input ${currentDistribution.hasPolicy.trim().length > 0 ? 'form-input-valid' : ''}`}
+               onChange={(e) => {
+                 handleDistributionChange('hasPolicy', e.target.value);
+                 
+                 // Real-time IRI validation
+                 const value = e.target.value;
+                 if (!value || !value.trim()) {
+                   setDistHasPolicyError('');
+                   setDistHasPolicyValid(false);
+                 } else {
+                   const iriError = isValidIriString(value);
+                   if (iriError) {
+                     setDistHasPolicyError(iriError);
+                     setDistHasPolicyValid(false);
+                   } else {
+                     setDistHasPolicyError('');
+                     setDistHasPolicyValid(true);
+                   }
+                 }
+               }}
+               className={`subfield-input ${distHasPolicyError ? 'form-input-error' : ''} ${distHasPolicyValid ? 'form-input-valid' : ''}`}
              />
+             {distHasPolicyError && <div className="iri-error-message">{distHasPolicyError}</div>}
            </div>
            
            <div className="form-group">
@@ -6411,13 +6491,18 @@ const handleCancelEditExampleResource = () => {
                       // For multi-value fields, show "Add All" button
                       return (
                         <>
-                          {isMultiValueField && suggestions.length > 1 && (
+                          {(isMultiValueField || activeField === 'roles') && suggestions.length > 1 && (
                             <div className="add-all-container">
                               <button
                                 className="add-all-button"
                                 onClick={() => {
-                                  const allValues = suggestions.map(s => s.value);
-                                  populateFieldWithSuggestion(activeField, allValues);
+                                  if (activeField === 'roles') {
+                                    // For roles, pass the raw data to add all roles
+                                    populateFieldWithSuggestion(activeField, suggestions.map(s => s.value));
+                                  } else {
+                                    const allValues = suggestions.map(s => s.value);
+                                    populateFieldWithSuggestion(activeField, allValues);
+                                  }
                                 }}
                                 type="button"
                               >
@@ -6430,7 +6515,7 @@ const handleCancelEditExampleResource = () => {
                             <div key={index} className="suggestion-card">
                               <button
                                 className="suggestion-value"
-                                onClick={() => populateFieldWithSuggestion(activeField, suggestion.value)}
+                                onClick={() => populateFieldWithSuggestion(activeField, suggestion.value, index)}
                                 type="button"
                               >
                                 {suggestion.value}
