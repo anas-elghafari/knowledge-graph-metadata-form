@@ -204,7 +204,11 @@ IMPORTANT INSTRUCTIONS:
 FORMAT CONSTRAINTS AND VALIDATION REQUIREMENTS:
 - Many fields have specific format requirements that MUST be respected
 - IRI/URL FIELDS: The following fields require valid IRI (Internationalized Resource Identifier) values:
-  * homepageURL, otherPages, vocabulariesUsed, primaryReferenceDocument, category, publicationReferences, source, kgSchema, statistics, restAPI, metaGraph, iriTemplate, nameSpace
+  * homepageURL, otherPages, vocabulariesUsed, primaryReferenceDocument, category, publicationReferences, source, kgSchema, metaGraph, nameSpace
+  * NOTE: The following fields do NOT require IRI validation:
+    - iriTemplate: contains patterns/variables (e.g., "http://example.org/{id}")
+    - statistics: can be text descriptions (e.g., "900,000 entities", "5 million facts")
+    - restAPI: can be endpoint descriptions or non-URI identifiers
   * Distribution subfields: downloadURL, accessURL, accessService, hasPolicy, license (when not from dropdown)
   * SPARQL endpoint: endpointURL
   * Example resource: accessURL
@@ -265,14 +269,16 @@ SPECIAL HANDLING FOR STATISTICS FIELD:
 - The statistics field requires SEMANTIC SPLITTING - each distinct fact or piece of information should be a separate suggestion
 - Split based on MEANING, not just delimiters - identify individual statistical facts
 - Remove conjunction words like "and", "also", but preserve the complete fact text
-- IMPORTANT: Statistics field requires IRI values - each statistic should ideally be a valid IRI pointing to a statistical resource
-- If statistics are provided as text descriptions, try to format them as IRIs or provide them as-is if no IRI format is known
+- IMPORTANT: Statistics can be text descriptions OR IRIs - both are valid
+  * Text descriptions: "900,000 entities", "5 million facts", "subClassOf: 126792 facts"
+  * IRIs: "http://stats.example.org/classCount" (if provided in narrative)
 - Examples:
   * "subClassOf: 126792 facts, type: 2011072 facts, context: 40000000 facts" → 3 suggestions: ["subClassOf: 126792 facts", "type: 2011072 facts", "context: 40000000 facts"]
   * "describes: 997061 facts, bornInYear: 189950 facts, diedInYear: 93827 facts" → 3 suggestions: ["describes: 997061 facts", "bornInYear: 189950 facts", "diedInYear: 93827 facts"]
-  * If statistics IRIs are provided: "http://stats.example.org/classCount", "http://stats.example.org/propertyCount" → keep as separate IRI suggestions
-- Each suggestion should be a complete, standalone statistical statement or IRI
+  * "The dataset contains 900,000 entities and 5 million facts" → 2 suggestions: ["900,000 entities", "5 million facts"]
+- Each suggestion should be a complete, standalone statistical statement
 - Do NOT rewrite or paraphrase - use the exact text from the narrative, only removing conjunctions
+- Do NOT try to force text descriptions into IRI format
 
 SPECIAL HANDLING FOR ROLES FIELD:
 - Look for role-related fields in narrative and map them to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder

@@ -2673,15 +2673,11 @@ const handleCancelEditExampleResource = () => {
     }
     
     if (restAPIInput.trim()) {
-      const iriError = isValidIriString(restAPIInput);
-      if (!iriError) {
-        updatedFormData = {
-          ...updatedFormData,
-          restAPI: [...updatedFormData.restAPI, restAPIInput.trim()]
-        };
-      } else {
-        setRestAPIInputError(iriError);
-      }
+      // restAPI does not require IRI validation - can be endpoint descriptions
+      updatedFormData = {
+        ...updatedFormData,
+        restAPI: [...updatedFormData.restAPI, restAPIInput.trim()]
+      };
     }
     
     if (exampleQueriesInput.trim()) {
@@ -2692,15 +2688,11 @@ const handleCancelEditExampleResource = () => {
     }
     
     if (statisticsInput.trim()) {
-      const iriError = isValidIriString(statisticsInput);
-      if (!iriError) {
-        updatedFormData = {
-          ...updatedFormData,
-          statistics: [...updatedFormData.statistics, statisticsInput.trim()]
-        };
-      } else {
-        setStatisticsInputError(iriError);
-      }
+      // statistics does not require IRI validation - can be text descriptions
+      updatedFormData = {
+        ...updatedFormData,
+        statistics: [...updatedFormData.statistics, statisticsInput.trim()]
+      };
     }
     
     if (primaryReferenceDocInput.trim()) {
@@ -3697,8 +3689,19 @@ const handleCancelEditExampleResource = () => {
               {languageInputError && <div className="iri-error-message">{languageInputError}</div>}
               <div className="tag-list">
                 {formData.language.map((lang, index) => {
-                  const isInvalid = invalidTags.language && invalidTags.language[lang];
-                  const errorMessage = isInvalid ? invalidTags.language[lang] : null;
+                  // Check if in invalidTags state OR validate on render
+                  let isInvalid = invalidTags.language && invalidTags.language[lang];
+                  let errorMessage = isInvalid ? invalidTags.language[lang] : null;
+                  
+                  // If not tracked as invalid, validate it now
+                  if (!isInvalid) {
+                    const validationError = isValidBCP47(lang);
+                    if (validationError) {
+                      isInvalid = true;
+                      errorMessage = validationError;
+                    }
+                  }
+                  
                   return (
                     <div key={`language-${index}`}>
                       <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
@@ -3842,8 +3845,19 @@ const handleCancelEditExampleResource = () => {
               </div>
               <div className="tag-list">
                 {formData.homepageURL.map((url, index) => {
-                  const isInvalid = invalidTags.homepageURL && invalidTags.homepageURL[url];
-                  const errorMessage = isInvalid ? invalidTags.homepageURL[url] : null;
+                  // Check if in invalidTags state OR validate on render
+                  let isInvalid = invalidTags.homepageURL && invalidTags.homepageURL[url];
+                  let errorMessage = isInvalid ? invalidTags.homepageURL[url] : null;
+                  
+                  // If not tracked as invalid, validate it now
+                  if (!isInvalid) {
+                    const validationError = isValidIriString(url);
+                    if (validationError) {
+                      isInvalid = true;
+                      errorMessage = validationError;
+                    }
+                  }
+                  
                   return (
                     <div key={`homepage-url-${index}`}>
                       <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
@@ -3913,8 +3927,19 @@ const handleCancelEditExampleResource = () => {
               {otherPagesInputError && <div className="iri-error-message">{otherPagesInputError}</div>}
               <div className="tag-list">
                 {formData.otherPages.map((page, index) => {
-                  const isInvalid = invalidTags.otherPages && invalidTags.otherPages[page];
-                  const errorMessage = isInvalid ? invalidTags.otherPages[page] : null;
+                  // Check if in invalidTags state OR validate on render
+                  let isInvalid = invalidTags.otherPages && invalidTags.otherPages[page];
+                  let errorMessage = isInvalid ? invalidTags.otherPages[page] : null;
+                  
+                  // If not tracked as invalid, validate it now
+                  if (!isInvalid) {
+                    const validationError = isValidIriString(page);
+                    if (validationError) {
+                      isInvalid = true;
+                      errorMessage = validationError;
+                    }
+                  }
+                  
                   return (
                     <div key={`other-page-${index}`}>
                       <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
@@ -4772,18 +4797,9 @@ const handleCancelEditExampleResource = () => {
               </div>
               <div className="tag-list">
                 {formData.statistics.map((stat, index) => {
-                  // Check if in invalidTags state OR validate on render
+                  // Statistics do not require IRI validation - they can be text descriptions
                   let isInvalid = invalidTags.statistics && invalidTags.statistics[stat];
                   let errorMessage = isInvalid ? invalidTags.statistics[stat] : null;
-                  
-                  // If not tracked as invalid, validate it now
-                  if (!isInvalid) {
-                    const validationError = isValidIriString(stat);
-                    if (validationError) {
-                      isInvalid = true;
-                      errorMessage = validationError;
-                    }
-                  }
                   
                   return (
                     <div key={`stat-${index}`}>
@@ -4802,7 +4818,7 @@ const handleCancelEditExampleResource = () => {
                   );
                 })}
               </div>
-              <div className="field-hint">Press Enter or click + to add statistics (IRI)</div>
+              <div className="field-hint">Press Enter or click + to add statistic</div>
             </div>
           </div>
     
@@ -5346,18 +5362,9 @@ const handleCancelEditExampleResource = () => {
               </div>
               <div className="tag-list">
               {formData.restAPI.map((item, index) => {
-                // Check if in invalidTags state OR validate on render
+                // restAPI does not require IRI validation - can be endpoints or descriptions
                 let isInvalid = invalidTags.restAPI && invalidTags.restAPI[item];
                 let errorMessage = isInvalid ? invalidTags.restAPI[item] : null;
-                
-                // If not tracked as invalid, validate it now
-                if (!isInvalid) {
-                  const validationError = isValidIriString(item);
-                  if (validationError) {
-                    isInvalid = true;
-                    errorMessage = validationError;
-                  }
-                }
                 
                 return (
                   <div key={`rest-api-${index}`}>
@@ -5825,18 +5832,9 @@ const handleCancelEditExampleResource = () => {
              </div>
              <div className="tag-list">
                {formData.iriTemplate.map((iri, index) => {
-                 // Check if in invalidTags state OR validate on render
+                 // iriTemplate does not require IRI validation - contains patterns/variables
                  let isInvalid = invalidTags.iriTemplate && invalidTags.iriTemplate[iri];
                  let errorMessage = isInvalid ? invalidTags.iriTemplate[iri] : null;
-                 
-                 // If not tracked as invalid, validate it now
-                 if (!isInvalid) {
-                   const validationError = isValidIriString(iri);
-                   if (validationError) {
-                     isInvalid = true;
-                     errorMessage = validationError;
-                   }
-                 }
                  
                  return (
                    <div key={`iri-${index}`}>
@@ -6287,18 +6285,36 @@ const handleCancelEditExampleResource = () => {
                </button>
              </div>
              <div className="tag-list">
-               {formData.nameSpace.map((ns, index) => (
-                 <div key={`namespace-${index}`} className="tag-item">
-                   <span className="tag-text">{ns}</span>
-                   <button 
-                     type="button"
-                     className="tag-remove"
-                     onClick={() => handleRemoveTag('nameSpace', index)}
-                   >
-                     ×
-                   </button>
-                 </div>
-               ))}
+               {formData.nameSpace.map((ns, index) => {
+                 // Check if in invalidTags state OR validate on render
+                 let isInvalid = invalidTags.nameSpace && invalidTags.nameSpace[ns];
+                 let errorMessage = isInvalid ? invalidTags.nameSpace[ns] : null;
+                 
+                 // If not tracked as invalid, validate it now
+                 if (!isInvalid) {
+                   const validationError = isValidIriString(ns);
+                   if (validationError) {
+                     isInvalid = true;
+                     errorMessage = validationError;
+                   }
+                 }
+                 
+                 return (
+                   <div key={`namespace-${index}`}>
+                     <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                       <span className="tag-text">{ns}</span>
+                       <button 
+                         type="button"
+                         className="tag-remove"
+                         onClick={() => handleRemoveTag('nameSpace', index)}
+                       >
+                         ×
+                       </button>
+                     </div>
+                     {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
+                   </div>
+                 );
+               })}
              </div>
              <div className="field-hint">Press Enter or click + to add namespace</div>
            </div>
