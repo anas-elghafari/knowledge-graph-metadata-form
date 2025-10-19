@@ -348,7 +348,7 @@ Example:
   }
 }
 
-Provide 1 or more candidate values for each field, ordered by likelihood of being correct.
+Please return all possible candidate values for each field, ordered by likelihood of being correct.
 
 `;
 };

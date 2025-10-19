@@ -103,8 +103,8 @@ function App() {
   // Handle form submission
   const handleSubmission = async (submissionData) => {
     try {
-      // Extract form data and validation errors from the new structure
-      const { formData, validationErrors, metadata } = submissionData;
+      // Extract form data, validation errors, AI suggestions, and metadata from the new structure
+      const { formData, validationErrors, aiSuggestions, metadata } = submissionData;
       
       // Create submission with complete data and metadata
       const timestamp = new Date().toISOString();
@@ -125,6 +125,9 @@ function App() {
         
         // Validation errors outside form data
         validationErrors: validationErrors,
+        
+        // AI suggestions for each field
+        aiSuggestions: aiSuggestions,
         
         // Submission metadata
         metadata: {

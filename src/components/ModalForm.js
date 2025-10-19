@@ -62,6 +62,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState('');
   const [bypassValidation, setBypassValidation] = useState(true);
+  // Track invalid tags with their error messages: { fieldName: { tagValue: errorMessage } }
+  const [invalidTags, setInvalidTags] = useState({});
   // State for AI suggestions
   const [showAISuggestions, setShowAISuggestions] = useState(false); // Hidden by default, user can toggle
   const [aiSuggestions, setAiSuggestions] = useState({});
@@ -1655,6 +1657,13 @@ const handleCancelEditExampleResource = () => {
         return 'IRI has unmatched brackets';
       }
       
+      // Check for hierarchical schemes that require :// format
+      // Common schemes: http, https, ftp, ftps, sftp, file, ws, wss, etc.
+      const hierarchicalSchemes = /^(https?|ftps?|sftp|file|wss?|git|ssh|telnet|ldap|ldaps|imap|imaps|pop|pops|smtp|smtps):/i;
+      if (hierarchicalSchemes.test(trimmed) && !/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed)) {
+        return 'Hierarchical URI schemes (http, https, ftp, etc.) must use :// format';
+      }
+      
       // For HTTP(S) URLs, validate domain structure
       if (/^https?:\/\//i.test(trimmed)) {
         // Extract the domain part (after :// and before next / or end)
@@ -1671,8 +1680,42 @@ const handleCancelEditExampleResource = () => {
             return 'Domain cannot contain consecutive dots';
           }
           
-          if (!/\.[a-zA-Z]{2,}$/.test(domain) && !/^localhost(:\d+)?$/i.test(domain) && !/^\d+\.\d+\.\d+\.\d+(:\d+)?$/.test(domain)) {
-            return 'IRI must have a valid domain with TLD (e.g., .com, .org) or be localhost/IP';
+          // Remove port if present for validation
+          const domainWithoutPort = domain.replace(/:\d+$/, '');
+          
+          // Allow localhost or IP addresses
+          if (/^localhost$/i.test(domainWithoutPort) || /^\d+\.\d+\.\d+\.\d+$/.test(domainWithoutPort)) {
+            // Valid localhost or IP
+          } else {
+            // For regular domains, require proper structure: at least one dot with valid TLD
+            // Domain must have format like: example.com, sub.example.org, etc.
+            const domainParts = domainWithoutPort.split('.');
+            
+            if (domainParts.length < 2) {
+              return 'Domain must have at least a second-level domain and TLD (e.g., example.com)';
+            }
+            
+            // Check TLD (last part) - must be letters only, 2+ characters
+            const tld = domainParts[domainParts.length - 1];
+            if (!/^[a-zA-Z]{2,}$/.test(tld)) {
+              return 'TLD must contain only letters and be at least 2 characters (e.g., .com, .org)';
+            }
+            
+            // Check second-level domain (second to last part) - must not be empty
+            const sld = domainParts[domainParts.length - 2];
+            if (!sld || sld.length === 0) {
+              return 'Second-level domain cannot be empty';
+            }
+            
+            // Each part should only contain valid characters (alphanumeric and hyphens)
+            for (const part of domainParts) {
+              if (!/^[a-zA-Z0-9-]+$/.test(part)) {
+                return 'Domain parts can only contain letters, numbers, and hyphens';
+              }
+              if (part.startsWith('-') || part.endsWith('-')) {
+                return 'Domain parts cannot start or end with hyphens';
+              }
+            }
           }
           
           // Check for double slashes in path
@@ -1805,6 +1848,11 @@ const handleCancelEditExampleResource = () => {
       // No need to handle identifier field validation anymore
       if (fieldName === 'alternativeTitle') setAlternativeTitleInputValid(false);
     
+      if (!inputValue.trim()) return;
+      
+      const trimmedValue = inputValue.trim();
+      let validationError = null;
+      
       // Fields that require IRI validation - EXPANDED LIST
       const iriFields = [
         'homepageURL', 'otherPages', 'vocabulariesUsed', 'kgSchema',
@@ -1813,31 +1861,33 @@ const handleCancelEditExampleResource = () => {
       ];
     
       if (iriFields.includes(fieldName)) {
-        const iriError = isValidIriString(inputValue);
-        if (iriError) {
-          if (setErrorFunc) setErrorFunc(iriError);
-          return;
-        }
+        validationError = isValidIriString(trimmedValue);
       }
 
       // BCP-47 validation for language field
       if (fieldName === 'language') {
-        const langError = isValidBCP47(inputValue);
-        if (langError) {
-          setLanguageInputError(langError);
-          setLanguageInputValid(false);
-          return;
-        }
-        setLanguageInputValid(true);
+        validationError = isValidBCP47(trimmedValue);
+        setLanguageInputValid(!validationError);
       }
-    
-      if (inputValue.trim()) {
-        setFormData(prevFormData => ({
-          ...prevFormData,
-          [fieldName]: [...(prevFormData[fieldName] || []), inputValue.trim()]
+      
+      // Add the tag regardless of validation
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        [fieldName]: [...(prevFormData[fieldName] || []), trimmedValue]
+      }));
+      
+      // Track invalid tags with their error messages
+      if (validationError) {
+        setInvalidTags(prev => ({
+          ...prev,
+          [fieldName]: {
+            ...(prev[fieldName] || {}),
+            [trimmedValue]: validationError
+          }
         }));
-        setInputFunc('');
       }
+      
+      setInputFunc('');
     };
     
     // Helper functions for single-value tag fields
@@ -2367,11 +2417,23 @@ const handleCancelEditExampleResource = () => {
   
   const handleRemoveTag = (fieldName, index) => {
     const newTags = [...formData[fieldName]];
+    const removedTag = newTags[index];
     newTags.splice(index, 1);
     setFormData({
       ...formData,
       [fieldName]: newTags
     });
+    
+    // Remove from invalid tags if it exists
+    if (invalidTags[fieldName] && invalidTags[fieldName][removedTag]) {
+      const newInvalidTags = { ...invalidTags };
+      delete newInvalidTags[fieldName][removedTag];
+      // Clean up empty field objects
+      if (Object.keys(newInvalidTags[fieldName]).length === 0) {
+        delete newInvalidTags[fieldName];
+      }
+      setInvalidTags(newInvalidTags);
+    }
   };
   
   const handleFileUpload = (e) => {
@@ -3363,7 +3425,7 @@ const handleCancelEditExampleResource = () => {
                       handleAddSingleValueTag('title', titleInput, setTitleInput, setTitleRejectionMessage);
                     }
                   }}
-                  className={`tag-input ${titleValid ? 'form-input-valid' : ''}`}
+                  className={`tag-input ${titleInput.trim().length > 0 ? 'form-input-valid' : ''}`}
                   placeholder="Enter title and press Enter or +"
                 />
                 <button 
@@ -3414,12 +3476,12 @@ const handleCancelEditExampleResource = () => {
                   id="alternativeTitle"
                   name="alternativeTitleInput"
                   value={alternativeTitleInput}
-                  onChange={(e) => setAlternativeTitleInput(e.target.value)}
-                  onBlur={(e) => {
-                    if (alternativeTitleInput.trim()) setAlternativeTitleInputValid(true);
+                  onChange={(e) => {
+                    setAlternativeTitleInput(e.target.value);
+                    setAlternativeTitleInputValid(e.target.value.trim().length > 0);
                   }}
                   onKeyPress={(e) => handleKeyPress(e, 'alternativeTitle', alternativeTitleInput, setAlternativeTitleInput)}
-                  className={`tag-input ${alternativeTitleInputValid ? 'tag-input-valid' : ''}`}
+                  className={`tag-input ${alternativeTitleInputValid ? 'form-input-valid' : ''}`}
                   placeholder="Enter alternative title and press Enter or +"
                 />
                 <button 
@@ -3465,10 +3527,10 @@ const handleCancelEditExampleResource = () => {
                   value={acronymInput}
                   onChange={(e) => {
                     setAcronymInput(e.target.value);
+                    setAcronymInputValid(e.target.value.trim().length > 0);
                   }}
-                  onBlur={() => setAcronymInputValid(!!acronymInput.trim())}
                   onKeyPress={(e) => handleKeyPress(e, 'acronym', acronymInput, setAcronymInput)}
-                  className={`tag-input ${acronymInputValid ? 'tag-input-valid' : ''}`}
+                  className={`tag-input ${acronymInputValid ? 'form-input-valid' : ''}`}
                   placeholder="Enter acronym and press Enter or +"
                 />
                 <button 
@@ -3518,7 +3580,7 @@ const handleCancelEditExampleResource = () => {
                       handleAddSingleValueTag('description', descriptionInput, setDescriptionInput, setDescriptionRejectionMessage);
                     }
                   }}
-                  className={`tag-input ${descriptionValid ? 'form-input-valid' : ''}`}
+                  className={`tag-input ${descriptionInput.trim().length > 0 ? 'form-input-valid' : ''}`}
                   rows="4"
                   placeholder="Enter description and press Ctrl+Enter or +"
                 />
@@ -3604,18 +3666,25 @@ const handleCancelEditExampleResource = () => {
               </div>
               {languageInputError && <div className="iri-error-message">{languageInputError}</div>}
               <div className="tag-list">
-                {formData.language.map((lang, index) => (
-                  <div key={`language-${index}`} className="tag-item">
-                    <span className="tag-text">{lang}</span>
-                    <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('language', index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+                {formData.language.map((lang, index) => {
+                  const isInvalid = invalidTags.language && invalidTags.language[lang];
+                  const errorMessage = isInvalid ? invalidTags.language[lang] : null;
+                  return (
+                    <div key={`language-${index}`}>
+                      <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                        <span className="tag-text">{lang}</span>
+                        <button 
+                          type="button"
+                          className="tag-remove"
+                          onClick={() => handleRemoveTag('language', index)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
+                    </div>
+                  );
+                })}
               </div>
               <div className="field-hint">Press Enter or click + to add language</div>
             </div>
@@ -3633,8 +3702,10 @@ const handleCancelEditExampleResource = () => {
                   id="keywords"
                   name="keywords"
                   value={keywordsInput}
-                  onChange={(e) => setKeywordsInput(e.target.value)}
-                  onBlur={validateRegularInput}
+                  onChange={(e) => {
+                    setKeywordsInput(e.target.value);
+                    setKeywordsInputValid(e.target.value.trim().length > 0);
+                  }}
                   onKeyPress={(e) => handleKeyPress(e, 'keywords', keywordsInput, setKeywordsInput)}
                   className={`tag-input ${keywordsInputValid ? 'form-input-valid' : ''}`}
                   placeholder="Enter keyword and press Enter or +"
@@ -3740,18 +3811,25 @@ const handleCancelEditExampleResource = () => {
                 </button>
               </div>
               <div className="tag-list">
-                {formData.homepageURL.map((url, index) => (
-                  <div key={`homepage-url-${index}`} className="tag-item">
-                    <span className="tag-text">{url}</span>
-                    <button
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('homepageURL', index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+                {formData.homepageURL.map((url, index) => {
+                  const isInvalid = invalidTags.homepageURL && invalidTags.homepageURL[url];
+                  const errorMessage = isInvalid ? invalidTags.homepageURL[url] : null;
+                  return (
+                    <div key={`homepage-url-${index}`}>
+                      <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                        <span className="tag-text">{url}</span>
+                        <button
+                          type="button"
+                          className="tag-remove"
+                          onClick={() => handleRemoveTag('homepageURL', index)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
+                    </div>
+                  );
+                })}
               </div>
               {homepageURLInputError && <div className="iri-error-message">{homepageURLInputError}</div>}
               <div className="field-hint">Press Enter or click + to add IRI</div>
@@ -3794,8 +3872,6 @@ const handleCancelEditExampleResource = () => {
                 placeholder="Enter IRI and press Enter or +"
                 className={`tag-input ${otherPagesInputError ? 'form-input-error' : ''} ${otherPagesInputValid ? 'form-input-valid' : ''}`}
               />
-              {otherPagesInputError && <div className="iri-error-message">{otherPagesInputError}</div>}
-
                 <button
                   type="button"
                   className="tag-add-button"
@@ -3804,20 +3880,27 @@ const handleCancelEditExampleResource = () => {
                   +
                 </button>
               </div>
-              {otherPagesInputError && <div className={`field-error-message`}>{otherPagesInputError}</div>}
+              {otherPagesInputError && <div className="iri-error-message">{otherPagesInputError}</div>}
               <div className="tag-list">
-                {formData.otherPages.map((page, index) => (
-                  <div key={`other-page-${index}`} className="tag-item">
-                    <span className="tag-text">{page}</span>
-                    <button
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('otherPages', index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+                {formData.otherPages.map((page, index) => {
+                  const isInvalid = invalidTags.otherPages && invalidTags.otherPages[page];
+                  const errorMessage = isInvalid ? invalidTags.otherPages[page] : null;
+                  return (
+                    <div key={`other-page-${index}`}>
+                      <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                        <span className="tag-text">{page}</span>
+                        <button
+                          type="button"
+                          className="tag-remove"
+                          onClick={() => handleRemoveTag('otherPages', index)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
+                    </div>
+                  );
+                })}
               </div>
               <div className="field-hint">Press Enter or click + to add IRI</div>
             </div>
@@ -3994,12 +4077,11 @@ const handleCancelEditExampleResource = () => {
                       Given Name <span className="field-indicator optional-indicator">optional</span>
                     </label>
                     <input
-                      onBlur={validateRegularInput}
                       type="text"
                       id="roleGivenName"
                       value={currentRole.givenName}
                       onChange={(e) => handleCurrentRoleChange('givenName', e.target.value)}
-                      className="subfield-input"
+                      className={`subfield-input ${currentRole.givenName.trim().length > 0 ? 'form-input-valid' : ''}`}
                     />
                   </div>
                   <div className="form-group">
@@ -4311,18 +4393,36 @@ const handleCancelEditExampleResource = () => {
               </button>
               </div>
               <div className="tag-list">
-              {formData.vocabulariesUsed.map((item, index) => (
-                  <div key={`vocabulary-${index}`} className="tag-item">
-                  <span className="tag-text">{item}</span>
-                  <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('vocabulariesUsed', index)}
-                  >
-                      ×
-                  </button>
+              {formData.vocabulariesUsed.map((item, index) => {
+                // Check if in invalidTags state OR validate on render
+                let isInvalid = invalidTags.vocabulariesUsed && invalidTags.vocabulariesUsed[item];
+                let errorMessage = isInvalid ? invalidTags.vocabulariesUsed[item] : null;
+                
+                // If not tracked as invalid, validate it now
+                if (!isInvalid) {
+                  const validationError = isValidIriString(item);
+                  if (validationError) {
+                    isInvalid = true;
+                    errorMessage = validationError;
+                  }
+                }
+                
+                return (
+                  <div key={`vocabulary-${index}`}>
+                    <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                      <span className="tag-text">{item}</span>
+                      <button 
+                        type="button"
+                        className="tag-remove"
+                        onClick={() => handleRemoveTag('vocabulariesUsed', index)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
                   </div>
-              ))}
+                );
+              })}
               </div>
               <div className="field-hint">Press Enter or click + to add vocabulary</div>
           </div>
@@ -4361,18 +4461,36 @@ const handleCancelEditExampleResource = () => {
                 </button>
               </div>
               <div className="tag-list">
-                {formData.primaryReferenceDocument.map((doc, index) => (
-                  <div key={`ref-doc-${index}`} className="tag-item">
-                    <span className="tag-text">{doc}</span>
-                    <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('primaryReferenceDocument', index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+                {formData.primaryReferenceDocument.map((doc, index) => {
+                  // Check if in invalidTags state OR validate on render
+                  let isInvalid = invalidTags.primaryReferenceDocument && invalidTags.primaryReferenceDocument[doc];
+                  let errorMessage = isInvalid ? invalidTags.primaryReferenceDocument[doc] : null;
+                  
+                  // If not tracked as invalid, validate it now
+                  if (!isInvalid) {
+                    const validationError = isValidIriString(doc);
+                    if (validationError) {
+                      isInvalid = true;
+                      errorMessage = validationError;
+                    }
+                  }
+                  
+                  return (
+                    <div key={`ref-doc-${index}`}>
+                      <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                        <span className="tag-text">{doc}</span>
+                        <button 
+                          type="button"
+                          className="tag-remove"
+                          onClick={() => handleRemoveTag('primaryReferenceDocument', index)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
+                    </div>
+                  );
+                })}
               </div>
               <div className="field-hint">Press Enter or click + to add reference document (IRI)</div>
             </div>
@@ -4481,18 +4599,36 @@ const handleCancelEditExampleResource = () => {
 
             {/* Display added meta graph items */}
             <div className="tag-list">
-              {formData.metaGraph.map((graph, index) => (
-                <div key={`meta-graph-${index}`} className="tag-item">
-                  <span className="tag-text">{graph}</span>
-                  <button 
-                    type="button"
-                    className="tag-remove"
-                    onClick={() => handleRemoveTag('metaGraph', index)}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+              {formData.metaGraph.map((graph, index) => {
+                // Check if in invalidTags state OR validate on render
+                let isInvalid = invalidTags.metaGraph && invalidTags.metaGraph[graph];
+                let errorMessage = isInvalid ? invalidTags.metaGraph[graph] : null;
+                
+                // If not tracked as invalid, validate it now
+                if (!isInvalid) {
+                  const validationError = isValidIriString(graph);
+                  if (validationError) {
+                    isInvalid = true;
+                    errorMessage = validationError;
+                  }
+                }
+                
+                return (
+                  <div key={`meta-graph-${index}`}>
+                    <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                      <span className="tag-text">{graph}</span>
+                      <button 
+                        type="button"
+                        className="tag-remove"
+                        onClick={() => handleRemoveTag('metaGraph', index)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
+                  </div>
+                );
+              })}
             </div>
           </div>
           
@@ -4529,18 +4665,36 @@ const handleCancelEditExampleResource = () => {
                 </button>
               </div>
               <div className="tag-list">
-                {formData.kgSchema.map((schema, index) => (
-                  <div key={`kg-schema-${index}`} className="tag-item">
-                    <span className="tag-text">{schema}</span>
-                    <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('kgSchema', index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+                {formData.kgSchema.map((schema, index) => {
+                  // Check if in invalidTags state OR validate on render
+                  let isInvalid = invalidTags.kgSchema && invalidTags.kgSchema[schema];
+                  let errorMessage = isInvalid ? invalidTags.kgSchema[schema] : null;
+                  
+                  // If not tracked as invalid, validate it now
+                  if (!isInvalid) {
+                    const validationError = isValidIriString(schema);
+                    if (validationError) {
+                      isInvalid = true;
+                      errorMessage = validationError;
+                    }
+                  }
+                  
+                  return (
+                    <div key={`kg-schema-${index}`}>
+                      <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                        <span className="tag-text">{schema}</span>
+                        <button 
+                          type="button"
+                          className="tag-remove"
+                          onClick={() => handleRemoveTag('kgSchema', index)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
+                    </div>
+                  );
+                })}
               </div>
               <div className="field-hint">Press Enter or click + to add KG schema (IRI)</div>
             </div>
@@ -4575,18 +4729,36 @@ const handleCancelEditExampleResource = () => {
               </button>
               </div>
               <div className="tag-list">
-                {formData.statistics.map((stat, index) => (
-                  <div key={`stat-${index}`} className="tag-item">
-                    <span className="tag-text">{stat}</span>
-                    <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('statistics', index)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+                {formData.statistics.map((stat, index) => {
+                  // Check if in invalidTags state OR validate on render
+                  let isInvalid = invalidTags.statistics && invalidTags.statistics[stat];
+                  let errorMessage = isInvalid ? invalidTags.statistics[stat] : null;
+                  
+                  // If not tracked as invalid, validate it now
+                  if (!isInvalid) {
+                    const validationError = isValidIriString(stat);
+                    if (validationError) {
+                      isInvalid = true;
+                      errorMessage = validationError;
+                    }
+                  }
+                  
+                  return (
+                    <div key={`stat-${index}`}>
+                      <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                        <span className="tag-text">{stat}</span>
+                        <button 
+                          type="button"
+                          className="tag-remove"
+                          onClick={() => handleRemoveTag('statistics', index)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
+                    </div>
+                  );
+                })}
               </div>
               <div className="field-hint">Press Enter or click + to add statistics (IRI)</div>
             </div>
@@ -4744,7 +4916,7 @@ const handleCancelEditExampleResource = () => {
               id="distTitle"
               value={currentDistribution.title}
               onChange={(e) => handleDistributionChange('title', e.target.value)}
-              className="subfield-input"
+              className={`subfield-input ${currentDistribution.title.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
            </div>
            
@@ -4757,7 +4929,7 @@ const handleCancelEditExampleResource = () => {
                value={currentDistribution.description}
                onChange={(e) => handleDistributionChange('description', e.target.value)}
                rows="2"
-               className="subfield-input"
+               className={`subfield-input ${currentDistribution.description.trim().length > 0 ? 'form-input-valid' : ''}`}
              ></textarea>
            </div>
            
@@ -4770,7 +4942,7 @@ const handleCancelEditExampleResource = () => {
               id="distMediaType"
               value={currentDistribution.mediaType}
               onChange={(e) => handleDistributionChange('mediaType', e.target.value)}
-              className="subfield-input"
+              className={`subfield-input ${currentDistribution.mediaType.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
            </div>
            
@@ -4785,11 +4957,24 @@ const handleCancelEditExampleResource = () => {
                 value={currentDistribution.downloadURL}
                 onChange={(e) => {
                   handleDistributionChange('downloadURL', e.target.value);
-                  setDistDownloadURLError('');
-                  setDistDownloadURLValid(false);
+                  
+                  // Real-time IRI validation
+                  const value = e.target.value;
+                  if (!value || !value.trim()) {
+                    setDistDownloadURLError('');
+                    setDistDownloadURLValid(false);
+                  } else {
+                    const iriError = isValidIriString(value);
+                    if (iriError) {
+                      setDistDownloadURLError(iriError);
+                      setDistDownloadURLValid(false);
+                    } else {
+                      setDistDownloadURLError('');
+                      setDistDownloadURLValid(true);
+                    }
+                  }
                 }}
-                onBlur={validateIriInput}
-                className={`subfield-input ${distDownloadURLError ? 'input-error' : ''} ${distDownloadURLValid ? 'input-valid' : ''}`}
+                className={`subfield-input ${distDownloadURLError ? 'form-input-error' : ''} ${distDownloadURLValid ? 'form-input-valid' : ''}`}
               />
               {distDownloadURLError && <div className="iri-error-message">{distDownloadURLError}</div>}
 
@@ -4806,11 +4991,24 @@ const handleCancelEditExampleResource = () => {
                 value={currentDistribution.accessURL}
                 onChange={(e) => {
                   handleDistributionChange('accessURL', e.target.value);
-                  setDistAccessURLError('');
-                  setDistAccessURLValid(false);
+                  
+                  // Real-time IRI validation
+                  const value = e.target.value;
+                  if (!value || !value.trim()) {
+                    setDistAccessURLError('');
+                    setDistAccessURLValid(false);
+                  } else {
+                    const iriError = isValidIriString(value);
+                    if (iriError) {
+                      setDistAccessURLError(iriError);
+                      setDistAccessURLValid(false);
+                    } else {
+                      setDistAccessURLError('');
+                      setDistAccessURLValid(true);
+                    }
+                  }
                 }}
-                onBlur={validateIriInput}
-                className={`subfield-input ${distAccessURLError ? 'input-error' : ''} ${distAccessURLValid ? 'input-valid' : ''}`}
+                className={`subfield-input ${distAccessURLError ? 'form-input-error' : ''} ${distAccessURLValid ? 'form-input-valid' : ''}`}
               />
               {distAccessURLError && <div className="iri-error-message">{distAccessURLError}</div>}
           </div>    
@@ -4837,7 +5035,7 @@ const handleCancelEditExampleResource = () => {
               id="distByteSize"
               value={currentDistribution.byteSize}
               onChange={(e) => handleDistributionChange('byteSize', e.target.value)}
-              className="subfield-input"
+              className={`subfield-input ${currentDistribution.byteSize.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
            </div>
            
@@ -4851,8 +5049,7 @@ const handleCancelEditExampleResource = () => {
                name="distCompressionFormat"
                value={currentDistribution.compressionFormat}
                onChange={(e) => handleDistributionChange('compressionFormat', e.target.value)}
-               onBlur={validateRegularInput}
-               className={`subfield-input ${distCompressionFormatValid ? 'form-input-valid' : ''}`}
+               className={`subfield-input ${currentDistribution.compressionFormat.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
            </div>
            
@@ -4866,8 +5063,7 @@ const handleCancelEditExampleResource = () => {
                name="distPackagingFormat"
                value={currentDistribution.packagingFormat}
                onChange={(e) => handleDistributionChange('packagingFormat', e.target.value)}
-               onBlur={validateRegularInput}
-               className={`subfield-input ${distPackagingFormatValid ? 'form-input-valid' : ''}`}
+               className={`subfield-input ${currentDistribution.packagingFormat.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
            </div>
            <div className="form-group">
@@ -4880,8 +5076,7 @@ const handleCancelEditExampleResource = () => {
                name="distHasPolicy"
                value={currentDistribution.hasPolicy}
                onChange={(e) => handleDistributionChange('hasPolicy', e.target.value)}
-               onBlur={validateRegularInput}
-               className={`subfield-input ${distHasPolicyValid ? 'form-input-valid' : ''}`}
+               className={`subfield-input ${currentDistribution.hasPolicy.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
            </div>
            
@@ -4895,8 +5090,7 @@ const handleCancelEditExampleResource = () => {
                name="distLicense"
                value={currentDistribution.license}
                onChange={(e) => handleDistributionChange('license', e.target.value)}
-               onBlur={validateRegularInput}
-               className={`subfield-input ${distLicenseValid ? 'form-input-valid' : ''}`}
+               className={`subfield-input ${currentDistribution.license.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
            </div>
            
@@ -4910,8 +5104,7 @@ const handleCancelEditExampleResource = () => {
                name="distRights"
                value={currentDistribution.rights}
                onChange={(e) => handleDistributionChange('rights', e.target.value)}
-               onBlur={validateRegularInput}
-               className={`subfield-input ${distRightsValid ? 'form-input-valid' : ''}`}
+               className={`subfield-input ${currentDistribution.rights.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
            </div>
            <div className="form-group">
@@ -4924,8 +5117,7 @@ const handleCancelEditExampleResource = () => {
                name="distSpatialResolution"
                value={currentDistribution.spatialResolution}
                onChange={(e) => handleDistributionChange('spatialResolution', e.target.value)}
-               onBlur={validateRegularInput}
-               className={`subfield-input ${distSpatialResolutionValid ? 'form-input-valid' : ''}`}
+               className={`subfield-input ${currentDistribution.spatialResolution.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
            </div>
            <div className="form-group">
@@ -4938,8 +5130,7 @@ const handleCancelEditExampleResource = () => {
                name="distTemporalResolution"
                value={currentDistribution.temporalResolution}
                onChange={(e) => handleDistributionChange('temporalResolution', e.target.value)}
-               onBlur={validateRegularInput}
-               className={`subfield-input ${distTemporalResolutionValid ? 'form-input-valid' : ''}`}
+               className={`subfield-input ${currentDistribution.temporalResolution.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
            </div>
            <div className="form-group">
@@ -5074,18 +5265,36 @@ const handleCancelEditExampleResource = () => {
               </button>
               </div>
               <div className="tag-list">
-              {formData.restAPI.map((item, index) => (
-                  <div key={`rest-api-${index}`} className="tag-item">
-                  <span className="tag-text">{item}</span>
-                  <button 
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag('restAPI', index)}
-                  >
-                      ×
-                  </button>
+              {formData.restAPI.map((item, index) => {
+                // Check if in invalidTags state OR validate on render
+                let isInvalid = invalidTags.restAPI && invalidTags.restAPI[item];
+                let errorMessage = isInvalid ? invalidTags.restAPI[item] : null;
+                
+                // If not tracked as invalid, validate it now
+                if (!isInvalid) {
+                  const validationError = isValidIriString(item);
+                  if (validationError) {
+                    isInvalid = true;
+                    errorMessage = validationError;
+                  }
+                }
+                
+                return (
+                  <div key={`rest-api-${index}`}>
+                    <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                      <span className="tag-text">{item}</span>
+                      <button 
+                        type="button"
+                        className="tag-remove"
+                        onClick={() => handleRemoveTag('restAPI', index)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
                   </div>
-              ))}
+                );
+              })}
               </div>
               {restAPIInputError && (
                 <div className="error-message">{restAPIInputError}</div>
@@ -5155,15 +5364,32 @@ const handleCancelEditExampleResource = () => {
     </div>
     <div className="form-group">
       <label htmlFor="sparqlEndpointURL">
-        Endpoint URL <span className="field-indicator optional-indicator">optional</span>
+        Endpoint URL <span className="field-indicator optional-indicator">optional (IRI)</span>
       </label>
       <input
         type="text"
         id="sparqlEndpointURL"
         name="sparqlEndpointURL"
         value={currentSparqlEndpoint.endpointURL}
-        onChange={e => handleCurrentSparqlEndpointChange('endpointURL', e.target.value)}
-        onBlur={validateIriInput}
+        onChange={e => {
+          handleCurrentSparqlEndpointChange('endpointURL', e.target.value);
+          
+          // Real-time IRI validation
+          const value = e.target.value;
+          if (!value || !value.trim()) {
+            setSparqlEndpointURLError('');
+            setSparqlEndpointURLValid(false);
+          } else {
+            const iriError = isValidIriString(value);
+            if (iriError) {
+              setSparqlEndpointURLError(iriError);
+              setSparqlEndpointURLValid(false);
+            } else {
+              setSparqlEndpointURLError('');
+              setSparqlEndpointURLValid(true);
+            }
+          }
+        }}
         className={`subfield-input ${sparqlEndpointURLError ? 'form-input-error' : ''} ${sparqlEndpointURLValid ? 'form-input-valid' : ''}`}
       />
       {sparqlEndpointURLError && <div className="iri-error-message">{sparqlEndpointURLError}</div>}
@@ -5178,8 +5404,7 @@ const handleCancelEditExampleResource = () => {
         name="sparqlIdentifier"
         value={currentSparqlEndpoint.identifier}
         onChange={e => handleCurrentSparqlEndpointChange('identifier', e.target.value)}
-        onBlur={validateRegularInput}
-        className={`subfield-input ${sparqlIdentifierValid ? 'form-input-valid' : ''}`}
+        className={`subfield-input ${currentSparqlEndpoint.identifier.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
     </div>
     <div className="form-group">
@@ -5192,8 +5417,7 @@ const handleCancelEditExampleResource = () => {
         name="sparqlTitle"
         value={currentSparqlEndpoint.title}
         onChange={e => handleCurrentSparqlEndpointChange('title', e.target.value)}
-        onBlur={validateRegularInput}
-        className={`subfield-input ${sparqlTitleValid ? 'form-input-valid' : ''}`}
+        className={`subfield-input ${currentSparqlEndpoint.title.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
     </div>
     <div className="form-group">
@@ -5206,8 +5430,7 @@ const handleCancelEditExampleResource = () => {
         name="sparqlEndpointDescription"
         value={currentSparqlEndpoint.endpointDescription}
         onChange={e => handleCurrentSparqlEndpointChange('endpointDescription', e.target.value)}
-        onBlur={validateRegularInput}
-        className={`subfield-input ${sparqlEndpointDescriptionValid ? 'form-input-valid' : ''}`}
+        className={`subfield-input ${currentSparqlEndpoint.endpointDescription.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
     </div>
     <div className="form-group">
@@ -5220,8 +5443,7 @@ const handleCancelEditExampleResource = () => {
         name="sparqlStatus"
         value={currentSparqlEndpoint.status}
         onChange={e => handleCurrentSparqlEndpointChange('status', e.target.value)}
-        onBlur={validateRegularInput}
-        className={`subfield-input ${sparqlStatusValid ? 'form-input-valid' : ''}`}
+        className={`subfield-input ${currentSparqlEndpoint.status.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
     </div>
     <div className="distribution-actions">
@@ -5306,24 +5528,21 @@ const handleCancelEditExampleResource = () => {
                   onChange={(e) => {
                     setVersionInput(e.target.value);
                     setVersionRejectionMessage(''); // Clear rejection message when typing
+                    setVersionValid(e.target.value.trim().length > 0);
                   }}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       handleAddSingleValueTag('version', versionInput, setVersionInput, setVersionRejectionMessage);
-                      if (versionInput.trim()) setVersionValid(true);
                     }
                   }}
-                  className={`tag-input ${versionValid ? 'form-input-valid' : ''}`}
+                  className={`tag-input ${versionInput.trim().length > 0 ? 'form-input-valid' : ''}`}
                   placeholder="e.g. 1.0, 2.5 - press Enter or +"
                 />
                 <button 
                   type="button" 
                   className="tag-add-button"
-                  onClick={() => {
-                    handleAddSingleValueTag('version', versionInput, setVersionInput, setVersionRejectionMessage);
-                    if (versionInput.trim()) setVersionValid(true);
-                  }}
+                  onClick={() => handleAddSingleValueTag('version', versionInput, setVersionInput, setVersionRejectionMessage)}
                 >
                   +
                 </button>
@@ -5396,18 +5615,36 @@ const handleCancelEditExampleResource = () => {
                </button>
              </div>
              <div className="tag-list">
-               {formData.category.map((cat, index) => (
-                 <div key={`category-${index}`} className="tag-item">
-                   <span className="tag-text">{cat}</span>
-                   <button 
-                     type="button"
-                     className="tag-remove"
-                     onClick={() => handleRemoveTag('category', index)}
-                   >
-                     ×
-                   </button>
-                 </div>
-               ))}
+               {formData.category.map((cat, index) => {
+                 // Check if in invalidTags state OR validate on render
+                 let isInvalid = invalidTags.category && invalidTags.category[cat];
+                 let errorMessage = isInvalid ? invalidTags.category[cat] : null;
+                 
+                 // If not tracked as invalid, validate it now
+                 if (!isInvalid) {
+                   const validationError = isValidIriString(cat);
+                   if (validationError) {
+                     isInvalid = true;
+                     errorMessage = validationError;
+                   }
+                 }
+                 
+                 return (
+                   <div key={`category-${index}`}>
+                     <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                       <span className="tag-text">{cat}</span>
+                       <button 
+                         type="button"
+                         className="tag-remove"
+                         onClick={() => handleRemoveTag('category', index)}
+                       >
+                         ×
+                       </button>
+                     </div>
+                     {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
+                   </div>
+                 );
+               })}
              </div>
              <div className="field-hint">Press Enter or click + to add category (IRI)</div>
            </div>
@@ -5446,18 +5683,36 @@ const handleCancelEditExampleResource = () => {
                </button>
              </div>
              <div className="tag-list">
-               {formData.publicationReferences.map((ref, index) => (
-                 <div key={`pub-ref-${index}`} className="tag-item">
-                   <span className="tag-text">{ref}</span>
-                   <button 
-                     type="button"
-                     className="tag-remove"
-                     onClick={() => handleRemoveTag('publicationReferences', index)}
-                   >
-                     ×
-                   </button>
-                 </div>
-               ))}
+               {formData.publicationReferences.map((ref, index) => {
+                 // Check if in invalidTags state OR validate on render
+                 let isInvalid = invalidTags.publicationReferences && invalidTags.publicationReferences[ref];
+                 let errorMessage = isInvalid ? invalidTags.publicationReferences[ref] : null;
+                 
+                 // If not tracked as invalid, validate it now
+                 if (!isInvalid) {
+                   const validationError = isValidIriString(ref);
+                   if (validationError) {
+                     isInvalid = true;
+                     errorMessage = validationError;
+                   }
+                 }
+                 
+                 return (
+                   <div key={`pub-ref-${index}`}>
+                     <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                       <span className="tag-text">{ref}</span>
+                       <button 
+                         type="button"
+                         className="tag-remove"
+                         onClick={() => handleRemoveTag('publicationReferences', index)}
+                       >
+                         ×
+                       </button>
+                     </div>
+                     {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
+                   </div>
+                 );
+               })}
              </div>
              <div className="field-hint">Press Enter or click + to add publication reference (IRI)</div>
            </div>
@@ -5489,18 +5744,36 @@ const handleCancelEditExampleResource = () => {
                </button>
              </div>
              <div className="tag-list">
-               {formData.iriTemplate.map((iri, index) => (
-                 <div key={`iri-${index}`} className="tag-item">
-                   <span className="tag-text">{iri}</span>
-                   <button 
-                     type="button"
-                     className="tag-remove"
-                     onClick={() => handleRemoveTag('iriTemplate', index)}
-                   >
-                     ×
-                   </button>
-                 </div>
-               ))}
+               {formData.iriTemplate.map((iri, index) => {
+                 // Check if in invalidTags state OR validate on render
+                 let isInvalid = invalidTags.iriTemplate && invalidTags.iriTemplate[iri];
+                 let errorMessage = isInvalid ? invalidTags.iriTemplate[iri] : null;
+                 
+                 // If not tracked as invalid, validate it now
+                 if (!isInvalid) {
+                   const validationError = isValidIriString(iri);
+                   if (validationError) {
+                     isInvalid = true;
+                     errorMessage = validationError;
+                   }
+                 }
+                 
+                 return (
+                   <div key={`iri-${index}`}>
+                     <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                       <span className="tag-text">{iri}</span>
+                       <button 
+                         type="button"
+                         className="tag-remove"
+                         onClick={() => handleRemoveTag('iriTemplate', index)}
+                       >
+                         ×
+                       </button>
+                     </div>
+                     {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
+                   </div>
+                 );
+               })}
              </div>
              <div className="field-hint">Press Enter or click + to add IRI template</div>
            </div>
@@ -5557,8 +5830,7 @@ const handleCancelEditExampleResource = () => {
                  name="linkedResourceTarget"
                  value={currentLinkedResource.target}
                  onChange={e => handleCurrentLinkedResourceChange('target', e.target.value)}
-                 onBlur={validateRegularInput}
-                 className={`subfield-input ${linkedResourceTargetValid ? 'form-input-valid' : ''}`}
+                 className={`subfield-input ${currentLinkedResource.target.trim().length > 0 ? 'form-input-valid' : ''}`}
                />
              </div>
              <div className="form-group">
@@ -5571,8 +5843,7 @@ const handleCancelEditExampleResource = () => {
                  name="linkedResourceTriples"
                  value={currentLinkedResource.triples}
                  onChange={e => handleCurrentLinkedResourceChange('triples', e.target.value)}
-                 onBlur={validateRegularInput}
-                 className={`subfield-input ${linkedResourceTriplesValid ? 'form-input-valid' : ''}`}
+                 className={`subfield-input ${currentLinkedResource.triples.trim().length > 0 ? 'form-input-valid' : ''}`}
                />
              </div>
              <div className="button-row">
@@ -5664,8 +5935,7 @@ const handleCancelEditExampleResource = () => {
         name="exampleResourceTitle"
         value={currentExampleResource.title}
         onChange={e => handleCurrentExampleResourceChange('title', e.target.value)}
-        onBlur={validateRegularInput}
-        className={`subfield-input ${exampleResourceTitleValid ? 'form-input-valid' : ''}`}
+        className={`subfield-input ${currentExampleResource.title.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
     </div>
     <div className="form-group">
@@ -5678,8 +5948,7 @@ const handleCancelEditExampleResource = () => {
         name="exampleResourceDescription"
         value={currentExampleResource.description}
         onChange={e => handleCurrentExampleResourceChange('description', e.target.value)}
-        onBlur={validateRegularInput}
-        className={`subfield-input ${exampleResourceDescriptionValid ? 'form-input-valid' : ''}`}
+        className={`subfield-input ${currentExampleResource.description.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
     </div>
     <div className="form-group">
@@ -5692,8 +5961,7 @@ const handleCancelEditExampleResource = () => {
         name="exampleResourceStatus"
         value={currentExampleResource.status}
         onChange={e => handleCurrentExampleResourceChange('status', e.target.value)}
-        onBlur={validateRegularInput}
-        className={`subfield-input ${exampleResourceStatusValid ? 'form-input-valid' : ''}`}
+        className={`subfield-input ${currentExampleResource.status.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
     </div>
     <div className="form-group">
@@ -5705,8 +5973,25 @@ const handleCancelEditExampleResource = () => {
         id="exampleResourceAccessURL"
         name="exampleResourceAccessURL"
         value={currentExampleResource.accessURL}
-        onChange={e => handleCurrentExampleResourceChange('accessURL', e.target.value)}
-        onBlur={validateIriInput}
+        onChange={e => {
+          handleCurrentExampleResourceChange('accessURL', e.target.value);
+          
+          // Real-time IRI validation
+          const value = e.target.value;
+          if (!value || !value.trim()) {
+            setExampleResourceAccessURLError('');
+            setExampleResourceAccessURLValid(false);
+          } else {
+            const iriError = isValidIriString(value);
+            if (iriError) {
+              setExampleResourceAccessURLError(iriError);
+              setExampleResourceAccessURLValid(false);
+            } else {
+              setExampleResourceAccessURLError('');
+              setExampleResourceAccessURLValid(true);
+            }
+          }
+        }}
         className={`subfield-input ${exampleResourceAccessURLError ? 'form-input-error' : ''} ${exampleResourceAccessURLValid ? 'form-input-valid' : ''}`}
       />
       {exampleResourceAccessURLError && <div className="iri-error-message">{exampleResourceAccessURLError}</div>}
@@ -5748,7 +6033,22 @@ const handleCancelEditExampleResource = () => {
                  onChange={(e) => {
                    setAccessStatementInput(e.target.value);
                    setAccessStatementRejectionMessage(''); // Clear rejection message when typing
-                   setAccessStatementError(''); // Clear validation error when typing
+                   
+                   // Real-time IRI validation
+                   const value = e.target.value;
+                   if (!value || !value.trim()) {
+                     setAccessStatementError('');
+                     setAccessStatementValid(false);
+                   } else {
+                     const iriError = isValidIriString(value);
+                     if (iriError) {
+                       setAccessStatementError(iriError);
+                       setAccessStatementValid(false);
+                     } else {
+                       setAccessStatementError('');
+                       setAccessStatementValid(true);
+                     }
+                   }
                  }}
                  onKeyPress={(e) => {
                    if (e.key === 'Enter') {
@@ -5760,16 +6060,6 @@ const handleCancelEditExampleResource = () => {
                        return;
                      }
                      handleAddSingleValueTag('accessStatement', accessStatementInput, setAccessStatementInput, setAccessStatementRejectionMessage);
-                   }
-                 }}
-                 onBlur={(e) => {
-                   if (accessStatementInput.trim()) {
-                     const iriError = isValidIriString(accessStatementInput);
-                     if (iriError) {
-                       setAccessStatementError(iriError);
-                     } else {
-                       setAccessStatementError('');
-                     }
                    }
                  }}
                  className={`tag-input ${accessStatementValid ? 'form-input-valid' : ''} ${accessStatementError ? 'form-input-error' : ''}`}
@@ -5855,18 +6145,36 @@ const handleCancelEditExampleResource = () => {
                </button>
              </div>
              <div className="tag-list">
-               {formData.source.map((src, index) => (
-                 <div key={`source-${index}`} className="tag-item">
-                   <span className="tag-text">{src}</span>
-                   <button 
-                     type="button"
-                     className="tag-remove"
-                     onClick={() => handleRemoveTag('source', index)}
-                   >
-                     ×
-                   </button>
-                 </div>
-               ))}
+               {formData.source.map((src, index) => {
+                 // Check if in invalidTags state OR validate on render
+                 let isInvalid = invalidTags.source && invalidTags.source[src];
+                 let errorMessage = isInvalid ? invalidTags.source[src] : null;
+                 
+                 // If not tracked as invalid, validate it now
+                 if (!isInvalid) {
+                   const validationError = isValidIriString(src);
+                   if (validationError) {
+                     isInvalid = true;
+                     errorMessage = validationError;
+                   }
+                 }
+                 
+                 return (
+                   <div key={`source-${index}`}>
+                     <div className={`tag-item ${isInvalid ? 'tag-item-invalid' : ''}`}>
+                       <span className="tag-text">{src}</span>
+                       <button 
+                         type="button"
+                         className="tag-remove"
+                         onClick={() => handleRemoveTag('source', index)}
+                       >
+                         ×
+                       </button>
+                     </div>
+                     {isInvalid && <div className="tag-validation-error">{errorMessage}</div>}
+                   </div>
+                 );
+               })}
              </div>
              <div className="field-hint">Press Enter or click + to add source (IRI)</div>
            </div>

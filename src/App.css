@@ -2220,9 +2220,9 @@ label[data-tooltip]:hover::before {
 .form-input-error, input.form-input-error, textarea.form-input-error,
 .form-control.form-input-error, input.form-control.form-input-error, textarea.form-control.form-input-error,
 .tag-input-error, .subfield-input.form-input-error, .tag-input.input-error {
-  border-color: #e57373 !important;
-  box-shadow: 0 0 0 1px rgba(229, 115, 115, 0.3) !important;
-  background-color: var(--dark-surface-lighter) !important;
+  border-color: #ff5252 !important;
+  box-shadow: 0 0 0 2px rgba(255, 82, 82, 0.5) !important;
+  background-color: rgba(255, 82, 82, 0.08) !important;
 }
 
 /* Target the field indicator in the same label as a valid input */
@@ -2273,11 +2273,14 @@ label:has(+ .tag-input-row select.form-input-valid) .field-indicator {
   border: 1px solid rgba(40, 167, 69, 0.3) !important;
 }
 
-/* Target the field indicator in the same label as an invalid input */
+/* CRITICAL: Field indicator MUST stay red when input has validation error */
+/* These rules override all green indicator rules above, even if field has values/tags */
+/* This ensures that invalid email, IRI, or language inputs keep the indicator red */
 label:has(+ input.form-input-error) .field-indicator,
 label:has(+ textarea.form-input-error) .field-indicator,
 label:has(+ select.form-input-error) .field-indicator,
 label:has(+ .tag-input-container input.form-input-error) .field-indicator,
+label:has(+ .tag-input-container .tag-input-row input.form-input-error) .field-indicator,
 label:has(+ div input.form-input-error) .field-indicator,
 label:has(+ div textarea.form-input-error) .field-indicator,
 label:has(+ .form-control.form-input-error) .field-indicator,
@@ -2285,16 +2288,47 @@ label:has(+ div .form-control.form-input-error) .field-indicator,
 /* Target for deeply nested structures */
 label:has(~ .form-input-error) .field-indicator,
 /* Target for directly adjacent validation classes */
-label:has(+ .form-input-error) .field-indicator {
-  background-color: rgba(240, 80, 80, 0.15) !important;
-  color: #e57373 !important;
-  border: 1px solid rgba(240, 80, 80, 0.3) !important;
+label:has(+ .form-input-error) .field-indicator,
+/* Extra specificity for tag input containers with error inputs */
+label:has(+ .tag-input-container .tag-input.form-input-error) .field-indicator {
+  background-color: rgba(255, 82, 82, 0.2) !important;
+  color: #ff5252 !important;
+  border: 1px solid rgba(255, 82, 82, 0.5) !important;
 }
 
 .tag-item-valid {
   /* Green validation styling for tag items */
   border: 1px solid rgba(76, 175, 80, 0.6) !important;
   box-shadow: none !important;
+}
+
+/* Invalid tag styling - bright red */
+.tag-item-invalid {
+  background-color: rgba(255, 82, 82, 0.15) !important;
+  border: 2px solid #ff5252 !important;
+  box-shadow: 0 0 0 2px rgba(255, 82, 82, 0.3) !important;
+}
+
+.tag-item-invalid .tag-text {
+  color: #ff5252 !important;
+  font-weight: 500;
+}
+
+.tag-item-invalid .tag-remove {
+  color: #ff5252 !important;
+}
+
+/* Validation error message below invalid tags */
+.tag-validation-error {
+  color: #ff5252;
+  font-size: 12px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  margin-left: 12px;
+  padding: 4px 8px;
+  background-color: rgba(255, 82, 82, 0.1);
+  border-left: 3px solid #ff5252;
+  border-radius: 4px;
 }
 
 .uuid-display {
