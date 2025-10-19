@@ -208,25 +208,27 @@ MULTI-VALUE FIELDS HANDLING:
 - Each atomic value should be a separate suggestion
 - IMPORTANT: For multi-value fields, provide ALL relevant values as a LIST of separate suggestions so users can select and add them all at once
 - Examples:
-  * "English, French, German" → 3 separate suggestions: ["English", "French", "German"]
+  * "English, French, German" → 3 separate suggestions: ["en", "fr", "de"] (for language field, use BCP-47 codes)
   * "keyword1; keyword2 and keyword3" → 3 separate suggestions: ["keyword1", "keyword2", "keyword3"]
   * "http://vocab1.org | http://vocab2.org" → 2 separate suggestions
 - Trim whitespace from each value
-- Do NOT combine multiple values into a single suggestion with commas
 - Return each atomic value as a separate item in the suggestions array
 - The UI will display an "Add All" button for multi-value fields so users can populate all values in one click
+
+SPECIAL HANDLING FOR LANGUAGE FIELD:
+- Language values MUST follow BCP-47 (IETF language tag) format
+- Use lowercase 2-letter ISO 639-1 language codes (e.g., "en", "fr", "de", "es", "ja", "zh")
+
 
 SPECIAL HANDLING FOR STATISTICS FIELD:
 - The statistics field requires SEMANTIC SPLITTING - each distinct fact or piece of information should be a separate suggestion
 - Split based on MEANING, not just delimiters - identify individual statistical facts
 - Remove conjunction words like "and", "also", but preserve the complete fact text
 - Examples:
-  * "900,000 entities and 5,000,000 facts" → 2 suggestions: ["900,000 entities", "5,000,000 facts"]
   * "subClassOf: 126792 facts, type: 2011072 facts, context: 40000000 facts" → 3 suggestions: ["subClassOf: 126792 facts", "type: 2011072 facts", "context: 40000000 facts"]
   * "describes: 997061 facts, bornInYear: 189950 facts, diedInYear: 93827 facts" → 3 suggestions: ["describes: 997061 facts", "bornInYear: 189950 facts", "diedInYear: 93827 facts"]
 - Each suggestion should be a complete, standalone statistical statement
 - Do NOT rewrite or paraphrase - use the exact text from the narrative, only removing conjunctions
-- Look for patterns like "X: Y facts", "X entities", "X triples", etc. and split each into a separate suggestion
 
 SPECIAL HANDLING FOR ROLES FIELD:
 - Look for role-related fields in narrative and map them to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder
@@ -239,11 +241,8 @@ SPECIAL HANDLING FOR ROLES FIELD:
 - IMPORTANT: Create separate suggestions for EACH role type found, even if multiple roles exist
 - If you find multiple entities for the same role (e.g., "Published by: Org A, Org B, Org C"), create separate roleData for EACH entity
 - Split on commas, semicolons, "and", or other delimiters to identify individual entities
-- EMAIL HANDLING: The "mbox" field refers to email addresses
+- EMAIL HANDLING: The "email" field refers to email addresses
   * If you find an email address (e.g., "contact@example.org", "john.doe@university.edu"), put it in the "email" field of roleData
-  * Use the email address exactly as found in the narrative - do NOT add any prefix
-  * Look for email patterns in the narrative: text containing "@" followed by a domain
-  * Common field names for emails: "email", "e-mail", "contact", "mbox"
 - For roles field, return multiple suggestions with roleData:
   {
     "suggestions": [
@@ -349,13 +348,9 @@ Example:
   }
 }
 
-Provide 1-4 candidate values for each field, ordered by likelihood of being correct.
+Provide 1 or more candidate values for each field, ordered by likelihood of being correct.
 
-HANDLING "NS" VALUES:
-- If you find a field in the narrative but its value is "NS" (not supplied), return:
-  {
-    "noSuggestionsReason": "Field found in narrative but marked as 'NS' (not supplied) - no value provided"
-  }`;
+`;
 };
 
 // Function to get bulk suggestions for all fields at once

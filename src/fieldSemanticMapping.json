@@ -69,5 +69,5 @@
   "role-inputMode": "???",
   "role-agent": "foaf:Agent",
   "role-givenName": "foaf:givenName",
-  "role-mbox": "foaf:mbox"
+  "role-email": "foaf:mbox"
 }

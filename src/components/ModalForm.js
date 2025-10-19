@@ -621,6 +621,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
             errorCount: validation.errors.length
           }
         },
+        aiSuggestions: aiSuggestions, // Store all OpenAI suggestions
         metadata: {
           submissionType: 'turtle',
           contentLength: turtleContent.trim().length,
@@ -670,7 +671,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         turtleContent: turtleContent.trim(),
         submissionType: 'turtle',
         draftId: draftId
-      }
+      },
+      aiSuggestions: aiSuggestions // Store all OpenAI suggestions in turtle draft
     };
 
     // Save to localStorage
@@ -726,7 +728,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     roleType: roleData.roleType,
                     agent: roleData.mode === 'iri' ? (roleData.iri || '') : '',
                     givenName: roleData.mode === 'name_mbox' ? name.trim() : '',
-                    mbox: roleData.mode === 'name_mbox' ? email.trim() : ''
+                    email: roleData.mode === 'name_mbox' ? email.trim() : ''
                   };
                   
                   // Add role to form data, avoiding duplicates
@@ -735,7 +737,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     existing.roleType === newRole.roleType &&
                     existing.agent === newRole.agent &&
                     existing.givenName === newRole.givenName &&
-                    existing.mbox === newRole.mbox
+                    existing.email === newRole.email
                   );
                   
                   if (!isDuplicate) {
@@ -765,7 +767,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                     roleType: roleData.roleType,
                     agent: roleData.iri.trim(),
                     givenName: '',
-                    mbox: ''
+                    email: ''
                   };
                   
                   const existingRoles = updatedFormData.roles || [];
@@ -786,7 +788,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                       roleType: roleData.roleType,
                       agent: iri.trim(),
                       givenName: '',
-                      mbox: ''
+                      email: ''
                     };
                     
                     const existingRoles = updatedFormData.roles || [];
@@ -1093,7 +1095,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     inputMode: 'agentIRI', // 'agentIRI' or 'nameEmail'
     agent: '',
     givenName: '',
-    mbox: ''
+    email: ''
   });
 
   const fileInputRef = useRef(null);
@@ -1350,6 +1352,7 @@ const handleCancelEditExampleResource = () => {
   const [categoryInputError, setCategoryInputError] = useState('');
   const [publicationReferencesInputError, setPublicationReferencesInputError] = useState('');
   const [sourceInputError, setSourceInputError] = useState('');
+  const [languageInputError, setLanguageInputError] = useState('');
 
   // Valid states for date fields
   const [createdDateValid, setCreatedDateValid] = useState(false);
@@ -1393,16 +1396,27 @@ const handleCancelEditExampleResource = () => {
 
   useEffect(() => {
       if (initialFormData) {
-        setFormData(initialFormData);
+        // Check if initialFormData has the new structure with formData and aiSuggestions
+        const loadedFormData = initialFormData.formData || initialFormData;
+        const loadedAiSuggestions = initialFormData.aiSuggestions || {};
+        
+        setFormData(loadedFormData);
+        
+        // Restore AI suggestions if they exist
+        if (Object.keys(loadedAiSuggestions).length > 0) {
+          setAiSuggestions(loadedAiSuggestions);
+          setBulkSuggestionsReady(true);
+          console.log('Restored AI suggestions from draft:', loadedAiSuggestions);
+        }
         
         // Handle loading custom license input from draft
-        if (initialFormData.customLicenseInput) {
-          setCustomLicenseInput(initialFormData.customLicenseInput);
+        if (loadedFormData.customLicenseInput) {
+          setCustomLicenseInput(loadedFormData.customLicenseInput);
         }
         
         // If license starts with "Other-", extract the custom part and set dropdown to "Other"
-        if (initialFormData.license && initialFormData.license.startsWith('Other-')) {
-          const customPart = initialFormData.license.substring(6); // Remove "Other-" prefix
+        if (loadedFormData.license && loadedFormData.license.startsWith('Other-')) {
+          const customPart = loadedFormData.license.substring(6); // Remove "Other-" prefix
           setCustomLicenseInput(customPart);
           setFormData(prev => ({
             ...prev,
@@ -1411,14 +1425,14 @@ const handleCancelEditExampleResource = () => {
         }
         
         // Load collection data from draft
-        if (initialFormData.sparqlEndpoint) {
-          setSparqlEndpoints(initialFormData.sparqlEndpoint);
+        if (loadedFormData.sparqlEndpoint) {
+          setSparqlEndpoints(loadedFormData.sparqlEndpoint);
         }
-        if (initialFormData.exampleResource) {
-          setExampleResources(initialFormData.exampleResource);
+        if (loadedFormData.exampleResource) {
+          setExampleResources(loadedFormData.exampleResource);
         }
-        if (initialFormData.linkedResources) {
-          setLinkedResources(initialFormData.linkedResources);
+        if (loadedFormData.linkedResources) {
+          setLinkedResources(loadedFormData.linkedResources);
         }
       }
     }, [initialFormData]);
@@ -1704,7 +1718,7 @@ const handleCancelEditExampleResource = () => {
     const [licenseRejectionMessage, setLicenseRejectionMessage] = useState('');
     const [accessStatementError, setAccessStatementError] = useState('');
     const [currentRoleAgentError, setCurrentRoleAgentError] = useState('');
-    const [currentRoleMboxError, setCurrentRoleMboxError] = useState('');
+    const [currentRoleEmailError, setCurrentRoleEmailError] = useState('');
     const [distDownloadURLError, setDistDownloadURLError] = useState('');
     const [distAccessURLError, setDistAccessURLError] = useState('');
     
@@ -1715,7 +1729,7 @@ const handleCancelEditExampleResource = () => {
     const [vocabulariesUsedInputValid, setVocabulariesUsedInputValid] = useState(false);
     const [kgSchemaInputValid, setKgSchemaInputValid] = useState(false);
     const [currentRoleAgentValid, setCurrentRoleAgentValid] = useState(false);
-    const [currentRoleMboxValid, setCurrentRoleMboxValid] = useState(false);
+    const [currentRoleEmailValid, setCurrentRoleEmailValid] = useState(false);
     const [distDownloadURLValid, setDistDownloadURLValid] = useState(false);
     const [distAccessURLValid, setDistAccessURLValid] = useState(false);
     
@@ -1739,6 +1753,17 @@ const handleCancelEditExampleResource = () => {
           if (setErrorFunc) setErrorFunc(iriError);
           return;
         }
+      }
+
+      // BCP-47 validation for language field
+      if (fieldName === 'language') {
+        const langError = isValidBCP47(inputValue);
+        if (langError) {
+          setLanguageInputError(langError);
+          setLanguageInputValid(false);
+          return;
+        }
+        setLanguageInputValid(true);
       }
     
       if (inputValue.trim()) {
@@ -1916,12 +1941,12 @@ const handleCancelEditExampleResource = () => {
       inputMode: 'agentIRI',
       agent: '',
       givenName: '',
-      mbox: ''
+      email: ''
     });
     setCurrentRoleAgentError('');
     setCurrentRoleAgentValid(false);
-    setCurrentRoleMboxError('');
-    setCurrentRoleMboxValid(false);
+    setCurrentRoleEmailError('');
+    setCurrentRoleEmailValid(false);
   };
 
   // Validate a role before adding it
@@ -1939,11 +1964,11 @@ const handleCancelEditExampleResource = () => {
       if (!role.givenName.trim()) {
         return { isValid: false, error: 'Given Name is required.' };
       }
-      if (!role.mbox.trim()) {
+      if (!role.email.trim()) {
         return { isValid: false, error: 'Email address is required.' };
       }
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(role.mbox.trim())) {
+      if (!emailRegex.test(role.email.trim())) {
         return { isValid: false, error: 'Please enter a valid email address.' };
       }
       return { isValid: true };
@@ -1964,7 +1989,7 @@ const handleCancelEditExampleResource = () => {
       roleType: currentRole.roleType,
       agent: currentRole.agent || '',
       givenName: currentRole.givenName || '',
-      mbox: currentRole.mbox || '',
+      email: currentRole.email || '',
       id: Date.now() // Simple ID for React keys
     };
 
@@ -2190,24 +2215,43 @@ const handleCancelEditExampleResource = () => {
     setValidFunc(value && value.trim().length > 0);
 };
 
-  // Email validation function for mbox field
+  // Email validation function for email field
   const validateEmailInput = (e) => {
     const { value } = e.target;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
     if (!value || value.trim() === '') {
-      setCurrentRoleMboxError('');
-      setCurrentRoleMboxValid(false);
+      setCurrentRoleEmailError('');
+      setCurrentRoleEmailValid(false);
       return;
     }
     
     if (emailRegex.test(value.trim())) {
-      setCurrentRoleMboxError('');
-      setCurrentRoleMboxValid(true);
+      setCurrentRoleEmailError('');
+      setCurrentRoleEmailValid(true);
     } else {
-      setCurrentRoleMboxError('Please enter a valid email address');
-      setCurrentRoleMboxValid(false);
+      setCurrentRoleEmailError('Please enter a valid email address');
+      setCurrentRoleEmailValid(false);
     }
+  };
+
+  // BCP-47 language tag validation function
+  const isValidBCP47 = (langTag) => {
+    if (!langTag || !langTag.trim()) {
+      return null; // Empty is handled elsewhere
+    }
+    
+    const tag = langTag.trim();
+    
+    // BCP-47 regex: language[-script][-region][-variant]
+    // Language: 2-3 letters, Script: 4 letters, Region: 2 letters or 3 digits
+    const bcp47Regex = /^[a-zA-Z]{2,3}(-[a-zA-Z]{4})?(-[a-zA-Z]{2}|-[0-9]{3})?(-[a-zA-Z0-9]{5,8})?$/;
+    
+    if (!bcp47Regex.test(tag)) {
+      return 'Invalid language tag. Use BCP-47 format (e.g., "en", "en-US", "fr", "zh-Hans")';
+    }
+    
+    return null; // Valid
   };
   
   const handleRemoveTag = (fieldName, index) => {
@@ -2803,6 +2847,7 @@ const handleCancelEditExampleResource = () => {
   const submissionData = {
     formData: finalFormData,
     validationErrors: validationErrors,
+    aiSuggestions: aiSuggestions, // Store all OpenAI suggestions
     metadata: {
       submissionType: narrativeFile ? 'llm' : 'regular',
       hasValidationErrors: (missingFields.length > 0 || invalidDates.length > 0),
@@ -2877,7 +2922,8 @@ const handleCancelEditExampleResource = () => {
         ...finalFormData,
         draftId: draftId, // Store the draft ID in the form data
         customLicenseInput: customLicenseInput // Also save the custom license input separately for editing
-      }
+      },
+      aiSuggestions: aiSuggestions // Store all OpenAI suggestions in draft
     };
     
     // Get existing drafts from localStorage
@@ -3401,10 +3447,10 @@ const handleCancelEditExampleResource = () => {
             </div>
           </div>
 
-          {/* Language [1,∞] - Required, multiple values */}
+          {/* Language [1,∞] - Required, multiple values, BCP-47 format */}
           <div className="form-group">
             <label htmlFor="language">
-              Language <span className="field-indicator required-indicator">required, multiple values allowed</span>
+              Language <span className="field-indicator required-indicator">required, multiple values allowed, BCP-47 format</span>
             </label>
             <div className="tag-input-container">
               <div className="tag-input-row">
@@ -3413,11 +3459,14 @@ const handleCancelEditExampleResource = () => {
                   id="language"
                   name="languageInput"
                   value={languageInput}
-                  onChange={(e) => setLanguageInput(e.target.value)}
-                  onBlur={validateRegularInput}
+                  onChange={(e) => {
+                    setLanguageInput(e.target.value);
+                    setLanguageInputError(''); // Clear error on change
+                    setLanguageInputValid(false);
+                  }}
                   onKeyPress={(e) => handleKeyPress(e, 'language', languageInput, setLanguageInput)}
-                  className={`tag-input ${languageInputValid ? 'form-input-valid' : ''}`}
-                  placeholder="Enter language and press Enter or +"
+                  className={`tag-input ${languageInputError ? 'input-error' : ''} ${languageInputValid ? 'form-input-valid' : ''}`}
+                  placeholder="e.g., en, fr, de, en-US, zh-Hans"
                 />
                 <button 
                   type="button" 
@@ -3427,6 +3476,7 @@ const handleCancelEditExampleResource = () => {
                   +
                 </button>
               </div>
+              {languageInputError && <div className="iri-error-message">{languageInputError}</div>}
               <div className="tag-list">
                 {formData.language.map((lang, index) => (
                   <div key={`language-${index}`} className="tag-item">
@@ -3665,8 +3715,8 @@ const handleCancelEditExampleResource = () => {
                         <span className="field-value">{role.givenName}</span>
                       </div>
                       <div className="distribution-field">
-                        <span className="field-label">Mbox:</span>
-                        <span className="field-value">{role.mbox}</span>
+                        <span className="field-label">Email:</span>
+                        <span className="field-value">{role.email}</span>
                       </div>
                     </>
                   )}
@@ -3711,7 +3761,7 @@ const handleCancelEditExampleResource = () => {
               </select>
             </div>
 
-            {/* Toggle between Agent IRI and Name + mBox */}
+            {/* Toggle between Agent IRI and Name + Email */}
             <div className="toggle-container">
               <div className="toggle-switch-container">
                 <label className={`toggle-option ${currentRole.inputMode === 'agentIRI' ? 'active' : 'inactive'}`}>
@@ -3728,9 +3778,9 @@ const handleCancelEditExampleResource = () => {
                       // Clear fields when switching
                       if (newMode === 'agentIRI') {
                         handleCurrentRoleChange('givenName', '');
-                        handleCurrentRoleChange('mbox', '');
-                        setCurrentRoleMboxError('');
-                        setCurrentRoleMboxValid(false);
+                        handleCurrentRoleChange('email', '');
+                        setCurrentRoleEmailError('');
+                        setCurrentRoleEmailValid(false);
                       } else {
                         handleCurrentRoleChange('agent', '');
                         setCurrentRoleAgentError('');
@@ -3741,7 +3791,7 @@ const handleCancelEditExampleResource = () => {
                   <span className={`slider ${currentRole.inputMode === 'nameEmail' ? 'active' : ''}`}></span>
                 </label>
                 <label className={`toggle-option ${currentRole.inputMode === 'nameEmail' ? 'active' : 'inactive'}`}>
-                  Name + mBox
+                  Name + Email
                 </label>
               </div>
             </div>
@@ -3784,22 +3834,22 @@ const handleCancelEditExampleResource = () => {
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="roleMbox" className="subfield-label">
-                      Mbox <span className="field-indicator optional-indicator">optional</span>
+                    <label htmlFor="roleEmail" className="subfield-label">
+                      Email <span className="field-indicator optional-indicator">optional</span>
                     </label>
                     <input
                       onBlur={validateEmailInput}
                       type="email"
-                      id="roleMbox"
-                      value={currentRole.mbox}
+                      id="roleEmail"
+                      value={currentRole.email}
                       onChange={(e) => {
-                        handleCurrentRoleChange('mbox', e.target.value);
-                        setCurrentRoleMboxError('');
-                        setCurrentRoleMboxValid(false);
+                        handleCurrentRoleChange('email', e.target.value);
+                        setCurrentRoleEmailError('');
+                        setCurrentRoleEmailValid(false);
                       }}
-                      className={`subfield-input ${currentRoleMboxError ? 'input-error' : ''} ${currentRoleMboxValid ? 'input-valid' : ''}`}
+                      className={`subfield-input ${currentRoleEmailError ? 'input-error' : ''} ${currentRoleEmailValid ? 'input-valid' : ''}`}
                     />
-                    {currentRoleMboxError && <div className="iri-error-message">{currentRoleMboxError}</div>}
+                    {currentRoleEmailError && <div className="iri-error-message">{currentRoleEmailError}</div>}
                   </div>
                 </>
               )}

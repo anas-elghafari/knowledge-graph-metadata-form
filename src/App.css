@@ -1251,6 +1251,7 @@ select {
 }
 
 .field-hint {
+  display: none; /* Hide all field hints */
   font-size: 12px;
   color: var(--dark-text-secondary);
   margin-top: 4px;

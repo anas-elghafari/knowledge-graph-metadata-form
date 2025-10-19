@@ -53,9 +53,9 @@ function App() {
     }
   }, [submissions]);
   
-  // Handle loading a draft
-  const handleLoadDraft = (formData) => {
-    setDraftToLoad(formData);
+  // Handle loading a draft (now receives both formData and aiSuggestions)
+  const handleLoadDraft = (draftData) => {
+    setDraftToLoad(draftData);
     setShowModal(true);
   };
   

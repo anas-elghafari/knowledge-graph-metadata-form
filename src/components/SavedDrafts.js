@@ -53,8 +53,11 @@ const SavedDrafts = forwardRef(({ onLoadDraft }, ref) => {
   };
   
   const handleLoadDraft = (draft) => {
-    // Call the onLoadDraft callback with the formData
-    onLoadDraft(draft.formData);
+    // Call the onLoadDraft callback with both formData and aiSuggestions
+    onLoadDraft({
+      formData: draft.formData,
+      aiSuggestions: draft.aiSuggestions || {}
+    });
   };
   
   const clearAllDrafts = () => {
