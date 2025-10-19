@@ -2237,6 +2237,35 @@ label:has(+ .form-input-valid) .field-indicator {
   border: 1px solid rgba(40, 167, 69, 0.3) !important;
 }
 
+/* Turn field indicator green when the field has tags/values (multi-value fields) */
+label:has(+ .tag-input-container .tag-list .tag-item) .field-indicator,
+/* For fields with a single value displayed as a tag */
+label:has(+ div .tag-list .tag-item) .field-indicator,
+/* For checkbox groups with at least one checked */
+label:has(+ .checkbox-group input:checked) .field-indicator,
+/* For select/dropdown fields with a non-empty value selected */
+label:has(+ select:not([value=""]):valid) .field-indicator,
+label:has(+ div select:not([value=""]):valid) .field-indicator {
+  background-color: rgba(40, 167, 69, 0.15) !important;
+  color: #4caf50 !important;
+  border: 1px solid rgba(40, 167, 69, 0.3) !important;
+}
+
+/* Turn field indicator green for Roles section when roles exist */
+.form-section:has(+ .roles-list .distribution-item) .field-indicator {
+  background-color: rgba(40, 167, 69, 0.15) !important;
+  color: #4caf50 !important;
+  border: 1px solid rgba(40, 167, 69, 0.3) !important;
+}
+
+/* Turn field indicator green for Distributions/SPARQL/Example Resources when items exist */
+.form-section:has(+ .distributions-list .distribution-item) .field-indicator,
+.form-section:has(.distributions-list .distribution-item) .field-indicator {
+  background-color: rgba(40, 167, 69, 0.15) !important;
+  color: #4caf50 !important;
+  border: 1px solid rgba(40, 167, 69, 0.3) !important;
+}
+
 /* Target the field indicator in the same label as an invalid input */
 label:has(+ input.form-input-error) .field-indicator,
 label:has(+ textarea.form-input-error) .field-indicator,
