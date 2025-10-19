@@ -543,29 +543,42 @@ select {
 .ai-panel-content {
   flex: 1;
   padding: 16px;
-  overflow-y: scroll; /* Force scrollbar to always show */
+  padding-right: 4px; /* Make room for wider scrollbar */
+  overflow-y: scroll !important; /* Force scrollbar to always show */
+  overflow-x: hidden;
+  scrollbar-width: thick; /* For Firefox */
+  scrollbar-color: #4169e1 #2a2a2a; /* For Firefox */
+  scrollbar-gutter: stable; /* Reserve space for scrollbar */
 }
 
-/* Custom scrollbar for AI panel */
+/* Custom scrollbar for AI panel - ALWAYS VISIBLE AND PROMINENT */
 .ai-panel-content::-webkit-scrollbar {
-  width: 10px;
-  display: block;
+  width: 16px !important; /* Even wider scrollbar for maximum visibility */
+  -webkit-appearance: none !important;
 }
 
 .ai-panel-content::-webkit-scrollbar-track {
-  background: var(--dark-surface-lighter);
-  border-radius: 4px;
+  background: #1a1a1a !important; /* Very dark background */
+  border-left: 2px solid #4169e1 !important; /* Bright blue border for visibility */
 }
 
 .ai-panel-content::-webkit-scrollbar-thumb {
-  background: #4169e1;
-  border-radius: 4px;
-  border: 2px solid var(--dark-surface-lighter);
-  min-height: 40px; /* Ensure thumb has minimum height */
+  background: linear-gradient(180deg, #5a89ff 0%, #4169e1 50%, #3153c9 100%) !important; /* Gradient for depth */
+  border-radius: 8px !important;
+  border: 3px solid #1a1a1a !important;
+  min-height: 80px !important; /* Even taller for better grab target */
+  box-shadow: 0 0 6px rgba(65, 105, 225, 0.5) !important; /* Glow effect */
 }
 
 .ai-panel-content::-webkit-scrollbar-thumb:hover {
-  background: #345bd3;
+  background: linear-gradient(180deg, #7aa3ff 0%, #5a89ff 50%, #4169e1 100%) !important;
+  box-shadow: 0 0 10px rgba(65, 105, 225, 0.8) !important; /* Stronger glow on hover */
+  cursor: pointer !important;
+}
+
+.ai-panel-content::-webkit-scrollbar-thumb:active {
+  background: #2a4db3 !important; /* Solid darker blue when clicking */
+  box-shadow: 0 0 4px rgba(65, 105, 225, 0.6) !important;
 }
 
 .ai-waiting-message {

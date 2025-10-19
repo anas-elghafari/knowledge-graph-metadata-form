@@ -530,10 +530,10 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       Object.entries(bulkResponse.fieldSuggestions).forEach(([fieldName, fieldData]) => {
         console.log(`Processing field: ${fieldName}`, fieldData);
         if (fieldData.suggestions && fieldData.suggestions.length > 0) {
-          // Format suggestions with explanations
+          // Format suggestions - only show values, no explanations
           const suggestionText = fieldData.suggestions.map(suggestion => 
-            `• ${suggestion.value}\n  ${suggestion.explanation}`
-          ).join('\n\n');
+            `• ${suggestion.value}`
+          ).join('\n');
           
           formattedSuggestions[fieldName] = suggestionText;
           bulkSuggestionTexts[fieldName] = suggestionText;
@@ -5833,28 +5833,13 @@ const handleCancelEditExampleResource = () => {
                         );
                       }
                       
-                      // Parse suggestions with explanations
-                      const suggestions = [];
-                      const lines = suggestionText.split('\n');
-                      let currentSuggestion = null;
-                      
-                      lines.forEach(line => {
-                        if (line.trim().startsWith('•')) {
-                          if (currentSuggestion) {
-                            suggestions.push(currentSuggestion);
-                          }
-                          currentSuggestion = {
-                            value: line.replace('•', '').trim(),
-                            explanation: ''
-                          };
-                        } else if (currentSuggestion && line.trim()) {
-                          currentSuggestion.explanation += (currentSuggestion.explanation ? ' ' : '') + line.trim();
-                        }
-                      });
-                      
-                      if (currentSuggestion) {
-                        suggestions.push(currentSuggestion);
-                      }
+                      // Parse suggestions - simple list format now (no explanations)
+                      const suggestions = suggestionText
+                        .split('\n')
+                        .filter(line => line.trim().startsWith('•'))
+                        .map(line => ({
+                          value: line.replace('•', '').trim()
+                        }));
                       
                       // Check if this is a multi-value field (simple arrays, not complex objects)
                       const multiValueFields = [
@@ -5893,11 +5878,6 @@ const handleCancelEditExampleResource = () => {
                               >
                                 {suggestion.value}
                               </button>
-                              {suggestion.explanation && (
-                                <div className="suggestion-explanation">
-                                  {suggestion.explanation}
-                                </div>
-                              )}
                             </div>
                           ))}
                         </>
