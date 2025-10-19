@@ -380,6 +380,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
             
             // Process bulk suggestions with the startTime from upload
             await processBulkSuggestions(content, startTime);
+            
+            // Auto-focus the title field after upload
+            setTimeout(() => {
+              if (titleInputRef.current) {
+                titleInputRef.current.focus();
+              }
+            }, 100);
           };
           
           reader.readAsText(file);
@@ -397,6 +404,13 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
           
           // Process bulk suggestions with the startTime from upload
           await processBulkSuggestions(content, startTime);
+          
+          // Auto-focus the title field after upload
+          setTimeout(() => {
+            if (titleInputRef.current) {
+              titleInputRef.current.focus();
+            }
+          }, 100);
         }
       } catch (error) {
         console.error('Error reading file:', error);
@@ -1091,7 +1105,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [imageFileName, setImageFileName] = useState('');
   // Role editing state (similar to distribution editing)
   const [currentRole, setCurrentRole] = useState({
-    roleType: 'resourceProvider',
+    roleType: '',
     inputMode: 'agentIRI', // 'agentIRI' or 'nameEmail'
     agent: '',
     givenName: '',
@@ -1100,6 +1114,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
 
   const fileInputRef = useRef(null);
   const narrativeInputRef = useRef(null);
+  const titleInputRef = useRef(null);
 
   const [createdDateError, setCreatedDateError] = useState('');
   const [publishedDateError, setPublishedDateError] = useState('');
@@ -1605,29 +1620,79 @@ const handleCancelEditExampleResource = () => {
       
       // Check for obviously invalid characters at the start
       if (/^[@#{}|\\^`<>"']/.test(trimmed)) {
-        return 'IRI cannot start with invalid characters.';
+        return 'IRI cannot start with invalid characters';
       }
       
       // Basic scheme check - IRI must have a scheme
       if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) {
-        return 'IRI must have a valid scheme (e.g., http:, https:, ftp:).';
+        return 'IRI must have a valid scheme (e.g., http:, https:, ftp:)';
       }
       
       // Check for invalid characters that should not appear in IRIs
       if (/[\s<>"{}|\\^`]/.test(trimmed)) {
-        return 'IRI contains invalid characters.';
+        return 'IRI contains invalid characters (spaces, quotes, brackets, etc.)';
+      }
+      
+      // Check for trailing invalid characters
+      if (/[.,;:\s]$/.test(trimmed)) {
+        return 'IRI cannot end with dots, commas, semicolons, or colons';
+      }
+      
+      // Check for consecutive dots
+      if (/\.\./.test(trimmed)) {
+        return 'IRI cannot contain consecutive dots';
+      }
+      
+      // Check for invalid dot patterns (e.g., /. or ./ or :.)
+      if (/[/:]\.|\.\//.test(trimmed)) {
+        return 'Invalid dot placement in IRI';
       }
       
       // Check for unmatched brackets
       const openBrackets = (trimmed.match(/\[/g) || []).length;
       const closeBrackets = (trimmed.match(/\]/g) || []).length;
       if (openBrackets !== closeBrackets) {
-        return 'IRI has unmatched brackets.';
+        return 'IRI has unmatched brackets';
+      }
+      
+      // For HTTP(S) URLs, validate domain structure
+      if (/^https?:\/\//i.test(trimmed)) {
+        // Extract the domain part (after :// and before next / or end)
+        const domainMatch = trimmed.match(/^https?:\/\/([^\/\?#]+)/i);
+        if (domainMatch) {
+          const domain = domainMatch[1];
+          
+          // Check for invalid domain patterns
+          if (/^\.|\.$/.test(domain)) {
+            return 'Domain cannot start or end with a dot';
+          }
+          
+          if (/\.\./.test(domain)) {
+            return 'Domain cannot contain consecutive dots';
+          }
+          
+          if (!/\.[a-zA-Z]{2,}$/.test(domain) && !/^localhost(:\d+)?$/i.test(domain) && !/^\d+\.\d+\.\d+\.\d+(:\d+)?$/.test(domain)) {
+            return 'IRI must have a valid domain with TLD (e.g., .com, .org) or be localhost/IP';
+          }
+          
+          // Check for double slashes in path
+          if (/\/\//.test(trimmed.substring(trimmed.indexOf('://') + 3))) {
+            const afterDomain = trimmed.substring(trimmed.indexOf(domain) + domain.length);
+            if (/\/\//.test(afterDomain)) {
+              return 'IRI path cannot contain consecutive slashes';
+            }
+          }
+        }
       }
       
       // Check for @ symbol in inappropriate places (not in userinfo or email schemes)
       if (/@/.test(trimmed) && !/^(mailto:|http:\/\/[^@]*@|https:\/\/[^@]*@)/.test(trimmed)) {
-        return 'IRI contains @ symbol in invalid position.';
+        return 'IRI contains @ symbol in invalid position';
+      }
+      
+      // Check for fragment identifier issues (multiple # symbols)
+      if ((trimmed.match(/#/g) || []).length > 1) {
+        return 'IRI can only contain one fragment identifier (#)';
       }
       
       console.log('IRI is valid');
@@ -1937,7 +2002,7 @@ const handleCancelEditExampleResource = () => {
   // Reset current role form
   const resetCurrentRoleForm = () => {
     setCurrentRole({
-      roleType: 'resourceProvider',
+      roleType: '',
       inputMode: 'agentIRI',
       agent: '',
       givenName: '',
@@ -1945,17 +2010,61 @@ const handleCancelEditExampleResource = () => {
     });
     setCurrentRoleAgentError('');
     setCurrentRoleAgentValid(false);
-    setCurrentRoleEmailError('');
     setCurrentRoleEmailValid(false);
+    setCurrentRoleEmailError('');
+  };
+
+  // Helper function to validate email format
+  const isValidEmailFormat = (email) => {
+    if (!email || !email.trim()) {
+      return { isValid: false, error: 'Email address is required.' };
+    }
+    
+    const trimmedEmail = email.trim();
+    
+    // Check for disallowed characters
+    if (trimmedEmail.includes(',')) {
+      return { isValid: false, error: 'Email address cannot contain commas' };
+    }
+    
+    if (trimmedEmail.includes(' ')) {
+      return { isValid: false, error: 'Email address cannot contain spaces' };
+    }
+    
+    if (trimmedEmail.includes('..')) {
+      return { isValid: false, error: 'Email address cannot contain consecutive dots' };
+    }
+    
+    if (trimmedEmail.startsWith('.') || trimmedEmail.includes('@.')) {
+      return { isValid: false, error: 'Invalid dot placement in email address' };
+    }
+    
+    if ((trimmedEmail.match(/@/g) || []).length !== 1) {
+      return { isValid: false, error: 'Email address must contain exactly one @ symbol' };
+    }
+    
+    // Comprehensive email regex
+    const emailRegex = /^[a-zA-Z0-9._+%-]+@[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
+    
+    if (!emailRegex.test(trimmedEmail)) {
+      return { isValid: false, error: 'Please enter a valid email address (e.g., user@example.com)' };
+    }
+    
+    return { isValid: true };
   };
 
   // Validate a role before adding it
   const validateRole = (role) => {
+    // Check if role type is selected
+    if (!role.roleType || role.roleType === '') {
+      return { isValid: false, error: 'Please select a role type.' };
+    }
+    
     if (role.inputMode === 'agentIRI') {
       if (!role.agent.trim()) {
         return { isValid: false, error: 'Agent IRI is required.' };
       }
-      const iriError = isValidIriString(role.agent.trim());
+      const iriError = isValidIriString(role.agent);
       if (iriError) {
         return { isValid: false, error: `Invalid IRI: ${iriError}` };
       }
@@ -1964,13 +2073,13 @@ const handleCancelEditExampleResource = () => {
       if (!role.givenName.trim()) {
         return { isValid: false, error: 'Given Name is required.' };
       }
-      if (!role.email.trim()) {
-        return { isValid: false, error: 'Email address is required.' };
+      
+      // Use the reusable email validation function
+      const emailValidation = isValidEmailFormat(role.email);
+      if (!emailValidation.isValid) {
+        return emailValidation;
       }
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(role.email.trim())) {
-        return { isValid: false, error: 'Please enter a valid email address.' };
-      }
+      
       return { isValid: true };
     }
   };
@@ -2218,7 +2327,6 @@ const handleCancelEditExampleResource = () => {
   // Email validation function for email field
   const validateEmailInput = (e) => {
     const { value } = e.target;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
     if (!value || value.trim() === '') {
       setCurrentRoleEmailError('');
@@ -2226,11 +2334,14 @@ const handleCancelEditExampleResource = () => {
       return;
     }
     
-    if (emailRegex.test(value.trim())) {
+    // Use the reusable email validation function
+    const validation = isValidEmailFormat(value);
+    
+    if (validation.isValid) {
       setCurrentRoleEmailError('');
       setCurrentRoleEmailValid(true);
     } else {
-      setCurrentRoleEmailError('Please enter a valid email address');
+      setCurrentRoleEmailError(validation.error);
       setCurrentRoleEmailValid(false);
     }
   };
@@ -3237,6 +3348,7 @@ const handleCancelEditExampleResource = () => {
             <div className="tag-input-container">
               <div className="tag-input-row">
                 <input
+                  ref={titleInputRef}
                   type="text"
                   id="title"
                   name="titleInput"
@@ -3461,11 +3573,25 @@ const handleCancelEditExampleResource = () => {
                   value={languageInput}
                   onChange={(e) => {
                     setLanguageInput(e.target.value);
-                    setLanguageInputError(''); // Clear error on change
-                    setLanguageInputValid(false);
+                    
+                    // Real-time BCP-47 validation
+                    const value = e.target.value;
+                    if (!value || !value.trim()) {
+                      setLanguageInputError('');
+                      setLanguageInputValid(false);
+                    } else {
+                      const langError = isValidBCP47(value);
+                      if (langError) {
+                        setLanguageInputError(langError);
+                        setLanguageInputValid(false);
+                      } else {
+                        setLanguageInputError('');
+                        setLanguageInputValid(true);
+                      }
+                    }
                   }}
                   onKeyPress={(e) => handleKeyPress(e, 'language', languageInput, setLanguageInput)}
-                  className={`tag-input ${languageInputError ? 'input-error' : ''} ${languageInputValid ? 'form-input-valid' : ''}`}
+                  className={`tag-input ${languageInputError ? 'form-input-error' : ''} ${languageInputValid ? 'form-input-valid' : ''}`}
                   placeholder="e.g., en, fr, de, en-US, zh-Hans"
                 />
                 <button 
@@ -3583,13 +3709,27 @@ const handleCancelEditExampleResource = () => {
                 value={homepageURLInput}
                 onChange={(e) => {
                   setHomepageURLInput(e.target.value);
-                  setHomepageURLInputError('');
-                  setHomepageURLInputValid(false);
+                  
+                  // Real-time IRI validation
+                  const value = e.target.value;
+                  if (!value || !value.trim()) {
+                    setHomepageURLInputError('');
+                    setHomepageURLInputValid(false);
+                  } else {
+                    const iriError = isValidIriString(value);
+                    if (iriError) {
+                      setHomepageURLInputError(iriError);
+                      setHomepageURLInputValid(false);
+                    } else {
+                      setHomepageURLInputError('');
+                      setHomepageURLInputValid(true);
+                    }
+                  }
                 }}
                 onBlur={validateIriInput}
                 onKeyPress={(e) => handleKeyPress(e, 'homepageURL', homepageURLInput, setHomepageURLInput, setHomepageURLInputError)}
                 placeholder="Enter IRI and press Enter or +"
-                className={`${homepageURLInputError ? 'tag-input-error' : ''} ${homepageURLInputValid ? 'tag-input-valid' : ''}`}
+                className={`${homepageURLInputError ? 'form-input-error' : ''} ${homepageURLInputValid ? 'form-input-valid' : ''}`}
               />
                 <button
                   type="button"
@@ -3632,13 +3772,27 @@ const handleCancelEditExampleResource = () => {
                 value={otherPagesInput}
                 onChange={(e) => {
                   setOtherPagesInput(e.target.value);
-                  setOtherPagesInputError('');
-                  setOtherPagesInputValid(false);
+                  
+                  // Real-time IRI validation
+                  const value = e.target.value;
+                  if (!value || !value.trim()) {
+                    setOtherPagesInputError('');
+                    setOtherPagesInputValid(false);
+                  } else {
+                    const iriError = isValidIriString(value);
+                    if (iriError) {
+                      setOtherPagesInputError(iriError);
+                      setOtherPagesInputValid(false);
+                    } else {
+                      setOtherPagesInputError('');
+                      setOtherPagesInputValid(true);
+                    }
+                  }
                 }}
                 onBlur={validateIriInput}
                 onKeyPress={(e) => handleKeyPress(e, 'otherPages', otherPagesInput, setOtherPagesInput, setOtherPagesInputError)}
                 placeholder="Enter IRI and press Enter or +"
-                className={`tag-input ${otherPagesInputError ? 'tag-input-error' : ''} ${otherPagesInputValid ? 'tag-input-valid' : ''}`}
+                className={`tag-input ${otherPagesInputError ? 'form-input-error' : ''} ${otherPagesInputValid ? 'form-input-valid' : ''}`}
               />
               {otherPagesInputError && <div className="iri-error-message">{otherPagesInputError}</div>}
 
@@ -3736,8 +3890,9 @@ const handleCancelEditExampleResource = () => {
                 id="roleType"
                 value={currentRole.roleType}
                 onChange={(e) => handleCurrentRoleChange('roleType', e.target.value)}
-                className="subfield-input"
+                className={`subfield-input ${currentRole.roleType === '' ? '' : 'form-input-valid'}`}
               >
+                <option value="">Select a role type...</option>
                 <option value="resourceProvider">resourceProvider</option>
                 <option value="custodian">custodian</option>
                 <option value="owner">owner</option>
@@ -3811,10 +3966,24 @@ const handleCancelEditExampleResource = () => {
                     value={currentRole.agent}
                     onChange={(e) => {
                       handleCurrentRoleChange('agent', e.target.value);
-                      setCurrentRoleAgentError('');
-                      setCurrentRoleAgentValid(false);
+                      
+                      // Real-time IRI validation
+                      const value = e.target.value;
+                      if (!value || !value.trim()) {
+                        setCurrentRoleAgentError('');
+                        setCurrentRoleAgentValid(false);
+                      } else {
+                        const iriError = isValidIriString(value);
+                        if (iriError) {
+                          setCurrentRoleAgentError(iriError);
+                          setCurrentRoleAgentValid(false);
+                        } else {
+                          setCurrentRoleAgentError('');
+                          setCurrentRoleAgentValid(true);
+                        }
+                      }
                     }}
-                    className={`subfield-input ${currentRoleAgentError ? 'input-error' : ''} ${currentRoleAgentValid ? 'input-valid' : ''}`}
+                    className={`subfield-input ${currentRoleAgentError ? 'form-input-error' : ''} ${currentRoleAgentValid ? 'form-input-valid' : ''}`}
                   />
                   {currentRoleAgentError && <div className="iri-error-message">{currentRoleAgentError}</div>}
                 </div> 
@@ -3844,10 +4013,24 @@ const handleCancelEditExampleResource = () => {
                       value={currentRole.email}
                       onChange={(e) => {
                         handleCurrentRoleChange('email', e.target.value);
-                        setCurrentRoleEmailError('');
-                        setCurrentRoleEmailValid(false);
+                        
+                        // Real-time validation
+                        const value = e.target.value;
+                        if (!value || !value.trim()) {
+                          setCurrentRoleEmailError('');
+                          setCurrentRoleEmailValid(false);
+                        } else {
+                          const validation = isValidEmailFormat(value);
+                          if (validation.isValid) {
+                            setCurrentRoleEmailError('');
+                            setCurrentRoleEmailValid(true);
+                          } else {
+                            setCurrentRoleEmailError(validation.error);
+                            setCurrentRoleEmailValid(false);
+                          }
+                        }
                       }}
-                      className={`subfield-input ${currentRoleEmailError ? 'input-error' : ''} ${currentRoleEmailValid ? 'input-valid' : ''}`}
+                      className={`subfield-input ${currentRoleEmailError ? 'form-input-error' : ''} ${currentRoleEmailValid ? 'form-input-valid' : ''}`}
                     />
                     {currentRoleEmailError && <div className="iri-error-message">{currentRoleEmailError}</div>}
                   </div>
@@ -4095,12 +4278,26 @@ const handleCancelEditExampleResource = () => {
                   value={vocabulariesUsedInput}
                   onChange={(e) => {
                     setVocabulariesUsedInput(e.target.value);
-                    setVocabulariesUsedInputError('');
-                    setVocabulariesUsedInputValid(false);
+                    
+                    // Real-time IRI validation
+                    const value = e.target.value;
+                    if (!value || !value.trim()) {
+                      setVocabulariesUsedInputError('');
+                      setVocabulariesUsedInputValid(false);
+                    } else {
+                      const iriError = isValidIriString(value);
+                      if (iriError) {
+                        setVocabulariesUsedInputError(iriError);
+                        setVocabulariesUsedInputValid(false);
+                      } else {
+                        setVocabulariesUsedInputError('');
+                        setVocabulariesUsedInputValid(true);
+                      }
+                    }
                   }}
                   onBlur={validateIriInput}
                   onKeyUp= {(e) => handleKeyPress(e, 'vocabulariesUsed', vocabulariesUsedInput, setVocabulariesUsedInput, setVocabulariesUsedInputError)}
-                  className={`tag-input ${vocabulariesUsedInputError ? 'tag-input-error' : ''} ${vocabulariesUsedInputValid ? 'tag-input-valid' : ''}`}
+                  className={`tag-input ${vocabulariesUsedInputError ? 'form-input-error' : ''} ${vocabulariesUsedInputValid ? 'form-input-valid' : ''}`}
                   placeholder="Enter IRI and press Enter or +"
               />
               {vocabulariesUsedInputError && <div className="iri-error-message">{vocabulariesUsedInputError}</div>}
@@ -5734,8 +5931,10 @@ const handleCancelEditExampleResource = () => {
                      setLicenseInput(e.target.value);
                      setLicenseRejectionMessage('');
                      setLicenseError('');
+                     // Set valid only if a real license is selected (not the placeholder)
+                     setLicenseValid(e.target.value !== '');
                    }}
-                   className={`form-control ${licenseValid ? 'form-input-valid' : ''} ${licenseError ? 'form-input-error' : ''}`}
+                   className={`form-control ${licenseInput !== '' && licenseInput !== undefined ? 'form-input-valid' : ''} ${licenseError ? 'form-input-error' : ''}`}
                    style={{flex: 1}}
                  >
                    <option value="">Select a license...</option>

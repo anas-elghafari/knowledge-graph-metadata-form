@@ -2208,13 +2208,20 @@ label[data-tooltip]:hover::before {
   Ensure validated inputs keep the dark background theme even when combined with Bootstrap or custom classes like .form-control.
   This selector increases specificity to override any background-color set by .form-control or similar classes.
 */
-/* Modify validation to affect the indicator tags instead of input borders */
+/* Real-time validation border colors for inputs */
 .form-input-valid, input.form-input-valid, textarea.form-input-valid,
 .form-control.form-input-valid, input.form-control.form-input-valid, textarea.form-control.form-input-valid,
-.tag-input-valid, .subfield-input.form-input-valid {
-  /* Remove previous border styling */
-  border-color: var(--dark-border) !important;
-  box-shadow: none !important;
+.tag-input-valid, .subfield-input.form-input-valid, .tag-input.form-input-valid {
+  border-color: #4caf50 !important;
+  box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.3) !important;
+  background-color: var(--dark-surface-lighter) !important;
+}
+
+.form-input-error, input.form-input-error, textarea.form-input-error,
+.form-control.form-input-error, input.form-control.form-input-error, textarea.form-control.form-input-error,
+.tag-input-error, .subfield-input.form-input-error, .tag-input.input-error {
+  border-color: #e57373 !important;
+  box-shadow: 0 0 0 1px rgba(229, 115, 115, 0.3) !important;
   background-color: var(--dark-surface-lighter) !important;
 }
 
@@ -2243,9 +2250,9 @@ label:has(+ .tag-input-container .tag-list .tag-item) .field-indicator,
 label:has(+ div .tag-list .tag-item) .field-indicator,
 /* For checkbox groups with at least one checked */
 label:has(+ .checkbox-group input:checked) .field-indicator,
-/* For select/dropdown fields with a non-empty value selected */
-label:has(+ select:not([value=""]):valid) .field-indicator,
-label:has(+ div select:not([value=""]):valid) .field-indicator {
+/* For select/dropdown fields with valid class (actual value selected, not placeholder) */
+label:has(+ div select.form-input-valid) .field-indicator,
+label:has(+ .tag-input-row select.form-input-valid) .field-indicator {
   background-color: rgba(40, 167, 69, 0.15) !important;
   color: #4caf50 !important;
   border: 1px solid rgba(40, 167, 69, 0.3) !important;
