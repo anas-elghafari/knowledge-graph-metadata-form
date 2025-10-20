@@ -2035,9 +2035,11 @@ const handleCancelEditExampleResource = () => {
       
       // Restore AI suggestions if they exist (for LLM mode)
       if (Object.keys(loadedAiSuggestions).length > 0) {
+        console.log('Restoring AI suggestions from draft:', Object.keys(loadedAiSuggestions));
         setAiSuggestions(loadedAiSuggestions);
         setBulkSuggestionsReady(true);
-        console.log('Restored AI suggestions from draft');
+        setShowAISuggestions(true); // Show AI panel when loading draft with suggestions
+        console.log('AI panel shown for loaded draft');
       }
       
       console.log('=== DRAFT LOADED SUCCESSFULLY ===');
