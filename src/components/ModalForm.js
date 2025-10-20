@@ -2471,14 +2471,20 @@ const handleCancelEditExampleResource = () => {
       }
       return { isValid: true };
     } else {
-      if (!role.givenName.trim()) {
-        return { isValid: false, error: 'Given Name is required.' };
+      // At least one of givenName or email must be provided
+      const hasName = role.givenName && role.givenName.trim();
+      const hasEmail = role.email && role.email.trim();
+      
+      if (!hasName && !hasEmail) {
+        return { isValid: false, error: 'Please provide at least a name or an email.' };
       }
       
-      // Use the reusable email validation function
-      const emailValidation = isValidEmailFormat(role.email);
-      if (!emailValidation.isValid) {
-        return emailValidation;
+      // If email is provided, validate it
+      if (hasEmail) {
+        const emailValidation = isValidEmailFormat(role.email);
+        if (!emailValidation.isValid) {
+          return emailValidation;
+        }
       }
       
       return { isValid: true };
@@ -4507,6 +4513,9 @@ const handleCancelEditExampleResource = () => {
                       className={`subfield-input ${currentRoleEmailError ? 'form-input-error' : ''} ${currentRoleEmailValid ? 'form-input-valid' : ''}`}
                     />
                     {currentRoleEmailError && <div className="iri-error-message">{currentRoleEmailError}</div>}
+                  </div>
+                  <div className="field-hint" style={{ marginTop: '8px', fontStyle: 'italic' }}>
+                    At least one field (Name or Email) is required
                   </div>
                 </>
               )}
