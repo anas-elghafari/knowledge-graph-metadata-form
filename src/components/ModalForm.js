@@ -96,6 +96,64 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     console.log('showTurtleMode changed to:', showTurtleMode);
   }, [showTurtleMode]);
   
+  // Modal resize state
+  const [modalSize, setModalSize] = useState({ width: 900, height: 700 });
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeRef = useRef({ startX: 0, startY: 0, startWidth: 0, startHeight: 0 });
+  
+  const handleResizeStart = (e, direction) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    resizeRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: modalSize.width,
+      startHeight: modalSize.height,
+      direction
+    };
+  };
+  
+  useEffect(() => {
+    if (!isResizing) return;
+    
+    const handleMouseMove = (e) => {
+      const { startX, startY, startWidth, startHeight, direction } = resizeRef.current;
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+      
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      
+      if (direction.includes('e')) {
+        newWidth = Math.max(600, startWidth + deltaX);
+      }
+      if (direction.includes('w')) {
+        newWidth = Math.max(600, startWidth - deltaX);
+      }
+      if (direction.includes('s')) {
+        newHeight = Math.max(500, startHeight + deltaY);
+      }
+      if (direction.includes('n')) {
+        newHeight = Math.max(500, startHeight - deltaY);
+      }
+      
+      setModalSize({ width: newWidth, height: newHeight });
+    };
+    
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+  
   // Turtle validation function - uses N3.js (works reliably in browsers, GitHub Pages compatible)
   const validateTurtleContent = (content) => {
     if (!content.trim()) {
@@ -3626,7 +3684,57 @@ const handleCancelEditExampleResource = () => {
 
   return (
     <div className="modal-overlay">
-    <div className={`modal-content ${showAISuggestions ? 'with-ai-panel' : ''} ${showTurtleMode ? 'turtle-mode-wide' : ''}`} onClick={e => e.stopPropagation()}>
+    <div 
+      className={`modal-content ${showAISuggestions ? 'with-ai-panel' : ''} ${showTurtleMode ? 'turtle-mode-wide' : ''}`} 
+      onClick={e => e.stopPropagation()}
+      style={{
+        width: `${modalSize.width}px`,
+        height: `${modalSize.height}px`,
+        maxWidth: '95vw',
+        maxHeight: '95vh',
+        position: 'relative'
+      }}
+    >
+      {/* Resize handles */}
+      <div 
+        className="resize-handle resize-e"
+        onMouseDown={(e) => handleResizeStart(e, 'e')}
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: '8px',
+          cursor: 'ew-resize',
+          zIndex: 10
+        }}
+      />
+      <div 
+        className="resize-handle resize-s"
+        onMouseDown={(e) => handleResizeStart(e, 's')}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '8px',
+          cursor: 'ns-resize',
+          zIndex: 10
+        }}
+      />
+      <div 
+        className="resize-handle resize-se"
+        onMouseDown={(e) => handleResizeStart(e, 'se')}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          right: 0,
+          width: '16px',
+          height: '16px',
+          cursor: 'nwse-resize',
+          zIndex: 11
+        }}
+      />
       
       {/* Countdown Timer */}
       <div className="countdown-timer" style={{
