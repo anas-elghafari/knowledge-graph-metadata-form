@@ -10,6 +10,12 @@ import mammoth from 'mammoth';
 
 
 function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null, aiEnabledByDefault = false, turtleModeEnabled = false }) {
+  console.log('ModalForm initialized with props:', { 
+    aiEnabledByDefault, 
+    turtleModeEnabled, 
+    hasInitialFormData: !!initialFormData 
+  });
+  
   // Initial form state
   const initialFormState = {
     identifier: [uuidv4()], // Auto-generate UUID
@@ -84,6 +90,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [turtleContent, setTurtleContent] = useState('');
   const [showTurtleMode, setShowTurtleMode] = useState(turtleModeEnabled);
   const [turtleValidation, setTurtleValidation] = useState({ isValid: true, errors: [] });
+  
+  // Debug: Track showTurtleMode changes
+  useEffect(() => {
+    console.log('showTurtleMode changed to:', showTurtleMode);
+  }, [showTurtleMode]);
   
   // Turtle validation function - uses N3.js (works reliably in browsers, GitHub Pages compatible)
   const validateTurtleContent = (content) => {
@@ -3517,7 +3528,9 @@ const handleCancelEditExampleResource = () => {
     
     console.log('=== SAVING DRAFT ===');
     console.log('showTurtleMode:', showTurtleMode);
+    console.log('isLlmMode:', isLlmMode);
     console.log('turtleContent length:', turtleContent?.length || 0);
+    console.log('turtleContent preview:', turtleContent?.substring(0, 100));
     console.log('updatedForm:', updatedForm);
     console.log('formData:', formData);
     
