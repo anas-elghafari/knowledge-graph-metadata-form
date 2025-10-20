@@ -201,6 +201,28 @@ Please find all potential answers for each field from the narrative description 
 
 IMPORTANT INSTRUCTIONS:
 
+SEMANTIC MATCHING AND INFERENCE:
+- Matching fields to narrative content should happen at a SEMANTIC LEVEL, not just surface-level keyword matching
+- Think deeply about the MEANING of both:
+  1. What the field is asking for (its conceptual purpose)
+  2. What information the narrative text is conveying (its semantic content)
+- If direct keyword matching fails, use semantic reasoning to find relevant information:
+  * Example: A field asking for "publisher" might match narrative text about "released by", "made available by", "maintained by"
+  * Example: A field asking for "statistics" might match phrases about "contains X entities", "includes Y triples", "covers Z domains"
+  * Example: A field asking for "temporal coverage" might match text about "spans from 2010 to 2020", "historical data", "time period"
+- Consider synonyms, related concepts, and implied meanings
+- Use domain knowledge about knowledge graphs, ontologies, and metadata to make intelligent connections
+
+PARTIAL COMPLETION IS ACCEPTABLE:
+- For complex sections with many subfields (distributions, SPARQL endpoints, example resources, linked resources, roles):
+  * You do NOT need to find values for ALL subfields
+  * Provide suggestions for AS MANY subfields as you can reasonably extract from the narrative
+  * It is perfectly acceptable to suggest a distribution with only title and downloadURL if other fields are not mentioned
+  * It is acceptable to suggest a role with only roleType and givenName if an agent IRI is not available
+  * LOOSEN your criteria as needed - partial information is better than no suggestion
+- Quality over completeness: A suggestion with 2-3 accurate subfields is more valuable than no suggestion at all
+- If you can infer even ONE relevant subfield value with confidence, create a suggestion for that section
+
 FORMAT CONSTRAINTS AND VALIDATION REQUIREMENTS:
 - Many fields have specific format requirements that MUST be respected
 - IRI/URL FIELDS: The following fields require valid IRI (Internationalized Resource Identifier) values:
