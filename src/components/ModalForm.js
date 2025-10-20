@@ -387,15 +387,36 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
         } else {
           // Single suggestion - populate form fields for review/editing
           const suggestion = rawData.suggestions[suggestionIndex];
+          console.log('Role suggestion clicked:', { suggestionIndex, suggestion, rawData });
+          
           if (suggestion && suggestion.roleData) {
             const roleData = suggestion.roleData;
+            console.log('Setting currentRole with roleData:', roleData);
+            
+            const newInputMode = roleData.mode === 'iri' ? 'agentIRI' : 'nameEmail';
+            
             setCurrentRole({
               roleType: roleData.roleType || '',
-              inputMode: roleData.mode === 'iri' ? 'agentIRI' : 'nameEmail',
+              inputMode: newInputMode,
               agent: roleData.mode === 'iri' ? (roleData.iri || '') : '',
               givenName: roleData.mode === 'name_mbox' ? (roleData.name || '') : '',
               email: roleData.mode === 'name_mbox' ? (roleData.email || '') : ''
             });
+            
+            // Clear validation errors
+            setCurrentRoleAgentError('');
+            setCurrentRoleAgentValid(false);
+            setCurrentRoleEmailError('');
+            setCurrentRoleEmailValid(false);
+            
+            console.log('CurrentRole set to:', {
+              roleType: roleData.roleType || '',
+              inputMode: newInputMode,
+              agent: roleData.mode === 'iri' ? (roleData.iri || '') : '',
+              givenName: roleData.mode === 'name_mbox' ? (roleData.name || '') : '',
+              email: roleData.mode === 'name_mbox' ? (roleData.email || '') : ''
+            });
+            
             // Scroll to the role form
             setTimeout(() => {
               const roleForm = document.querySelector('.role-form');
@@ -403,6 +424,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                 roleForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
               }
             }, 100);
+          } else {
+            console.error('No roleData found in suggestion:', suggestion);
           }
         }
       }

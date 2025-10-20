@@ -462,7 +462,7 @@ Example:
   }
 }
 
-Please return all possible candidate values for each field, ordered by likelihood of being correct.
+Important! Please make sure to identify all possible candidate values for each field and subfield. If possible, order those suggestions by descending likelihood of being the right value for the field.
 
 `;
 };
@@ -475,7 +475,7 @@ export const getBulkFieldSuggestions = async (fieldDefinitions, narrativeContent
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. Your task is to extract information from the provided ontology narrative description to fill out metadata form fields. For each suggestion, provide both the value and a brief explanation of where you found it in the narrative." },
+        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. You are also an expert in semantic understanding of text and in generating structured data from unstructured text.  Your task is to extract information from the provided ontology narrative description to fill out metadata form fields. For each suggestion, provide both the value and a brief explanation of where you found it in the narrative." },
         { role: "user", content: prompt }
       ],
       response_format: {
@@ -486,7 +486,7 @@ export const getBulkFieldSuggestions = async (fieldDefinitions, narrativeContent
         }
       },
       max_tokens: 16000,
-      temperature: 0.7
+      temperature: 0.2
     });
 
     const rawContent = response.choices[0].message.content;
