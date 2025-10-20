@@ -1595,7 +1595,38 @@ const resetExampleResourceForm = () => {
   setExampleResourceStatusValid(false);
 };
 
+// Validate SPARQL endpoint before adding
+const validateSparqlEndpoint = (endpoint, allowBypass = false) => {
+  // Check if all fields are empty
+  const hasAnyValue = Object.values(endpoint).some(value => value && value.trim && value.trim());
+  if (!hasAnyValue) {
+    return { isValid: false, error: 'Cannot add empty SPARQL endpoint. Please fill in at least one field.' };
+  }
+
+  // If bypass is disabled, check required field (endpointURL)
+  if (!allowBypass && (!endpoint.endpointURL || !endpoint.endpointURL.trim())) {
+    return { isValid: false, error: 'SPARQL Endpoint URL is required.' };
+  }
+
+  // Validate endpoint URL if provided
+  if (endpoint.endpointURL && endpoint.endpointURL.trim()) {
+    const urlError = isValidIriString(endpoint.endpointURL);
+    if (urlError) {
+      return { isValid: false, error: `Invalid Endpoint URL: ${urlError}` };
+    }
+  }
+
+  return { isValid: true };
+};
+
 const handleAddSparqlEndpoint = () => {
+  const validation = validateSparqlEndpoint(currentSparqlEndpoint, bypassValidation);
+  if (!validation.isValid) {
+    setMessage(validation.error);
+    setTimeout(() => setMessage(''), 3000);
+    return;
+  }
+
   if (editingSparqlEndpointIdx !== null) {
     // Save edits directly
     const updated = [...sparqlEndpoints];
@@ -1631,7 +1662,33 @@ const handleCancelEditSparqlEndpoint = () => {
   resetSparqlEndpointForm();
 };
 
+// Validate example resource before adding
+const validateExampleResource = (resource, allowBypass = false) => {
+  // Check if all fields are empty
+  const hasAnyValue = Object.values(resource).some(value => value && value.trim && value.trim());
+  if (!hasAnyValue) {
+    return { isValid: false, error: 'Cannot add empty example resource. Please fill in at least one field.' };
+  }
+
+  // Validate accessURL if provided
+  if (resource.accessURL && resource.accessURL.trim()) {
+    const urlError = isValidIriString(resource.accessURL);
+    if (urlError) {
+      return { isValid: false, error: `Invalid Access URL: ${urlError}` };
+    }
+  }
+
+  return { isValid: true };
+};
+
 const handleAddExampleResource = () => {
+  const validation = validateExampleResource(currentExampleResource, bypassValidation);
+  if (!validation.isValid) {
+    setMessage(validation.error);
+    setTimeout(() => setMessage(''), 3000);
+    return;
+  }
+
   if (editingExampleResourceIdx !== null) {
     // Save edits directly
     const updated = [...exampleResources];
@@ -1651,7 +1708,25 @@ const handleCurrentLinkedResourceChange = (field, value) => {
   setCurrentLinkedResource(prev => ({ ...prev, [field]: value }));
 };
 
+// Validate linked resource before adding
+const validateLinkedResource = (resource, allowBypass = false) => {
+  // Check if all fields are empty
+  const hasAnyValue = Object.values(resource).some(value => value && value.trim && value.trim());
+  if (!hasAnyValue) {
+    return { isValid: false, error: 'Cannot add empty linked resource. Please fill in at least one field.' };
+  }
+
+  return { isValid: true };
+};
+
 const handleAddLinkedResource = () => {
+  const validation = validateLinkedResource(currentLinkedResource, bypassValidation);
+  if (!validation.isValid) {
+    setMessage(validation.error);
+    setTimeout(() => setMessage(''), 3000);
+    return;
+  }
+
   if (editingLinkedResourceIdx !== null) {
     // Save edits directly
     const updated = [...linkedResources];
@@ -2455,19 +2530,24 @@ const handleCancelEditExampleResource = () => {
   };
 
   // Validate a role before adding it
-  const validateRole = (role) => {
-    // Check if role type is selected
+  const validateRole = (role, allowBypass = false) => {
+    // Always require role type
     if (!role.roleType || role.roleType === '') {
       return { isValid: false, error: 'Please select a role type.' };
     }
     
     if (role.inputMode === 'agentIRI') {
-      if (!role.agent.trim()) {
-        return { isValid: false, error: 'Agent IRI is required.' };
-      }
-      const iriError = isValidIriString(role.agent);
-      if (iriError) {
-        return { isValid: false, error: `Invalid IRI: ${iriError}` };
+      // Check if agent field has value
+      if (!role.agent || !role.agent.trim()) {
+        if (!allowBypass) {
+          return { isValid: false, error: 'Agent IRI is required.' };
+        }
+      } else {
+        // Validate IRI if provided
+        const iriError = isValidIriString(role.agent);
+        if (iriError) {
+          return { isValid: false, error: `Invalid IRI: ${iriError}` };
+        }
       }
       return { isValid: true };
     } else {
@@ -2493,7 +2573,7 @@ const handleCancelEditExampleResource = () => {
 
   // Add a role
   const handleAddRole = () => {
-    const validation = validateRole(currentRole);
+    const validation = validateRole(currentRole, bypassValidation);
     if (!validation.isValid) {
       setMessage(validation.error);
       setTimeout(() => setMessage(''), 3000);
@@ -3075,22 +3155,35 @@ const handleCancelEditExampleResource = () => {
   };
 
   // Validate a distribution before adding it
-  const validateDistribution = (dist) => {
-    // Check required fields
-    if (!dist.title || !dist.description || !dist.mediaType || 
-        !dist.downloadURL || !dist.accessURL) {
-      return { isValid: false, error: 'Please fill in all required fields for the distribution' };
+  const validateDistribution = (dist, allowBypass = false) => {
+    // Check if all fields are empty - never allow this
+    const hasAnyValue = Object.values(dist).some(value => value && value.trim && value.trim());
+    if (!hasAnyValue) {
+      return { isValid: false, error: 'Cannot add empty distribution. Please fill in at least one field.' };
     }
 
-    // Validate required IRI fields
-    const downloadURLError = isValidIriString(dist.downloadURL);
-    if (downloadURLError) {
-      return { isValid: false, error: `Invalid Download URL: ${downloadURLError}` };
+    // If bypass is enabled, skip required field checks but still validate IRIs
+    if (!allowBypass) {
+      // Check required fields
+      if (!dist.title || !dist.description || !dist.mediaType || 
+          !dist.downloadURL || !dist.accessURL) {
+        return { isValid: false, error: 'Please fill in all required fields for the distribution' };
+      }
     }
 
-    const accessURLError = isValidIriString(dist.accessURL);
-    if (accessURLError) {
-      return { isValid: false, error: `Invalid Access URL: ${accessURLError}` };
+    // Always validate IRI fields (even in bypass mode) if they have values
+    if (dist.downloadURL && dist.downloadURL.trim()) {
+      const downloadURLError = isValidIriString(dist.downloadURL);
+      if (downloadURLError) {
+        return { isValid: false, error: `Invalid Download URL: ${downloadURLError}` };
+      }
+    }
+
+    if (dist.accessURL && dist.accessURL.trim()) {
+      const accessURLError = isValidIriString(dist.accessURL);
+      if (accessURLError) {
+        return { isValid: false, error: `Invalid Access URL: ${accessURLError}` };
+      }
     }
 
     // Validate optional IRI fields (only if they have values)
@@ -3120,7 +3213,7 @@ const handleCancelEditExampleResource = () => {
 
   // Add a distribution
   const handleAddDistribution = () => {
-    const validation = validateDistribution(currentDistribution);
+    const validation = validateDistribution(currentDistribution, bypassValidation);
     if (!validation.isValid) {
       setMessage(validation.error);
       setTimeout(() => setMessage(''), 5000);
