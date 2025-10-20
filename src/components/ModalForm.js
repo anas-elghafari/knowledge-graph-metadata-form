@@ -1946,11 +1946,10 @@ const handleCancelEditExampleResource = () => {
       console.log('=== LOADING DRAFT ===');
       console.log('initialFormData:', initialFormData);
       
-      // Extract formData from the draft structure (it may be nested)
-      const loadedFormData = initialFormData.formData || initialFormData;
+      // The draft now has all form fields directly at the top level
+      // Extract AI suggestions separately
       const loadedAiSuggestions = initialFormData.aiSuggestions || {};
       
-      console.log('loadedFormData:', loadedFormData);
       console.log('submissionType:', initialFormData.submissionType);
       console.log('turtleContent length:', initialFormData.turtleContent?.length || 0);
       
@@ -1965,10 +1964,10 @@ const handleCancelEditExampleResource = () => {
         }));
       } else {
         console.log('Loading regular form draft...');
-        // Regular form data loading - ensure all arrays exist
+        // Regular form data loading - use initialFormData directly since fields are at top level
         const safeFormData = {
           ...initialFormState,
-          ...loadedFormData
+          ...initialFormData
         };
         
         // Ensure all array fields are actually arrays
@@ -1978,16 +1977,20 @@ const handleCancelEditExampleResource = () => {
           }
         });
         
+        console.log('safeFormData to be loaded:', safeFormData);
+        console.log('Title:', safeFormData.title);
+        console.log('Description:', safeFormData.description);
+        
         setFormData(safeFormData);
         
         // Handle loading custom license input from draft
-        if (loadedFormData.customLicenseInput) {
-          setCustomLicenseInput(loadedFormData.customLicenseInput);
+        if (initialFormData.customLicenseInput) {
+          setCustomLicenseInput(initialFormData.customLicenseInput);
         }
         
         // If license starts with "Other-", extract the custom part and set dropdown to "Other"
-        if (loadedFormData.license && loadedFormData.license.startsWith('Other-')) {
-          const customPart = loadedFormData.license.substring(6); // Remove "Other-" prefix
+        if (safeFormData.license && safeFormData.license.startsWith('Other-')) {
+          const customPart = safeFormData.license.substring(6); // Remove "Other-" prefix
           setCustomLicenseInput(customPart);
           setFormData(prev => ({
             ...prev,
@@ -1996,14 +1999,14 @@ const handleCancelEditExampleResource = () => {
         }
         
         // Load collection data from draft
-        if (loadedFormData.sparqlEndpoint) {
-          setSparqlEndpoints(loadedFormData.sparqlEndpoint);
+        if (safeFormData.sparqlEndpoint) {
+          setSparqlEndpoints(safeFormData.sparqlEndpoint);
         }
-        if (loadedFormData.exampleResource) {
-          setExampleResources(loadedFormData.exampleResource);
+        if (safeFormData.exampleResource) {
+          setExampleResources(safeFormData.exampleResource);
         }
-        if (loadedFormData.linkedResources) {
-          setLinkedResources(loadedFormData.linkedResources);
+        if (safeFormData.linkedResources) {
+          setLinkedResources(safeFormData.linkedResources);
         }
         
         // Clear input states since data is now in formData
@@ -3545,11 +3548,9 @@ const handleCancelEditExampleResource = () => {
       id: draftId,
       name: finalFormData.title || (showTurtleMode ? 'Turtle Draft' : 'Untitled Draft'),
       date: new Date().toISOString(),
-      formData: {
-        ...finalFormData,
-        draftId: draftId, // Store the draft ID in the form data
-        customLicenseInput: customLicenseInput // Also save the custom license input separately for editing
-      },
+      ...finalFormData, // Spread all form data directly at the top level
+      draftId: draftId, // Store the draft ID
+      customLicenseInput: customLicenseInput, // Also save the custom license input separately for editing
       aiSuggestions: aiSuggestions // Store all OpenAI suggestions in draft
     };
     
