@@ -324,29 +324,289 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
 
   // Function to populate field with selected suggestion (single or multiple values)
   const populateFieldWithSuggestion = (fieldName, value, suggestionIndex = null) => {
-    // Special handling for roles field
+    // Special handling for roles field - populate the form fields for review
     if (fieldName === 'roles') {
       const rawData = aiSuggestions['roles_raw'];
       if (rawData && rawData.suggestions) {
-        const suggestions = Array.isArray(value) ? 
-          rawData.suggestions : 
-          [rawData.suggestions[suggestionIndex]];
-        
-        suggestions.forEach(suggestion => {
-          if (suggestion.roleData) {
+        // If adding all, add directly to form data
+        if (Array.isArray(value)) {
+          rawData.suggestions.forEach(suggestion => {
+            if (suggestion.roleData) {
+              const roleData = suggestion.roleData;
+              const newRole = {
+                roleType: roleData.roleType,
+                inputMode: roleData.mode === 'iri' ? 'agentIRI' : 'nameEmail',
+                agent: roleData.mode === 'iri' ? (roleData.iri || '') : '',
+                givenName: roleData.mode === 'name_mbox' ? (roleData.name || '') : '',
+                email: roleData.mode === 'name_mbox' ? (roleData.email || '') : ''
+              };
+              setFormData(prev => ({
+                ...prev,
+                roles: [...prev.roles, newRole]
+              }));
+            }
+          });
+        } else {
+          // Single suggestion - populate form fields for review/editing
+          const suggestion = rawData.suggestions[suggestionIndex];
+          if (suggestion && suggestion.roleData) {
             const roleData = suggestion.roleData;
-            const newRole = {
-              roleType: roleData.roleType,
+            setCurrentRole({
+              roleType: roleData.roleType || '',
+              inputMode: roleData.mode === 'iri' ? 'agentIRI' : 'nameEmail',
               agent: roleData.mode === 'iri' ? (roleData.iri || '') : '',
               givenName: roleData.mode === 'name_mbox' ? (roleData.name || '') : '',
               email: roleData.mode === 'name_mbox' ? (roleData.email || '') : ''
-            };
-            setFormData(prev => ({
-              ...prev,
-              roles: [...prev.roles, newRole]
-            }));
+            });
+            // Scroll to the role form
+            setTimeout(() => {
+              const roleForm = document.querySelector('.role-form');
+              if (roleForm) {
+                roleForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            }, 100);
           }
-        });
+        }
+      }
+      return;
+    }
+    
+    // Special handling for distributions field - populate form for review or add directly
+    if (fieldName === 'distributions') {
+      const rawData = aiSuggestions['distributions_raw'];
+      if (rawData && rawData.suggestions) {
+        // If adding all, add directly to form data
+        if (Array.isArray(value)) {
+          rawData.suggestions.forEach(suggestion => {
+            try {
+              const distData = typeof suggestion.value === 'string' ? 
+                JSON.parse(suggestion.value) : suggestion.value;
+              
+              const newDistribution = {
+                title: distData.title || '',
+                description: distData.description || '',
+                mediaType: distData.mediaType || '',
+                downloadURL: distData.downloadURL || '',
+                accessURL: distData.accessURL || '',
+                byteSize: distData.byteSize || '',
+                license: distData.license || '',
+                rights: distData.rights || '',
+                accessService: distData.accessService || '',
+                compressionFormat: distData.compressionFormat || '',
+                packagingFormat: distData.packagingFormat || '',
+                hasPolicy: distData.hasPolicy || '',
+                spatialResolution: distData.spatialResolution || '',
+                temporalResolution: distData.temporalResolution || '',
+                releaseDate: distData.releaseDate || '',
+                modificationDate: distData.modificationDate || '',
+                issued: distData.issued || ''
+              };
+              
+              setFormData(prev => ({
+                ...prev,
+                distributions: [...prev.distributions, newDistribution]
+              }));
+            } catch (error) {
+              console.error('Error parsing distribution suggestion:', error);
+            }
+          });
+        } else {
+          // Single suggestion - populate form fields for review/editing
+          try {
+            const suggestion = rawData.suggestions[suggestionIndex];
+            const distData = typeof suggestion.value === 'string' ? 
+              JSON.parse(suggestion.value) : suggestion.value;
+            
+            setCurrentDistribution({
+              title: distData.title || '',
+              description: distData.description || '',
+              mediaType: distData.mediaType || '',
+              downloadURL: distData.downloadURL || '',
+              accessURL: distData.accessURL || '',
+              byteSize: distData.byteSize || '',
+              license: distData.license || '',
+              rights: distData.rights || '',
+              accessService: distData.accessService || '',
+              compressionFormat: distData.compressionFormat || '',
+              packagingFormat: distData.packagingFormat || '',
+              hasPolicy: distData.hasPolicy || '',
+              spatialResolution: distData.spatialResolution || '',
+              temporalResolution: distData.temporalResolution || '',
+              releaseDate: distData.releaseDate || '',
+              modificationDate: distData.modificationDate || '',
+              issued: distData.issued || ''
+            });
+            // Scroll to the distribution form
+            setTimeout(() => {
+              const distForm = document.querySelector('.distribution-form');
+              if (distForm) {
+                distForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            }, 100);
+          } catch (error) {
+            console.error('Error parsing distribution suggestion:', error);
+          }
+        }
+      }
+      return;
+    }
+    
+    // Special handling for SPARQL endpoint field - populate form for review or add directly
+    if (fieldName === 'sparqlEndpoint') {
+      const rawData = aiSuggestions['sparqlEndpoint_raw'];
+      if (rawData && rawData.suggestions) {
+        // If adding all, add directly to form data
+        if (Array.isArray(value)) {
+          rawData.suggestions.forEach(suggestion => {
+            try {
+              const endpointData = typeof suggestion.value === 'string' ? 
+                JSON.parse(suggestion.value) : suggestion.value;
+              
+              const newEndpoint = {
+                endpointURL: endpointData.endpointURL || '',
+                identifier: endpointData.identifier || '',
+                title: endpointData.title || '',
+                endpointDescription: endpointData.endpointDescription || endpointData.description || '',
+                status: endpointData.status || ''
+              };
+              
+              setFormData(prev => ({
+                ...prev,
+                sparqlEndpoint: [...prev.sparqlEndpoint, newEndpoint]
+              }));
+            } catch (error) {
+              console.error('Error parsing SPARQL endpoint suggestion:', error);
+            }
+          });
+        } else {
+          // Single suggestion - populate form fields for review/editing
+          try {
+            const suggestion = rawData.suggestions[suggestionIndex];
+            const endpointData = typeof suggestion.value === 'string' ? 
+              JSON.parse(suggestion.value) : suggestion.value;
+            
+            setCurrentSparqlEndpoint({
+              endpointURL: endpointData.endpointURL || '',
+              identifier: endpointData.identifier || '',
+              title: endpointData.title || '',
+              endpointDescription: endpointData.endpointDescription || endpointData.description || '',
+              status: endpointData.status || ''
+            });
+            // Scroll to the SPARQL endpoint form
+            setTimeout(() => {
+              const sparqlForm = document.querySelector('.sparql-endpoint-form');
+              if (sparqlForm) {
+                sparqlForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            }, 100);
+          } catch (error) {
+            console.error('Error parsing SPARQL endpoint suggestion:', error);
+          }
+        }
+      }
+      return;
+    }
+    
+    // Special handling for example resource field - populate form for review or add directly
+    if (fieldName === 'exampleResource') {
+      const rawData = aiSuggestions['exampleResource_raw'];
+      if (rawData && rawData.suggestions) {
+        // If adding all, add directly to form data
+        if (Array.isArray(value)) {
+          rawData.suggestions.forEach(suggestion => {
+            try {
+              const resourceData = typeof suggestion.value === 'string' ? 
+                JSON.parse(suggestion.value) : suggestion.value;
+              
+              const newResource = {
+                title: resourceData.title || '',
+                description: resourceData.description || '',
+                status: resourceData.status || '',
+                accessURL: resourceData.accessURL || ''
+              };
+              
+              setFormData(prev => ({
+                ...prev,
+                exampleResource: [...prev.exampleResource, newResource]
+              }));
+            } catch (error) {
+              console.error('Error parsing example resource suggestion:', error);
+            }
+          });
+        } else {
+          // Single suggestion - populate form fields for review/editing
+          try {
+            const suggestion = rawData.suggestions[suggestionIndex];
+            const resourceData = typeof suggestion.value === 'string' ? 
+              JSON.parse(suggestion.value) : suggestion.value;
+            
+            setCurrentExampleResource({
+              title: resourceData.title || '',
+              description: resourceData.description || '',
+              status: resourceData.status || '',
+              accessURL: resourceData.accessURL || ''
+            });
+            // Scroll to the example resource form
+            setTimeout(() => {
+              const exampleForm = document.querySelector('.example-resource-form');
+              if (exampleForm) {
+                exampleForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            }, 100);
+          } catch (error) {
+            console.error('Error parsing example resource suggestion:', error);
+          }
+        }
+      }
+      return;
+    }
+    
+    // Special handling for linked resources field - populate form for review or add directly
+    if (fieldName === 'linkedResources') {
+      const rawData = aiSuggestions['linkedResources_raw'];
+      if (rawData && rawData.suggestions) {
+        // If adding all, add directly to form data
+        if (Array.isArray(value)) {
+          rawData.suggestions.forEach(suggestion => {
+            try {
+              const linkData = typeof suggestion.value === 'string' ? 
+                JSON.parse(suggestion.value) : suggestion.value;
+              
+              const newLinkedResource = {
+                target: linkData.target || '',
+                triples: linkData.triples || ''
+              };
+              
+              setFormData(prev => ({
+                ...prev,
+                linkedResources: [...prev.linkedResources, newLinkedResource]
+              }));
+            } catch (error) {
+              console.error('Error parsing linked resource suggestion:', error);
+            }
+          });
+        } else {
+          // Single suggestion - populate form fields for review/editing
+          try {
+            const suggestion = rawData.suggestions[suggestionIndex];
+            const linkData = typeof suggestion.value === 'string' ? 
+              JSON.parse(suggestion.value) : suggestion.value;
+            
+            setCurrentLinkedResource({
+              target: linkData.target || '',
+              triples: linkData.triples || ''
+            });
+            // Scroll to the linked resource form
+            setTimeout(() => {
+              const linkedForm = document.querySelector('.linked-resource-form');
+              if (linkedForm) {
+                linkedForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            }, 100);
+          } catch (error) {
+            console.error('Error parsing linked resource suggestion:', error);
+          }
+        }
       }
       return;
     }

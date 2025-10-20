@@ -473,7 +473,7 @@ export const getBulkFieldSuggestions = async (fieldDefinitions, narrativeContent
     const prompt = buildBulkSuggestionsPrompt(fieldDefinitions, narrativeContent);
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. Your task is to extract information from the provided ontology narrative description to fill out metadata form fields. For each suggestion, provide both the value and a brief explanation of where you found it in the narrative." },
         { role: "user", content: prompt }
@@ -486,7 +486,7 @@ export const getBulkFieldSuggestions = async (fieldDefinitions, narrativeContent
         }
       },
       max_tokens: 16000,
-      temperature: 0.3
+      temperature: 0.7
     });
 
     const rawContent = response.choices[0].message.content;
