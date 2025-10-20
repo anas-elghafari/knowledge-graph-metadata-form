@@ -55,6 +55,26 @@ function App() {
   
   // Handle loading a draft (now receives both formData and aiSuggestions)
   const handleLoadDraft = (draftData) => {
+    console.log('Loading draft:', draftData);
+    console.log('Draft formType:', draftData.formType);
+    
+    // Use the explicit formType field to determine which mode to use
+    const formType = draftData.formType || draftData.submissionType; // fallback to submissionType for backward compatibility
+    
+    if (formType === 'turtle') {
+      console.log('Loading as TURTLE mode');
+      setTurtleModeEnabled(true);
+      setAiEnabledByDefault(false);
+    } else if (formType === 'llm') {
+      console.log('Loading as LLM mode');
+      setAiEnabledByDefault(true);
+      setTurtleModeEnabled(false);
+    } else {
+      console.log('Loading as NORMAL mode');
+      setAiEnabledByDefault(false);
+      setTurtleModeEnabled(false);
+    }
+    
     setDraftToLoad(draftData);
     setShowModal(true);
   };

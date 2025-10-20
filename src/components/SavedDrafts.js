@@ -116,11 +116,16 @@ const SavedDrafts = forwardRef(({ onLoadDraft }, ref) => {
                 >
                   <td>{draft.name}</td>
                   <td>
-                    {draft.submissionType === 'turtle' ? (
-                      <span style={{ color: '#4169e1', fontWeight: 'bold' }}>🐢 Turtle</span>
-                    ) : (
-                      <span style={{ color: '#888' }}>Form</span>
-                    )}
+                    {(() => {
+                      const formType = draft.formType || draft.submissionType; // fallback for backward compatibility
+                      if (formType === 'turtle') {
+                        return <span style={{ color: '#4169e1', fontWeight: 'bold' }}>🐢 Turtle</span>;
+                      } else if (formType === 'llm') {
+                        return <span style={{ color: '#9b59b6', fontWeight: 'bold' }}>🤖 LLM</span>;
+                      } else {
+                        return <span style={{ color: '#888' }}>📝 Normal</span>;
+                      }
+                    })()}
                   </td>
                   <td>{formatDate(draft.date || draft.savedAt)}</td>
                   <td>

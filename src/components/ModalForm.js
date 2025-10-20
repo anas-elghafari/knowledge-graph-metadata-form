@@ -1949,11 +1949,13 @@ const handleCancelEditExampleResource = () => {
       // Extract AI suggestions (stored separately)
       const loadedAiSuggestions = initialFormData.aiSuggestions || {};
       
-      console.log('submissionType:', initialFormData.submissionType);
+      // Get the form type (use formType if available, fallback to submissionType for backward compatibility)
+      const formType = initialFormData.formType || initialFormData.submissionType;
+      console.log('Draft formType:', formType);
       console.log('turtleContent length:', initialFormData.turtleContent?.length || 0);
       
       // Check if this is a turtle draft
-      if (initialFormData.submissionType === 'turtle') {
+      if (formType === 'turtle') {
         console.log('Loading TURTLE draft...');
         setTurtleContent(initialFormData.turtleContent || '');
         setShowTurtleMode(true);
@@ -3533,20 +3535,31 @@ const handleCancelEditExampleResource = () => {
     const existingDraftId = finalFormData.draftId || null;
     const draftId = existingDraftId || `draft-${Date.now()}`;
     
-    // Build the draft object - include turtle mode data if in turtle mode
+    // Determine the form type explicitly
+    let formType = 'normal';
+    if (showTurtleMode) {
+      formType = 'turtle';
+    } else if (isLlmMode) {
+      formType = 'llm';
+    }
+    
+    console.log('Saving draft with formType:', formType);
+    
+    // Build the draft object
     const draft = {
       id: draftId,
       name: finalFormData.title || (showTurtleMode ? 'Turtle Draft' : 'Untitled Draft'),
       date: new Date().toISOString(),
+      formType: formType, // Explicit form type: 'normal', 'llm', or 'turtle'
       ...finalFormData, // Spread all form data directly at the top level
       draftId: draftId, // Store the draft ID
       customLicenseInput: customLicenseInput, // Also save the custom license input separately for editing
-      aiSuggestions: aiSuggestions // Store all OpenAI suggestions in draft
+      aiSuggestions: aiSuggestions // Store all OpenAI suggestions in draft (only relevant for LLM mode)
     };
     
     // If in turtle mode, save turtle-specific data
     if (showTurtleMode) {
-      draft.submissionType = 'turtle';
+      draft.submissionType = 'turtle'; // Keep for backward compatibility
       draft.turtleContent = turtleContent;
       console.log('Saving turtle draft with content length:', turtleContent.length);
     }
