@@ -1037,23 +1037,31 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       return;
     }
 
+    console.log('=== SAVING TURTLE DRAFT ===');
+    console.log('turtleContent length:', turtleContent.length);
+
     const draftId = `turtle-draft-${Date.now()}`;
+    
+    // Use the new flat structure with explicit formType
     const draft = {
       id: draftId,
       name: 'Turtle Text',
       date: new Date().toISOString(),
-      formData: {
-        turtleContent: turtleContent.trim(),
-        submissionType: 'turtle',
-        draftId: draftId
-      },
-      aiSuggestions: aiSuggestions // Store all OpenAI suggestions in turtle draft
+      formType: 'turtle', // Explicit form type
+      turtleContent: turtleContent.trim(), // Turtle content at top level
+      submissionType: 'turtle', // Keep for backward compatibility
+      draftId: draftId,
+      aiSuggestions: {} // Empty for turtle drafts
     };
+
+    console.log('Turtle draft to be saved:', draft);
 
     // Save to localStorage
     const existingDrafts = JSON.parse(localStorage.getItem('kg-metadata-drafts') || '[]');
     existingDrafts.push(draft);
     localStorage.setItem('kg-metadata-drafts', JSON.stringify(existingDrafts));
+
+    console.log('Turtle draft saved successfully');
 
     setMessage('Turtle draft saved successfully!');
     
