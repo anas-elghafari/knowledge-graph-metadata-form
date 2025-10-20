@@ -3112,10 +3112,12 @@ input.tag-input.tag-input-valid:focus,
   font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
   font-size: 13px;
   line-height: 1.6;
-  overflow-x: auto;
+  overflow-x: hidden;
   color: #d4d4d4;
   text-align: left;
-  white-space: pre;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .json-key {
