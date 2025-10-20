@@ -1946,38 +1946,34 @@ const handleCancelEditExampleResource = () => {
       console.log('=== LOADING DRAFT ===');
       console.log('initialFormData:', initialFormData);
       
-      // The draft now has all form fields directly at the top level
-      // Extract AI suggestions separately
+      // Extract AI suggestions (stored separately)
       const loadedAiSuggestions = initialFormData.aiSuggestions || {};
       
       console.log('submissionType:', initialFormData.submissionType);
       console.log('turtleContent length:', initialFormData.turtleContent?.length || 0);
       
       // Check if this is a turtle draft
-      if (initialFormData.submissionType === 'turtle' || initialFormData.turtleContent) {
-        console.log('Loading turtle draft...');
+      if (initialFormData.submissionType === 'turtle') {
+        console.log('Loading TURTLE draft...');
         setTurtleContent(initialFormData.turtleContent || '');
         setShowTurtleMode(true);
-        setFormData(prevData => ({
-          ...initialFormState,
-          ...prevData
-        }));
+        // Don't load form data for turtle mode
       } else {
-        console.log('Loading regular form draft...');
-        // Regular form data loading - use initialFormData directly since fields are at top level
+        console.log('Loading FORM draft (normal or LLM)...');
+        
+        // Build form data from the draft (all fields are at top level)
         const safeFormData = {
-          ...initialFormState,
-          ...initialFormData
+          ...initialFormState
         };
         
-        // Ensure all array fields are actually arrays
+        // Copy all form fields from the draft
         Object.keys(initialFormState).forEach(key => {
-          if (Array.isArray(initialFormState[key]) && !Array.isArray(safeFormData[key])) {
-            safeFormData[key] = initialFormState[key];
+          if (initialFormData[key] !== undefined) {
+            safeFormData[key] = initialFormData[key];
           }
         });
         
-        console.log('safeFormData to be loaded:', safeFormData);
+        console.log('Loaded form data:', safeFormData);
         console.log('Title:', safeFormData.title);
         console.log('Description:', safeFormData.description);
         
@@ -1999,21 +1995,15 @@ const handleCancelEditExampleResource = () => {
         }
         
         // Load collection data from draft
-        if (safeFormData.sparqlEndpoint) {
-          setSparqlEndpoints(safeFormData.sparqlEndpoint);
+        if (initialFormData.sparqlEndpoint) {
+          setSparqlEndpoints(initialFormData.sparqlEndpoint);
         }
-        if (safeFormData.exampleResource) {
-          setExampleResources(safeFormData.exampleResource);
+        if (initialFormData.exampleResource) {
+          setExampleResources(initialFormData.exampleResource);
         }
-        if (safeFormData.linkedResources) {
-          setLinkedResources(safeFormData.linkedResources);
+        if (initialFormData.linkedResources) {
+          setLinkedResources(initialFormData.linkedResources);
         }
-        
-        // Clear input states since data is now in formData
-        if (safeFormData.title) setTitleInput('');
-        if (safeFormData.description) setDescriptionInput('');
-        if (safeFormData.version) setVersionInput('');
-        if (safeFormData.accessStatement) setAccessStatementInput('');
         
         // Set validation states for loaded fields
         if (safeFormData.title) setTitleValid(true);
@@ -2022,11 +2012,11 @@ const handleCancelEditExampleResource = () => {
         if (safeFormData.version) setVersionValid(true);
       }
       
-      // Restore AI suggestions if they exist
+      // Restore AI suggestions if they exist (for LLM mode)
       if (Object.keys(loadedAiSuggestions).length > 0) {
         setAiSuggestions(loadedAiSuggestions);
         setBulkSuggestionsReady(true);
-        console.log('Restored AI suggestions from draft:', loadedAiSuggestions);
+        console.log('Restored AI suggestions from draft');
       }
       
       console.log('=== DRAFT LOADED SUCCESSFULLY ===');
