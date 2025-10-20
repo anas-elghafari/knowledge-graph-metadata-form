@@ -1943,12 +1943,20 @@ const handleCancelEditExampleResource = () => {
   
   useEffect(() => {
     if (initialFormData && !hasLoadedDraft) {
+      console.log('=== LOADING DRAFT ===');
+      console.log('initialFormData:', initialFormData);
+      
       // Extract formData from the draft structure (it may be nested)
       const loadedFormData = initialFormData.formData || initialFormData;
       const loadedAiSuggestions = initialFormData.aiSuggestions || {};
       
+      console.log('loadedFormData:', loadedFormData);
+      console.log('submissionType:', initialFormData.submissionType);
+      console.log('turtleContent length:', initialFormData.turtleContent?.length || 0);
+      
       // Check if this is a turtle draft
       if (initialFormData.submissionType === 'turtle' || initialFormData.turtleContent) {
+        console.log('Loading turtle draft...');
         setTurtleContent(initialFormData.turtleContent || '');
         setShowTurtleMode(true);
         setFormData(prevData => ({
@@ -1956,6 +1964,7 @@ const handleCancelEditExampleResource = () => {
           ...prevData
         }));
       } else {
+        console.log('Loading regular form draft...');
         // Regular form data loading - ensure all arrays exist
         const safeFormData = {
           ...initialFormState,
@@ -2017,6 +2026,7 @@ const handleCancelEditExampleResource = () => {
         console.log('Restored AI suggestions from draft:', loadedAiSuggestions);
       }
       
+      console.log('=== DRAFT LOADED SUCCESSFULLY ===');
       setHasLoadedDraft(true);
     }
   }, [initialFormData, hasLoadedDraft]);
@@ -3510,6 +3520,12 @@ const handleCancelEditExampleResource = () => {
     // First add any pending tag inputs
     const updatedForm = addPendingTagInputs();
     
+    console.log('=== SAVING DRAFT ===');
+    console.log('showTurtleMode:', showTurtleMode);
+    console.log('turtleContent length:', turtleContent?.length || 0);
+    console.log('updatedForm:', updatedForm);
+    console.log('formData:', formData);
+    
     // Handle custom license formatting for drafts
     let finalFormData = { ...updatedForm };
     if (updatedForm.license === 'Other' && customLicenseInput.trim()) {
@@ -3541,7 +3557,10 @@ const handleCancelEditExampleResource = () => {
     if (showTurtleMode) {
       draft.submissionType = 'turtle';
       draft.turtleContent = turtleContent;
+      console.log('Saving turtle draft with content length:', turtleContent.length);
     }
+    
+    console.log('Draft to be saved:', JSON.stringify(draft, null, 2));
     
     // Get existing drafts from localStorage
     let savedDrafts = [];
