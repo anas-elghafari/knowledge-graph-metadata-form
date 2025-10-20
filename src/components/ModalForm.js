@@ -96,8 +96,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     console.log('showTurtleMode changed to:', showTurtleMode);
   }, [showTurtleMode]);
   
-  // Modal resize state
-  const [modalSize, setModalSize] = useState({ width: 900, height: 700 });
+  // Modal resize state - default to 75% of viewport size
+  const [modalSize, setModalSize] = useState({ 
+    width: Math.floor(window.innerWidth * 0.75), 
+    height: Math.floor(window.innerHeight * 0.75) 
+  });
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef({ startX: 0, startY: 0, startWidth: 0, startHeight: 0 });
   
@@ -3804,9 +3807,15 @@ const handleCancelEditExampleResource = () => {
           </div>
           
           {/* Side-by-side layout: 70% editor, 30% validation */}
-          <div style={{ display: 'flex', gap: '16px', height: 'calc(100% - 40px)' }}>
+          <div style={{ display: 'flex', gap: '16px', height: 'calc(100% - 40px)', minHeight: 0, overflow: 'hidden' }}>
             {/* Editor section - 70% */}
-            <div style={{ flex: '0 0 70%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ 
+              flex: '0 0 70%', 
+              display: 'flex', 
+              flexDirection: 'column',
+              minWidth: 0,
+              overflow: 'hidden'
+            }}>
               <CodeMirror
                 value={turtleContent}
                 height="100%"
@@ -3840,13 +3849,20 @@ const handleCancelEditExampleResource = () => {
                   fontSize: '14px',
                   fontFamily: "'Courier New', Courier, monospace",
                   height: '100%',
-                  overflow: 'auto'
+                  overflow: 'auto',
+                  maxWidth: '100%'
                 }}
               />
             </div>
             
             {/* Validation Panel - 30% - Always visible */}
-            <div style={{ flex: '0 0 30%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ 
+              flex: '0 0 30%', 
+              display: 'flex', 
+              flexDirection: 'column',
+              minWidth: 0,
+              overflow: 'hidden'
+            }}>
               <h4 style={{ margin: '0 0 8px 0', color: 'var(--dark-text)', fontSize: '14px', fontWeight: '600' }}>
                 Validation Results
               </h4>
@@ -3872,13 +3888,30 @@ const handleCancelEditExampleResource = () => {
                       <span className="validation-icon">❌</span>
                       <span className="validation-message">Turtle Syntax Errors:</span>
                     </div>
-                    <ul className="error-list" style={{ flex: 1, overflowY: 'auto', margin: '8px 0', paddingLeft: '20px' }}>
+                    <ul className="error-list" style={{ 
+                      flex: 1, 
+                      overflowY: 'auto', 
+                      overflowX: 'hidden',
+                      margin: '8px 0', 
+                      paddingLeft: '20px',
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word'
+                    }}>
                       {turtleValidation.errors.map((error, index) => (
-                        <li key={index} className="error-item">
-                          <span className="error-location">
+                        <li key={index} className="error-item" style={{
+                          wordWrap: 'break-word',
+                          overflowWrap: 'break-word',
+                          marginBottom: '8px'
+                        }}>
+                          <span className="error-location" style={{ display: 'block', fontWeight: 'bold' }}>
                             Line {error.line}, Column {error.column}:
                           </span>
-                          <span className="error-message">{error.message}</span>
+                          <span className="error-message" style={{ 
+                            display: 'block',
+                            wordWrap: 'break-word',
+                            overflowWrap: 'break-word',
+                            whiteSpace: 'pre-wrap'
+                          }}>{error.message}</span>
                         </li>
                       ))}
                     </ul>
