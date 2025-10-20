@@ -4977,6 +4977,7 @@ const handleCancelEditExampleResource = () => {
               type="text"
               id="distTitle"
               value={currentDistribution.title}
+              onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
               onChange={(e) => handleDistributionChange('title', e.target.value)}
               className={`subfield-input ${currentDistribution.title.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
@@ -4989,6 +4990,7 @@ const handleCancelEditExampleResource = () => {
              <textarea
               id="distDescription"
                value={currentDistribution.description}
+               onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
                onChange={(e) => handleDistributionChange('description', e.target.value)}
                rows="2"
                className={`subfield-input ${currentDistribution.description.trim().length > 0 ? 'form-input-valid' : ''}`}
@@ -5003,6 +5005,7 @@ const handleCancelEditExampleResource = () => {
               type="text"
               id="distMediaType"
               value={currentDistribution.mediaType}
+              onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
               onChange={(e) => handleDistributionChange('mediaType', e.target.value)}
               className={`subfield-input ${currentDistribution.mediaType.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
@@ -5017,6 +5020,7 @@ const handleCancelEditExampleResource = () => {
                 id="distDownloadURL"
                 name="distDownloadURL"
                 value={currentDistribution.downloadURL}
+                onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
                 onChange={(e) => {
                   handleDistributionChange('downloadURL', e.target.value);
                   
@@ -5051,6 +5055,7 @@ const handleCancelEditExampleResource = () => {
                 id="distAccessURL"
                 name="distAccessURL"
                 value={currentDistribution.accessURL}
+                onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
                 onChange={(e) => {
                   handleDistributionChange('accessURL', e.target.value);
                   
@@ -5083,6 +5088,7 @@ const handleCancelEditExampleResource = () => {
               type="text"
               id="distAccessService"
               value={currentDistribution.accessService}
+              onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
               onChange={(e) => {
                 handleDistributionChange('accessService', e.target.value);
                 
@@ -5115,6 +5121,7 @@ const handleCancelEditExampleResource = () => {
               type="text"
               id="distByteSize"
               value={currentDistribution.byteSize}
+              onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
               onChange={(e) => handleDistributionChange('byteSize', e.target.value)}
               className={`subfield-input ${currentDistribution.byteSize.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
@@ -5129,6 +5136,7 @@ const handleCancelEditExampleResource = () => {
                id="distCompressionFormat"
                name="distCompressionFormat"
                value={currentDistribution.compressionFormat}
+               onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
                onChange={(e) => handleDistributionChange('compressionFormat', e.target.value)}
                className={`subfield-input ${currentDistribution.compressionFormat.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
@@ -5143,6 +5151,7 @@ const handleCancelEditExampleResource = () => {
                id="distPackagingFormat"
                name="distPackagingFormat"
                value={currentDistribution.packagingFormat}
+               onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
                onChange={(e) => handleDistributionChange('packagingFormat', e.target.value)}
                className={`subfield-input ${currentDistribution.packagingFormat.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
@@ -5156,6 +5165,7 @@ const handleCancelEditExampleResource = () => {
                id="distHasPolicy"
                name="distHasPolicy"
                value={currentDistribution.hasPolicy}
+               onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
                onChange={(e) => {
                  handleDistributionChange('hasPolicy', e.target.value);
                  
@@ -5189,6 +5199,7 @@ const handleCancelEditExampleResource = () => {
                id="distLicense"
                name="distLicense"
                value={currentDistribution.license}
+               onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
                onChange={(e) => handleDistributionChange('license', e.target.value)}
                className={`subfield-input ${currentDistribution.license.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
@@ -5203,6 +5214,7 @@ const handleCancelEditExampleResource = () => {
                id="distRights"
                name="distRights"
                value={currentDistribution.rights}
+               onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
                onChange={(e) => handleDistributionChange('rights', e.target.value)}
                className={`subfield-input ${currentDistribution.rights.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
@@ -5216,6 +5228,7 @@ const handleCancelEditExampleResource = () => {
                id="distSpatialResolution"
                name="distSpatialResolution"
                value={currentDistribution.spatialResolution}
+               onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
                onChange={(e) => handleDistributionChange('spatialResolution', e.target.value)}
                className={`subfield-input ${currentDistribution.spatialResolution.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
@@ -5229,6 +5242,7 @@ const handleCancelEditExampleResource = () => {
                id="distTemporalResolution"
                name="distTemporalResolution"
                value={currentDistribution.temporalResolution}
+               onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
                onChange={(e) => handleDistributionChange('temporalResolution', e.target.value)}
                className={`subfield-input ${currentDistribution.temporalResolution.trim().length > 0 ? 'form-input-valid' : ''}`}
              />
@@ -5243,6 +5257,7 @@ const handleCancelEditExampleResource = () => {
                 id="distReleaseDate"
                 name="distReleaseDate"
                 value={currentDistribution.releaseDate}
+                onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
                 onChange={(e) => handleDistributionChange('releaseDate', e.target.value)}
                 onBlur={validateDateInput}
                 placeholder="YYYY/MM/DD"
@@ -5270,6 +5285,7 @@ const handleCancelEditExampleResource = () => {
                 id="distModificationDate"
                 name="distModificationDate"
                 value={currentDistribution.modificationDate}
+                onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
                 onChange={(e) => handleDistributionChange('modificationDate', e.target.value)}
                 onBlur={validateDateInput}
                 placeholder="YYYY/MM/DD"
@@ -5296,6 +5312,7 @@ const handleCancelEditExampleResource = () => {
               id="distIssued"
               name="distIssued"
               value={currentDistribution.issued}
+              onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('distributions')}
               onChange={(e) => handleDistributionChange('issued', e.target.value)}
               className="subfield-input"
             />
@@ -5462,6 +5479,7 @@ const handleCancelEditExampleResource = () => {
         id="sparqlEndpointURL"
         name="sparqlEndpointURL"
         value={currentSparqlEndpoint.endpointURL}
+        onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('sparqlEndpoint')}
         onChange={e => {
           handleCurrentSparqlEndpointChange('endpointURL', e.target.value);
           
@@ -5494,6 +5512,7 @@ const handleCancelEditExampleResource = () => {
         id="sparqlIdentifier"
         name="sparqlIdentifier"
         value={currentSparqlEndpoint.identifier}
+        onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('sparqlEndpoint')}
         onChange={e => handleCurrentSparqlEndpointChange('identifier', e.target.value)}
         className={`subfield-input ${currentSparqlEndpoint.identifier.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
@@ -5507,6 +5526,7 @@ const handleCancelEditExampleResource = () => {
         id="sparqlTitle"
         name="sparqlTitle"
         value={currentSparqlEndpoint.title}
+        onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('sparqlEndpoint')}
         onChange={e => handleCurrentSparqlEndpointChange('title', e.target.value)}
         className={`subfield-input ${currentSparqlEndpoint.title.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
@@ -5520,6 +5540,7 @@ const handleCancelEditExampleResource = () => {
         id="sparqlEndpointDescription"
         name="sparqlEndpointDescription"
         value={currentSparqlEndpoint.endpointDescription}
+        onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('sparqlEndpoint')}
         onChange={e => handleCurrentSparqlEndpointChange('endpointDescription', e.target.value)}
         className={`subfield-input ${currentSparqlEndpoint.endpointDescription.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
@@ -5533,6 +5554,7 @@ const handleCancelEditExampleResource = () => {
         id="sparqlStatus"
         name="sparqlStatus"
         value={currentSparqlEndpoint.status}
+        onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('sparqlEndpoint')}
         onChange={e => handleCurrentSparqlEndpointChange('status', e.target.value)}
         className={`subfield-input ${currentSparqlEndpoint.status.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
@@ -5911,6 +5933,7 @@ const handleCancelEditExampleResource = () => {
                  id="linkedResourceTarget"
                  name="linkedResourceTarget"
                  value={currentLinkedResource.target}
+                 onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('linkedResources')}
                  onChange={e => handleCurrentLinkedResourceChange('target', e.target.value)}
                  className={`subfield-input ${currentLinkedResource.target.trim().length > 0 ? 'form-input-valid' : ''}`}
                />
@@ -5924,6 +5947,7 @@ const handleCancelEditExampleResource = () => {
                  id="linkedResourceTriples"
                  name="linkedResourceTriples"
                  value={currentLinkedResource.triples}
+                 onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('linkedResources')}
                  onChange={e => handleCurrentLinkedResourceChange('triples', e.target.value)}
                  className={`subfield-input ${currentLinkedResource.triples.trim().length > 0 ? 'form-input-valid' : ''}`}
                />
@@ -6016,6 +6040,7 @@ const handleCancelEditExampleResource = () => {
         id="exampleResourceTitle"
         name="exampleResourceTitle"
         value={currentExampleResource.title}
+        onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('exampleResource')}
         onChange={e => handleCurrentExampleResourceChange('title', e.target.value)}
         className={`subfield-input ${currentExampleResource.title.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
@@ -6029,6 +6054,7 @@ const handleCancelEditExampleResource = () => {
         id="exampleResourceDescription"
         name="exampleResourceDescription"
         value={currentExampleResource.description}
+        onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('exampleResource')}
         onChange={e => handleCurrentExampleResourceChange('description', e.target.value)}
         className={`subfield-input ${currentExampleResource.description.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
@@ -6042,6 +6068,7 @@ const handleCancelEditExampleResource = () => {
         id="exampleResourceStatus"
         name="exampleResourceStatus"
         value={currentExampleResource.status}
+        onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('exampleResource')}
         onChange={e => handleCurrentExampleResourceChange('status', e.target.value)}
         className={`subfield-input ${currentExampleResource.status.trim().length > 0 ? 'form-input-valid' : ''}`}
       />
@@ -6055,6 +6082,7 @@ const handleCancelEditExampleResource = () => {
         id="exampleResourceAccessURL"
         name="exampleResourceAccessURL"
         value={currentExampleResource.accessURL}
+        onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('exampleResource')}
         onChange={e => {
           handleCurrentExampleResourceChange('accessURL', e.target.value);
           
