@@ -28,7 +28,7 @@ const fieldInstructions = {
     // Documentation
     "primaryReferenceDocument": "Provide a reference to a document, preprint or data paper describing the KG.",
     "metaGraph": "Provide an illustration of the graph connectivity through its types and relations between instances.",
-    "statistics": "Provide a computational representation of the summary statistics of the knowledge graph. See HCLS: https://www.w3.org/TR/hcls-dataset/#s6.",
+    "statistics": "Number of Triples: Provide a computational representation of the summary statistics of the knowledge graph, such as the number of triples for different properties. See HCLS: https://www.w3.org/TR/hcls-dataset/#s6.",
     
     // Distribution related - not in the reference spreadsheet
     "distTitle": "Required title for this distribution",

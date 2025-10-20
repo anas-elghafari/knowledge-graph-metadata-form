@@ -3095,7 +3095,7 @@ const handleCancelEditExampleResource = () => {
     }
     
     if (statisticsInput.trim()) {
-      // statistics does not require IRI validation - can be text descriptions
+      // Number of Triples does not require IRI validation - can be text descriptions
       updatedFormData = {
         ...updatedFormData,
         statistics: [...updatedFormData.statistics, statisticsInput.trim()]
@@ -3788,9 +3788,9 @@ const handleCancelEditExampleResource = () => {
               <button 
                 className="upload-button"
                 onClick={handleUploadClick}
-                title="Upload ontology narrative description (.txt or .docx) to help AI generate better suggestions"
+                title="Upload the KG document (.txt or .docx) to help AI generate better suggestions"
               >
-                📄 Upload Ontology Narrative Description
+                📄 Upload the KG Document
               </button>
               {narrativeFile && (
                 <span className="file-indicator">
@@ -3801,7 +3801,7 @@ const handleCancelEditExampleResource = () => {
             <div className="upload-status">
               {processingNarrative && (
                 <div className="processing-indicator">
-                  🔄 Processing ontology narrative...
+                  🔄 Processing KG document...
                 </div>
               )}
               {bulkSuggestionsReady && (
@@ -5194,10 +5194,10 @@ const handleCancelEditExampleResource = () => {
             </div>
           </div>
           
-          {/* Statistics */}
+          {/* Number of Triples */}
           <div className="form-group">
             <label htmlFor="statistics">
-              Statistics <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
+              Number of Triples <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
             </label>
             <div className="tag-input-container">
               <div className="tag-input-row">
@@ -5212,7 +5212,7 @@ const handleCancelEditExampleResource = () => {
                 onBlur={() => setStatisticsInputValid(!!statisticsInput.trim())}
                 onKeyPress={(e) => handleKeyPress(e, 'statistics', statisticsInput, setStatisticsInput)}
                 className={`tag-input ${statisticsInputValid ? 'tag-input-valid' : ''}`}
-                placeholder="Enter statistic and press Enter or +"
+                placeholder="Enter number of triples and press Enter or +"
               />
               <button 
                   type="button" 
@@ -5224,7 +5224,7 @@ const handleCancelEditExampleResource = () => {
               </div>
               <div className="tag-list">
                 {formData.statistics.map((stat, index) => {
-                  // Statistics do not require IRI validation - they can be text descriptions
+                  // Number of Triples entries do not require IRI validation - they can be text descriptions
                   let isInvalid = invalidTags.statistics && invalidTags.statistics[stat];
                   let errorMessage = isInvalid ? invalidTags.statistics[stat] : null;
                   
@@ -5245,7 +5245,7 @@ const handleCancelEditExampleResource = () => {
                   );
                 })}
               </div>
-              <div className="field-hint">Press Enter or click + to add statistic</div>
+              <div className="field-hint">Press Enter or click + to add number of triples entry</div>
             </div>
           </div>
     
@@ -6896,7 +6896,7 @@ const handleCancelEditExampleResource = () => {
                         return (
                           <div className="no-answers-found">
                             <div className="no-answers-title">No answers found for this field</div>
-                            <div className="no-answers-explanation">No suggestions were generated for this field from the ontology narrative description.</div>
+                            <div className="no-answers-explanation">No suggestions were generated for this field from the KG document.</div>
                           </div>
                         );
                       }
@@ -6973,8 +6973,8 @@ const handleCancelEditExampleResource = () => {
                   <div className="waiting-for-narrative-message">
                     <div className="waiting-icon">📋</div>
                     <div className="waiting-text">
-                      <strong>Waiting for ontology narrative description</strong>
-                      <p>Please upload an ontology narrative description file (.txt or .docx) to get AI suggestions for your fields.</p>
+                      <strong>Waiting for KG document</strong>
+                      <p>Please upload a KG document file (.txt or .docx) to get AI suggestions for your fields.</p>
                     </div>
                   </div>
                 )}

@@ -208,7 +208,7 @@ SEMANTIC MATCHING AND INFERENCE:
   2. What information the narrative text is conveying (its semantic content)
 - If direct keyword matching fails, use semantic reasoning to find relevant information:
   * Example: A field asking for "publisher" might match narrative text about "released by", "made available by", "maintained by"
-  * Example: A field asking for "statistics" might match phrases about "contains X entities", "includes Y triples", "covers Z domains"
+  * Example: A field asking for "Number of Triples" (statistics) might match phrases about "contains X entities", "includes Y triples", "covers Z domains"
   * Example: A field asking for "temporal coverage" might match text about "spans from 2010 to 2020", "historical data", "time period"
 - Consider synonyms, related concepts, and implied meanings
 - Use domain knowledge about knowledge graphs, ontologies, and metadata to make intelligent connections
@@ -229,7 +229,7 @@ FORMAT CONSTRAINTS AND VALIDATION REQUIREMENTS:
   * homepageURL, otherPages, vocabulariesUsed, primaryReferenceDocument, category, publicationReferences, source, kgSchema, metaGraph, nameSpace
   * NOTE: The following fields do NOT require IRI validation:
     - iriTemplate: contains patterns/variables (e.g., "http://example.org/{id}")
-    - statistics: can be text descriptions (e.g., "900,000 entities", "5 million facts")
+    - statistics (Number of Triples): can be text descriptions (e.g., "900,000 entities", "5 million facts", "subClassOf: 126792 facts")
     - restAPI: can be endpoint descriptions or non-URI identifiers
   * Distribution subfields: downloadURL, accessURL, accessService, hasPolicy, license (when not from dropdown)
   * SPARQL endpoint: endpointURL
@@ -274,7 +274,7 @@ PRIORITY OF FORMAT ADHERENCE:
 3. Only as a last resort, provide the value in its original format with a note in the explanation that it may need formatting
 
 MULTI-VALUE FIELDS HANDLING:
-- The following fields accept multiple values: vocabulariesUsed, keywords, category, language, otherPages, statistics, source, alternativeTitle, acronym, homepageURL, modifiedDate, primaryReferenceDocument, metaGraph, kgSchema, restAPI, exampleQueries, publicationReferences, iriTemplate, nameSpace
+- The following fields accept multiple values: vocabulariesUsed, keywords, category, language, otherPages, statistics (Number of Triples), source, alternativeTitle, acronym, homepageURL, modifiedDate, primaryReferenceDocument, metaGraph, kgSchema, restAPI, exampleQueries, publicationReferences, iriTemplate, nameSpace
 - If the narrative contains multiple values for these fields, you MUST split them into separate suggestions
 - Split on ANY of these delimiters: commas (,), semicolons (;), the word "and", pipe symbols (|), or line breaks
 - Each atomic value should be a separate suggestion
@@ -287,11 +287,11 @@ MULTI-VALUE FIELDS HANDLING:
 - Return each atomic value as a separate item in the suggestions array
 - The UI will display an "Add All" button for multi-value fields so users can populate all values in one click
 
-SPECIAL HANDLING FOR STATISTICS FIELD:
-- The statistics field requires SEMANTIC SPLITTING - each distinct fact or piece of information should be a separate suggestion
+SPECIAL HANDLING FOR NUMBER OF TRIPLES FIELD (statistics):
+- The "Number of Triples" field (key: statistics) requires SEMANTIC SPLITTING - each distinct fact or piece of information should be a separate suggestion
 - Split based on MEANING, not just delimiters - identify individual statistical facts
 - Remove conjunction words like "and", "also", but preserve the complete fact text
-- IMPORTANT: Statistics can be text descriptions OR IRIs - both are valid
+- IMPORTANT: Number of Triples entries can be text descriptions OR IRIs - both are valid
   * Text descriptions: "900,000 entities", "5 million facts", "subClassOf: 126792 facts"
   * IRIs: "http://stats.example.org/classCount" (if provided in narrative)
 - Examples:
