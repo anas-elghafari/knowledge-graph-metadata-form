@@ -1834,50 +1834,7 @@ const handleCancelEditExampleResource = () => {
   const [distPackagingFormatValid, setDistPackagingFormatValid] = useState(false);
   const [distHasPolicyValid, setDistHasPolicyValid] = useState(false);
 
-  useEffect(() => {
-      if (initialFormData) {
-        // Check if initialFormData has the new structure with formData and aiSuggestions
-        const loadedFormData = initialFormData.formData || initialFormData;
-        const loadedAiSuggestions = initialFormData.aiSuggestions || {};
-        
-        setFormData(loadedFormData);
-        
-        // Restore AI suggestions if they exist
-        if (Object.keys(loadedAiSuggestions).length > 0) {
-          setAiSuggestions(loadedAiSuggestions);
-          setBulkSuggestionsReady(true);
-          console.log('Restored AI suggestions from draft:', loadedAiSuggestions);
-        }
-        
-        // Handle loading custom license input from draft
-        if (loadedFormData.customLicenseInput) {
-          setCustomLicenseInput(loadedFormData.customLicenseInput);
-        }
-        
-        // If license starts with "Other-", extract the custom part and set dropdown to "Other"
-        if (loadedFormData.license && loadedFormData.license.startsWith('Other-')) {
-          const customPart = loadedFormData.license.substring(6); // Remove "Other-" prefix
-          setCustomLicenseInput(customPart);
-          setFormData(prev => ({
-            ...prev,
-            license: 'Other'
-          }));
-        }
-        
-        // Load collection data from draft
-        if (loadedFormData.sparqlEndpoint) {
-          setSparqlEndpoints(loadedFormData.sparqlEndpoint);
-        }
-        if (loadedFormData.exampleResource) {
-          setExampleResources(loadedFormData.exampleResource);
-        }
-        if (loadedFormData.linkedResources) {
-          setLinkedResources(loadedFormData.linkedResources);
-        }
-      }
-    }, [initialFormData]);
-
-    
+  // Disable body scrolling when modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     
@@ -1986,6 +1943,10 @@ const handleCancelEditExampleResource = () => {
   
   useEffect(() => {
     if (initialFormData && !hasLoadedDraft) {
+      // Extract formData from the draft structure (it may be nested)
+      const loadedFormData = initialFormData.formData || initialFormData;
+      const loadedAiSuggestions = initialFormData.aiSuggestions || {};
+      
       // Check if this is a turtle draft
       if (initialFormData.submissionType === 'turtle' || initialFormData.turtleContent) {
         setTurtleContent(initialFormData.turtleContent || '');
@@ -1998,7 +1959,7 @@ const handleCancelEditExampleResource = () => {
         // Regular form data loading - ensure all arrays exist
         const safeFormData = {
           ...initialFormState,
-          ...initialFormData
+          ...loadedFormData
         };
         
         // Ensure all array fields are actually arrays
@@ -2009,6 +1970,32 @@ const handleCancelEditExampleResource = () => {
         });
         
         setFormData(safeFormData);
+        
+        // Handle loading custom license input from draft
+        if (loadedFormData.customLicenseInput) {
+          setCustomLicenseInput(loadedFormData.customLicenseInput);
+        }
+        
+        // If license starts with "Other-", extract the custom part and set dropdown to "Other"
+        if (loadedFormData.license && loadedFormData.license.startsWith('Other-')) {
+          const customPart = loadedFormData.license.substring(6); // Remove "Other-" prefix
+          setCustomLicenseInput(customPart);
+          setFormData(prev => ({
+            ...prev,
+            license: 'Other'
+          }));
+        }
+        
+        // Load collection data from draft
+        if (loadedFormData.sparqlEndpoint) {
+          setSparqlEndpoints(loadedFormData.sparqlEndpoint);
+        }
+        if (loadedFormData.exampleResource) {
+          setExampleResources(loadedFormData.exampleResource);
+        }
+        if (loadedFormData.linkedResources) {
+          setLinkedResources(loadedFormData.linkedResources);
+        }
         
         // Clear input states since data is now in formData
         if (safeFormData.title) setTitleInput('');
@@ -2021,6 +2008,13 @@ const handleCancelEditExampleResource = () => {
         if (safeFormData.description) setDescriptionValid(true);
         if (safeFormData.license) setLicenseValid(true);
         if (safeFormData.version) setVersionValid(true);
+      }
+      
+      // Restore AI suggestions if they exist
+      if (Object.keys(loadedAiSuggestions).length > 0) {
+        setAiSuggestions(loadedAiSuggestions);
+        setBulkSuggestionsReady(true);
+        console.log('Restored AI suggestions from draft:', loadedAiSuggestions);
       }
       
       setHasLoadedDraft(true);
@@ -3529,9 +3523,11 @@ const handleCancelEditExampleResource = () => {
     
     const existingDraftId = finalFormData.draftId || null;
     const draftId = existingDraftId || `draft-${Date.now()}`;
+    
+    // Build the draft object - include turtle mode data if in turtle mode
     const draft = {
       id: draftId,
-      name: finalFormData.title || 'Untitled Draft',
+      name: finalFormData.title || (showTurtleMode ? 'Turtle Draft' : 'Untitled Draft'),
       date: new Date().toISOString(),
       formData: {
         ...finalFormData,
@@ -3540,6 +3536,12 @@ const handleCancelEditExampleResource = () => {
       },
       aiSuggestions: aiSuggestions // Store all OpenAI suggestions in draft
     };
+    
+    // If in turtle mode, save turtle-specific data
+    if (showTurtleMode) {
+      draft.submissionType = 'turtle';
+      draft.turtleContent = turtleContent;
+    }
     
     // Get existing drafts from localStorage
     let savedDrafts = [];

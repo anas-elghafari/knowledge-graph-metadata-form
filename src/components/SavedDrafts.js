@@ -53,10 +53,12 @@ const SavedDrafts = forwardRef(({ onLoadDraft }, ref) => {
   };
   
   const handleLoadDraft = (draft) => {
-    // Call the onLoadDraft callback with both formData and aiSuggestions
+    // Call the onLoadDraft callback with all draft data including turtle mode fields
     onLoadDraft({
       formData: draft.formData,
-      aiSuggestions: draft.aiSuggestions || {}
+      aiSuggestions: draft.aiSuggestions || {},
+      submissionType: draft.submissionType, // Preserve turtle mode flag
+      turtleContent: draft.turtleContent // Preserve turtle content
     });
   };
   
@@ -103,6 +105,7 @@ const SavedDrafts = forwardRef(({ onLoadDraft }, ref) => {
             <thead>
               <tr>
                 <th>Title</th>
+                <th>Type</th>
                 <th>Date Last Saved</th>
                 <th>Actions</th>
               </tr>
@@ -115,6 +118,13 @@ const SavedDrafts = forwardRef(({ onLoadDraft }, ref) => {
                   style={{ cursor: 'pointer' }}
                 >
                   <td>{draft.name}</td>
+                  <td>
+                    {draft.submissionType === 'turtle' ? (
+                      <span style={{ color: '#4169e1', fontWeight: 'bold' }}>🐢 Turtle</span>
+                    ) : (
+                      <span style={{ color: '#888' }}>Form</span>
+                    )}
+                  </td>
                   <td>{formatDate(draft.date || draft.savedAt)}</td>
                   <td>
                     <div className="draft-actions">
