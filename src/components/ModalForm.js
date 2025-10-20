@@ -4040,6 +4040,7 @@ const handleCancelEditExampleResource = () => {
                 id="roleType"
                 value={currentRole.roleType}
                 onChange={(e) => handleCurrentRoleChange('roleType', e.target.value)}
+                onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('roles')}
                 className={`subfield-input ${currentRole.roleType === '' ? '' : 'form-input-valid'}`}
               >
                 <option value="">Select a role type...</option>
@@ -4114,6 +4115,7 @@ const handleCancelEditExampleResource = () => {
                     id="roleAgent"
                     name="currentRoleAgent"
                     value={currentRole.agent}
+                    onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('roles')}
                     onChange={(e) => {
                       handleCurrentRoleChange('agent', e.target.value);
                       
@@ -4147,6 +4149,7 @@ const handleCancelEditExampleResource = () => {
                       type="text"
                       id="roleGivenName"
                       value={currentRole.givenName}
+                      onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('roles')}
                       onChange={(e) => handleCurrentRoleChange('givenName', e.target.value)}
                       className={`subfield-input ${currentRole.givenName.trim().length > 0 ? 'form-input-valid' : ''}`}
                     />
@@ -4160,6 +4163,7 @@ const handleCancelEditExampleResource = () => {
                       type="email"
                       id="roleEmail"
                       value={currentRole.email}
+                      onClick={() => showAISuggestions && bulkSuggestionsReady && setActiveField('roles')}
                       onChange={(e) => {
                         handleCurrentRoleChange('email', e.target.value);
                         
