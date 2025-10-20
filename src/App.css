@@ -518,8 +518,8 @@ select {
   flex-direction: column;
   overflow: hidden;
   position: sticky;
-  top: 20px;
-  height: calc(100vh - 40px);
+  top: 0;
+  max-height: 100vh;
   align-self: flex-start;
 }
 
@@ -543,12 +543,19 @@ select {
 .ai-panel-content {
   flex: 1;
   padding: 16px;
-  padding-right: 4px; /* Make room for wider scrollbar */
+  padding-left: 20px; /* Make room for wider scrollbar on the left */
+  padding-right: 16px;
   overflow-y: scroll !important; /* Force scrollbar to always show */
   overflow-x: hidden;
   scrollbar-width: thick; /* For Firefox */
   scrollbar-color: #4169e1 #2a2a2a; /* For Firefox */
   scrollbar-gutter: stable; /* Reserve space for scrollbar */
+  direction: rtl; /* Move scrollbar to the left */
+}
+
+/* Reset text direction inside AI panel */
+.ai-panel-content > * {
+  direction: ltr;
 }
 
 /* Custom scrollbar for AI panel - ALWAYS VISIBLE AND PROMINENT */
@@ -559,7 +566,7 @@ select {
 
 .ai-panel-content::-webkit-scrollbar-track {
   background: #1a1a1a !important; /* Very dark background */
-  border-left: 2px solid #4169e1 !important; /* Bright blue border for visibility */
+  border-right: 2px solid #4169e1 !important; /* Bright blue border for visibility */
 }
 
 .ai-panel-content::-webkit-scrollbar-thumb {
@@ -3094,4 +3101,51 @@ input.tag-input.tag-input-valid:focus,
 
 .cm-scroller::-webkit-scrollbar-corner {
   background: var(--dark-surface-lighter);
+}
+
+/* JSON Display in AI Suggestions Panel */
+.json-display {
+  margin: 0;
+  padding: 12px;
+  background-color: #1e1e1e;
+  border-radius: 6px;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: auto;
+  color: #d4d4d4;
+  text-align: left;
+  white-space: pre;
+}
+
+.json-key {
+  color: #9cdcfe; /* Light blue for keys */
+  font-weight: 600;
+}
+
+.json-value {
+  color: #ce9178; /* Orange for string values */
+}
+
+.json-string {
+  color: #ce9178; /* Orange for strings */
+}
+
+.json-number {
+  color: #b5cea8; /* Light green for numbers */
+}
+
+.json-boolean {
+  color: #569cd6; /* Blue for booleans */
+}
+
+.json-null {
+  color: #569cd6; /* Blue for null */
+}
+
+/* Make suggestion buttons accommodate JSON display */
+.suggestion-value {
+  text-align: left;
+  width: 100%;
+  display: block;
 }

@@ -322,6 +322,44 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     }
   };
 
+  // Helper function to render JSON with syntax highlighting
+  const renderJsonValue = (value) => {
+    try {
+      // Try to parse as JSON
+      const parsed = JSON.parse(value);
+      
+      // Pretty print with syntax highlighting
+      const formatValue = (val, indent = 0) => {
+        const indentStr = '  '.repeat(indent);
+        
+        if (typeof val === 'object' && val !== null) {
+          if (Array.isArray(val)) {
+            return '[\n' + val.map(item => indentStr + '  ' + formatValue(item, indent + 1)).join(',\n') + '\n' + indentStr + ']';
+          } else {
+            const entries = Object.entries(val).map(([key, value]) => {
+              return `${indentStr}  <span class="json-key">"${key}"</span>: <span class="json-value">${typeof value === 'string' ? '"' + value + '"' : formatValue(value, indent + 1)}</span>`;
+            });
+            return '{\n' + entries.join(',\n') + '\n' + indentStr + '}';
+          }
+        } else if (typeof val === 'string') {
+          return `<span class="json-string">"${val}"</span>`;
+        } else if (typeof val === 'number') {
+          return `<span class="json-number">${val}</span>`;
+        } else if (typeof val === 'boolean') {
+          return `<span class="json-boolean">${val}</span>`;
+        } else if (val === null) {
+          return `<span class="json-null">null</span>`;
+        }
+        return String(val);
+      };
+      
+      return <pre className="json-display" dangerouslySetInnerHTML={{ __html: formatValue(parsed) }} />;
+    } catch (e) {
+      // Not JSON, return as-is
+      return value;
+    }
+  };
+
   // Function to populate field with selected suggestion (single or multiple values)
   const populateFieldWithSuggestion = (fieldName, value, suggestionIndex = null) => {
     // Special handling for roles field - populate the form fields for review
@@ -5593,45 +5631,18 @@ const handleCancelEditExampleResource = () => {
          
          <div className="form-group">
           <label htmlFor="restAPI">
-              REST API <span className="field-indicator optional-indicator">optional, multiple values allowed (IRI)</span>
+              REST API <span className="field-indicator optional-indicator">optional, multiple values allowed</span>
           </label>
           <div className="tag-input-container">
               <div className="tag-input-row">
               <input
-                  type="url"
+                  type="text"
                   id="restAPI"
                   value={restAPIInput}
-                  onChange={(e) => {
-                    setRestAPIInput(e.target.value);
-                    if (e.target.value.trim()) {
-                      const iriError = isValidIriString(e.target.value);
-                      if (iriError) {
-                        setRestAPIInputError(iriError);
-                        setRestAPIInputValid(false);
-                      } else {
-                        setRestAPIInputError('');
-                        setRestAPIInputValid(true);
-                      }
-                    } else {
-                      setRestAPIInputError('');
-                      setRestAPIInputValid(false);
-                    }
-                  }}
-                  onBlur={() => {
-                    if (restAPIInput.trim()) {
-                      const iriError = isValidIriString(restAPIInput);
-                      if (iriError) {
-                        setRestAPIInputError(iriError);
-                        setRestAPIInputValid(false);
-                      } else {
-                        setRestAPIInputError('');
-                        setRestAPIInputValid(true);
-                      }
-                    }
-                  }}
+                  onChange={(e) => setRestAPIInput(e.target.value)}
                   onKeyPress={(e) => handleKeyPress(e, 'restAPI', restAPIInput, setRestAPIInput)}
-                  className={`tag-input ${restAPIInputError ? 'tag-input-error' : restAPIInputValid ? 'tag-input-valid' : ''}`}
-                  placeholder="Enter REST API URL and press Enter or +"
+                  className="tag-input"
+                  placeholder="Enter REST API identifier and press Enter or +"
               />
               <button 
                   type="button" 
@@ -5664,10 +5675,7 @@ const handleCancelEditExampleResource = () => {
                 );
               })}
               </div>
-              {restAPIInputError && (
-                <div className="error-message">{restAPIInputError}</div>
-              )}
-              <div className="field-hint">Press Enter or click + to add REST API (IRI)</div>
+              <div className="field-hint">Press Enter or click + to add REST API</div>
           </div>
           </div>
     
@@ -6826,7 +6834,7 @@ const handleCancelEditExampleResource = () => {
                                 onClick={() => populateFieldWithSuggestion(activeField, suggestion.value, index)}
                                 type="button"
                               >
-                                {suggestion.value}
+                                {renderJsonValue(suggestion.value)}
                               </button>
                             </div>
                           ))}
