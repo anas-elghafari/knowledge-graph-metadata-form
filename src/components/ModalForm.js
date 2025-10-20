@@ -3582,6 +3582,8 @@ const handleCancelEditExampleResource = () => {
     savedDrafts.push(draft);
     localStorage.setItem('kg-metadata-drafts', JSON.stringify(savedDrafts));
     
+    console.log('Draft saved to localStorage');
+    console.log('Verifying saved draft:', JSON.parse(localStorage.getItem('kg-metadata-drafts')).find(d => d.id === draftId));
     
     setMessage('Draft saved successfully!');
     setTimeout(() => setMessage(''), 2000);

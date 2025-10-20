@@ -53,13 +53,10 @@ const SavedDrafts = forwardRef(({ onLoadDraft }, ref) => {
   };
   
   const handleLoadDraft = (draft) => {
-    // Call the onLoadDraft callback with all draft data including turtle mode fields
-    onLoadDraft({
-      formData: draft.formData,
-      aiSuggestions: draft.aiSuggestions || {},
-      submissionType: draft.submissionType, // Preserve turtle mode flag
-      turtleContent: draft.turtleContent // Preserve turtle content
-    });
+    // Pass the entire draft object directly - it already has the correct structure
+    // (formData, aiSuggestions, submissionType, turtleContent)
+    console.log('SavedDrafts: Loading draft:', draft);
+    onLoadDraft(draft);
   };
   
   const clearAllDrafts = () => {
