@@ -523,3 +523,60 @@ export const getBulkFieldSuggestions = async (fieldDefinitions, narrativeContent
     throw error;
   }
 };
+
+// Function to get bulk suggestions with a custom edited prompt
+export const getBulkFieldSuggestionsWithCustomPrompt = async (customPrompt) => {
+  try {
+    console.log('Using custom prompt for bulk suggestions');
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are an expert in knowledge graph metadata and data cataloging. You are also an expert in semantic understanding of text and in generating structured data from unstructured text. Your task is to extract information from the provided ontology narrative description to fill out metadata form fields. For each suggestion, provide both the value and a brief explanation of where you found it in the narrative." },
+        { role: "user", content: customPrompt }
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "bulk_field_suggestions",
+          schema: bulkSuggestionSchema
+        }
+      },
+      max_tokens: 16000,
+      temperature: 0.2
+    });
+
+    const rawContent = response.choices[0].message.content;
+    const finishReason = response.choices[0].finish_reason;
+    console.log('Raw AI response:', rawContent);
+    console.log('Raw AI response length:', rawContent.length);
+    console.log('Finish reason:', finishReason);
+    
+    if (finishReason === 'length') {
+      console.warn('⚠️ WARNING: OpenAI response was truncated due to max_tokens limit!');
+      console.warn('Some field suggestions may be missing. Consider increasing max_tokens or reducing field count.');
+    }
+    
+    try {
+      const result = JSON.parse(rawContent);
+      console.log('Bulk suggestion result with custom prompt:', result);
+      console.log('Number of fields in parsed result:', result.fieldSuggestions ? Object.keys(result.fieldSuggestions).length : 0);
+      return result;
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('Raw content that failed to parse:', rawContent);
+      
+      // Return a fallback structure
+      return {
+        fieldSuggestions: {
+          error: {
+            noSuggestionsReason: "AI response was not valid JSON. Please try again."
+          }
+        }
+      };
+    }
+  } catch (error) {
+    console.error('Error getting bulk field suggestions with custom prompt:', error);
+    throw error;
+  }
+};

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Parser } from 'n3';
 import fieldInstructions from '../fieldInstructions';
-import { getFieldSuggestions, getBulkFieldSuggestions, buildBulkSuggestionsPrompt } from '../services/openai';
+import { getFieldSuggestions, getBulkFieldSuggestions, buildBulkSuggestionsPrompt, getBulkFieldSuggestionsWithCustomPrompt } from '../services/openai';
 import CodeMirror from '@uiw/react-codemirror';
 import { StreamLanguage } from '@codemirror/language';
 import { turtle } from '@codemirror/legacy-modes/mode/turtle';
@@ -79,12 +79,40 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [currentProcessingTime, setCurrentProcessingTime] = useState(0);
   const [activeField, setActiveField] = useState(null);
   const [openaiProcessingTime, setOpenaiProcessingTime] = useState(0);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(false);
+  const [aiPanelExpanded, setAiPanelExpanded] = useState(false);
+  const aiPanelContentRef = useRef(null);
   
   // Countdown timer state (20 minutes = 1200 seconds)
   const [timeRemaining, setTimeRemaining] = useState(1200);
   const [timerActive, setTimerActive] = useState(true);
   const [formOpenedAt] = useState(new Date().toISOString());
   const [autoSubmittedByTimer, setAutoSubmittedByTimer] = useState(false);
+  
+  // Session tracking - keeps history of all times form was opened/worked on
+  const [currentSessionStart] = useState(new Date().toISOString());
+  const [editSessions, setEditSessions] = useState([]);
+  
+  // Helper function to calculate current session duration in seconds
+  const getCurrentSessionDuration = () => {
+    return Math.round((new Date() - new Date(currentSessionStart)) / 1000);
+  };
+  
+  // Helper function to get all sessions including current one
+  const getAllSessions = () => {
+    const currentSession = {
+      startTime: currentSessionStart,
+      endTime: new Date().toISOString(),
+      durationSeconds: getCurrentSessionDuration()
+    };
+    return [...editSessions, currentSession];
+  };
+  
+  // Helper function to calculate total time spent across all sessions
+  const getTotalTimeSpent = () => {
+    const allSessions = getAllSessions();
+    return allSessions.reduce((total, session) => total + session.durationSeconds, 0);
+  };
   
   // Turtle mode state
   const [turtleContent, setTurtleContent] = useState('');
@@ -96,10 +124,10 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     console.log('showTurtleMode changed to:', showTurtleMode);
   }, [showTurtleMode]);
   
-  // Modal resize state - default to 75% of viewport size
+  // Modal resize state - default to 85% width and 90% height of viewport
   const [modalSize, setModalSize] = useState({ 
-    width: Math.floor(window.innerWidth * 0.75), 
-    height: Math.floor(window.innerHeight * 0.75) 
+    width: Math.floor(window.innerWidth * 0.85), 
+    height: Math.floor(window.innerHeight * 0.90) 
   });
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef({ startX: 0, startY: 0, startWidth: 0, startHeight: 0 });
@@ -254,8 +282,12 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [processingNarrative, setProcessingNarrative] = useState(false);
   const [bulkSuggestionsReady, setBulkSuggestionsReady] = useState(false);
 
-  // State for prompt preview
+  // State for prompt preview and editing
   const [showPromptPreview, setShowPromptPreview] = useState(false);
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
+  const [editedPrompt, setEditedPrompt] = useState('');
+  const [promptHasBeenEdited, setPromptHasBeenEdited] = useState(false);
+  const [originalPrompt, setOriginalPrompt] = useState('');
 
   // Auto-show AI panel when narrative file is uploaded (LLM form), hide for normal entry
   useEffect(() => {
@@ -282,6 +314,30 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     console.log('aiSuggestions keys:', Object.keys(aiSuggestions));
     console.log('Number of suggestions:', Object.keys(aiSuggestions).length);
   }, [showAISuggestions, bulkSuggestionsReady, activeField, aiSuggestions]);
+
+  // Detect if AI panel content is scrollable
+  useEffect(() => {
+    const checkScrollable = () => {
+      const element = aiPanelContentRef.current;
+      if (element) {
+        const isScrollable = element.scrollHeight > element.clientHeight;
+        const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 30;
+        setShowScrollIndicator(isScrollable && !isNearBottom);
+      }
+    };
+
+    const element = aiPanelContentRef.current;
+    if (element) {
+      checkScrollable();
+      element.addEventListener('scroll', checkScrollable);
+      window.addEventListener('resize', checkScrollable);
+      
+      return () => {
+        element.removeEventListener('scroll', checkScrollable);
+        window.removeEventListener('resize', checkScrollable);
+      };
+    }
+  }, [aiSuggestions, activeField, bulkSuggestionsReady]);
 
   // Function to generate prompt preview using the same prompt builder as the actual API call
   const generatePromptPreview = () => {
@@ -475,11 +531,45 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
               email: roleData.mode === 'name_mbox' ? (roleData.email || '') : ''
             });
             
-            // Clear validation errors
-            setCurrentRoleAgentError('');
-            setCurrentRoleAgentValid(false);
-            setCurrentRoleEmailError('');
-            setCurrentRoleEmailValid(false);
+            // Validate populated fields
+            if (newInputMode === 'agentIRI') {
+              const iriValue = roleData.iri || '';
+              if (iriValue && iriValue.trim()) {
+                const iriError = isValidIriString(iriValue);
+                if (iriError) {
+                  setCurrentRoleAgentError(iriError);
+                  setCurrentRoleAgentValid(false);
+                } else {
+                  setCurrentRoleAgentError('');
+                  setCurrentRoleAgentValid(true);
+                }
+              } else {
+                setCurrentRoleAgentError('');
+                setCurrentRoleAgentValid(false);
+              }
+              // Clear email validation for IRI mode
+              setCurrentRoleEmailError('');
+              setCurrentRoleEmailValid(false);
+            } else {
+              // nameEmail mode - validate email if present
+              const emailValue = roleData.email || '';
+              if (emailValue && emailValue.trim()) {
+                const validation = isValidEmailFormat(emailValue);
+                if (validation.isValid) {
+                  setCurrentRoleEmailError('');
+                  setCurrentRoleEmailValid(true);
+                } else {
+                  setCurrentRoleEmailError(validation.error);
+                  setCurrentRoleEmailValid(false);
+                }
+              } else {
+                setCurrentRoleEmailError('');
+                setCurrentRoleEmailValid(false);
+              }
+              // Clear agent IRI validation for name/email mode
+              setCurrentRoleAgentError('');
+              setCurrentRoleAgentValid(false);
+            }
             
             console.log('CurrentRole set to:', {
               roleType: roleData.roleType || '',
@@ -1029,6 +1119,78 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     }
   };
 
+  // Process bulk suggestions with custom edited prompt
+  const processBulkSuggestionsWithCustomPrompt = async (customPrompt) => {
+    try {
+      setLoadingSuggestions(true);
+      setIsEditingPrompt(false); // Close edit mode
+      console.log('Processing bulk suggestions with custom prompt');
+      
+      const startTime = Date.now();
+      setProcessingStartTime(startTime);
+      
+      // Track OpenAI API processing time
+      const openaiStartTime = Date.now();
+      console.log('OpenAI API call with custom prompt started at:', openaiStartTime);
+      
+      // Call API with custom prompt directly
+      const bulkResponse = await getBulkFieldSuggestionsWithCustomPrompt(customPrompt);
+      
+      const openaiEndTime = Date.now();
+      const openaiDuration = openaiEndTime - openaiStartTime;
+      console.log('OpenAI API call ended at:', openaiEndTime);
+      console.log('OpenAI API took:', openaiDuration, 'ms');
+      setOpenaiProcessingTime(openaiDuration);
+      
+      console.log('Bulk response received:', bulkResponse);
+      
+      const formattedSuggestions = {};
+      const bulkSuggestionTexts = {};
+      
+      // Check if the response has the expected structure
+      if (!bulkResponse || !bulkResponse.fieldSuggestions) {
+        console.error('Invalid bulk response structure:', bulkResponse);
+        return;
+      }
+      
+      Object.entries(bulkResponse.fieldSuggestions).forEach(([fieldName, fieldData]) => {
+        console.log(`Processing field: ${fieldName}`, fieldData);
+        if (fieldData.suggestions && fieldData.suggestions.length > 0) {
+          const suggestionText = fieldData.suggestions.map(suggestion => 
+            `• ${suggestion.value}`
+          ).join('\n');
+          
+          formattedSuggestions[fieldName] = suggestionText;
+          bulkSuggestionTexts[fieldName] = suggestionText;
+          formattedSuggestions[fieldName + '_raw'] = fieldData;
+        } else if (fieldData.noSuggestionsReason) {
+          const noSuggestionText = `No suitable suggestions found.\n${fieldData.noSuggestionsReason}`;
+          formattedSuggestions[fieldName] = noSuggestionText;
+          bulkSuggestionTexts[fieldName] = noSuggestionText;
+        }
+      });
+      
+      console.log('Formatted suggestions:', formattedSuggestions);
+      setAiSuggestions(formattedSuggestions);
+      
+      // Calculate total processing duration
+      const currentTime = Date.now();
+      const totalDuration = currentTime - startTime;
+      console.log('TOTAL DURATION:', totalDuration, 'ms');
+      setProcessingDuration(totalDuration);
+      setOpenaiProcessingTime(openaiDuration);
+      
+      // Mark bulk suggestions as ready
+      setBulkSuggestionsReady(true);
+      console.log('Bulk suggestions with custom prompt complete!');
+      
+    } catch (error) {
+      console.error('Error processing bulk suggestions with custom prompt:', error);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
   // Handle turtle form submission
   const handleTurtleSubmit = async () => {
     if (!turtleContent.trim()) {
@@ -1066,7 +1228,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
           formOpenedAt: formOpenedAt,
           formSubmittedAt: new Date().toISOString(),
           autoSubmittedByTimer: autoSubmittedByTimer,
-          timeSpentSeconds: Math.round((new Date() - new Date(formOpenedAt)) / 1000)
+          timeSpentSeconds: Math.round((new Date() - new Date(formOpenedAt)) / 1000),
+          // Session tracking
+          editSessions: getAllSessions(),
+          totalTimeSpentSeconds: getTotalTimeSpent(),
+          numberOfEditSessions: getAllSessions().length
         }
       };
 
@@ -1103,6 +1269,17 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
 
     const draftId = `turtle-draft-${Date.now()}`;
     
+    // Save current session before closing
+    const currentSession = {
+      startTime: currentSessionStart,
+      endTime: new Date().toISOString(),
+      durationSeconds: getCurrentSessionDuration()
+    };
+    const allSessions = [...editSessions, currentSession];
+    const totalTimeSpent = allSessions.reduce((sum, s) => sum + s.durationSeconds, 0);
+    
+    console.log('Saving turtle draft with', allSessions.length, 'session(s), total time:', totalTimeSpent, 'seconds');
+    
     // Use the new flat structure with explicit formType
     const draft = {
       id: draftId,
@@ -1112,7 +1289,9 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       turtleContent: turtleContent.trim(), // Turtle content at top level
       submissionType: 'turtle', // Keep for backward compatibility
       draftId: draftId,
-      aiSuggestions: {} // Empty for turtle drafts
+      aiSuggestions: {}, // Empty for turtle drafts
+      editSessions: allSessions, // Store all edit sessions
+      totalTimeSpentSeconds: totalTimeSpent // Store cumulative time spent
     };
 
     console.log('Turtle draft to be saved:', draft);
@@ -2101,6 +2280,14 @@ const handleCancelEditExampleResource = () => {
         setBulkSuggestionsReady(true);
         setShowAISuggestions(true); // Show AI panel when loading draft with suggestions
         console.log('AI panel shown for loaded draft');
+      }
+      
+      // Restore previous edit sessions if they exist
+      if (initialFormData.editSessions && Array.isArray(initialFormData.editSessions)) {
+        console.log('Restoring previous edit sessions:', initialFormData.editSessions.length, 'sessions');
+        setEditSessions(initialFormData.editSessions);
+        const totalPreviousTime = initialFormData.editSessions.reduce((sum, s) => sum + s.durationSeconds, 0);
+        console.log('Total time from previous sessions:', totalPreviousTime, 'seconds');
       }
       
       console.log('=== DRAFT LOADED SUCCESSFULLY ===');
@@ -3552,7 +3739,11 @@ const handleCancelEditExampleResource = () => {
       formOpenedAt: formOpenedAt,
       formSubmittedAt: new Date().toISOString(),
       autoSubmittedByTimer: autoSubmittedByTimer,
-      timeSpentSeconds: Math.round((new Date() - new Date(formOpenedAt)) / 1000)
+      timeSpentSeconds: Math.round((new Date() - new Date(formOpenedAt)) / 1000),
+      // Session tracking
+      editSessions: getAllSessions(),
+      totalTimeSpentSeconds: getTotalTimeSpent(),
+      numberOfEditSessions: getAllSessions().length
     }
   };
   
@@ -3629,6 +3820,17 @@ const handleCancelEditExampleResource = () => {
     
     console.log('Saving draft with formType:', formType);
     
+    // Save current session before closing
+    const currentSession = {
+      startTime: currentSessionStart,
+      endTime: new Date().toISOString(),
+      durationSeconds: getCurrentSessionDuration()
+    };
+    const allSessions = [...editSessions, currentSession];
+    const totalTimeSpent = allSessions.reduce((sum, s) => sum + s.durationSeconds, 0);
+    
+    console.log('Saving draft with', allSessions.length, 'session(s), total time:', totalTimeSpent, 'seconds');
+    
     // Build the draft object
     const draft = {
       id: draftId,
@@ -3638,7 +3840,9 @@ const handleCancelEditExampleResource = () => {
       ...finalFormData, // Spread all form data directly at the top level
       draftId: draftId, // Store the draft ID
       customLicenseInput: customLicenseInput, // Also save the custom license input separately for editing
-      aiSuggestions: aiSuggestions // Store all OpenAI suggestions in draft (only relevant for LLM mode)
+      aiSuggestions: aiSuggestions, // Store all OpenAI suggestions in draft (only relevant for LLM mode)
+      editSessions: allSessions, // Store all edit sessions
+      totalTimeSpentSeconds: totalTimeSpent // Store cumulative time spent
     };
     
     // If in turtle mode, save turtle-specific data
@@ -3780,7 +3984,7 @@ const handleCancelEditExampleResource = () => {
           <h2>Turtle Entry</h2>
         </div>
         
-        <div className="modal-body turtle-mode" style={{ display: 'flex', flexDirection: 'column', height: 'calc(90vh - 180px)', padding: '20px' }}>
+        <div className="modal-body turtle-mode" style={{ display: 'flex', flexDirection: 'column', height: 'calc(90vh - 180px)', padding: '20px 16px 20px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <label htmlFor="turtleContent" className="field-label" style={{ margin: 0 }}>
               Turtle Content <span className="field-indicator required-indicator">required</span>
@@ -3807,7 +4011,7 @@ const handleCancelEditExampleResource = () => {
           </div>
           
           {/* Side-by-side layout: 70% editor, 30% validation */}
-          <div style={{ display: 'flex', gap: '16px', height: 'calc(100% - 40px)', minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', gap: '12px', height: 'calc(100% - 40px)', minHeight: 0, overflow: 'hidden' }}>
             {/* Editor section - 70% */}
             <div style={{ 
               flex: '0 0 70%', 
@@ -3855,12 +4059,13 @@ const handleCancelEditExampleResource = () => {
               />
             </div>
             
-            {/* Validation Panel - 30% - Always visible */}
+            {/* Validation Panel - Uses remaining space - Always visible */}
             <div style={{ 
-              flex: '0 0 30%', 
+              flex: '1', 
               display: 'flex', 
               flexDirection: 'column',
               minWidth: 0,
+              maxWidth: '30%',
               overflow: 'hidden'
             }}>
               <h4 style={{ margin: '0 0 8px 0', color: 'var(--dark-text)', fontSize: '14px', fontWeight: '600' }}>
@@ -3958,14 +4163,151 @@ const handleCancelEditExampleResource = () => {
             <div className="prompt-preview-section">
               <button 
                 className="prompt-preview-toggle"
-                onClick={() => setShowPromptPreview(!showPromptPreview)}
+                onClick={() => {
+                  const newState = !showPromptPreview;
+                  setShowPromptPreview(newState);
+                  // Generate and store original prompt when opening
+                  if (newState && !originalPrompt) {
+                    const prompt = generatePromptPreview();
+                    setOriginalPrompt(prompt);
+                    setEditedPrompt(prompt);
+                  }
+                }}
                 type="button"
               >
-                {showPromptPreview ? '▼' : '▶'} View OpenAI Prompt
+                {showPromptPreview ? '▼' : '▶'} View/Edit OpenAI Prompt
               </button>
               {showPromptPreview && (
-                <div className="prompt-preview-content">
-                  <pre>{generatePromptPreview()}</pre>
+                <div className="prompt-preview-content" style={{
+                  border: '1px solid var(--dark-border)',
+                  borderRadius: '6px',
+                  overflow: 'hidden'
+                }}>
+                  {/* Sticky button bar */}
+                  <div className="prompt-actions" style={{ 
+                    display: 'flex', 
+                    gap: '8px', 
+                    padding: '12px',
+                    flexWrap: 'wrap',
+                    backgroundColor: 'var(--dark-surface)',
+                    borderBottom: '1px solid var(--dark-border)',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!isEditingPrompt) {
+                          // Start editing
+                          const prompt = generatePromptPreview();
+                          setEditedPrompt(prompt);
+                          if (!originalPrompt) {
+                            setOriginalPrompt(prompt);
+                          }
+                        }
+                        setIsEditingPrompt(!isEditingPrompt);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        backgroundColor: isEditingPrompt ? '#6c757d' : '#4169e1',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {isEditingPrompt ? '✓ Done Editing' : '✏️ Edit Prompt'}
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (editedPrompt) {
+                          // Re-fetch suggestions with the edited prompt
+                          processBulkSuggestionsWithCustomPrompt(editedPrompt);
+                        }
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        backgroundColor: promptHasBeenEdited ? '#28a745' : '#5a8a5f',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        opacity: promptHasBeenEdited ? 1 : 0.7
+                      }}
+                      title={promptHasBeenEdited ? 'Re-fetch with your edited prompt' : 'Re-fetch with current prompt'}
+                    >
+                      🔄 Re-fetch {promptHasBeenEdited ? 'with Updated Prompt' : 'Suggestions'}
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditedPrompt(originalPrompt);
+                        setPromptHasBeenEdited(false);
+                        setIsEditingPrompt(false);
+                      }}
+                      disabled={!promptHasBeenEdited}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        backgroundColor: promptHasBeenEdited ? '#dc3545' : '#cccccc',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: promptHasBeenEdited ? 'pointer' : 'not-allowed',
+                        opacity: promptHasBeenEdited ? 1 : 0.6
+                      }}
+                    >
+                      ↺ Reset Prompt
+                    </button>
+                  </div>
+                  
+                  {/* Scrollable content area */}
+                  <div style={{
+                    maxHeight: '400px',
+                    overflow: 'auto',
+                    backgroundColor: 'var(--dark-surface)'
+                  }}>
+                    {isEditingPrompt ? (
+                      <textarea
+                        value={editedPrompt}
+                        onChange={(e) => {
+                          setEditedPrompt(e.target.value);
+                          setPromptHasBeenEdited(e.target.value !== originalPrompt);
+                        }}
+                        style={{
+                          width: '100%',
+                          minHeight: '400px',
+                          fontFamily: 'monospace',
+                          fontSize: '12px',
+                          padding: '12px',
+                          backgroundColor: 'var(--dark-surface)',
+                          color: 'var(--dark-text)',
+                          border: 'none',
+                          resize: 'none',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    ) : (
+                      <pre style={{
+                        backgroundColor: 'var(--dark-surface)',
+                        padding: '12px',
+                        margin: 0,
+                        whiteSpace: 'pre-wrap',
+                        wordWrap: 'break-word',
+                        fontFamily: 'monospace',
+                        fontSize: '12px'
+                      }}>
+                        {editedPrompt || generatePromptPreview()}
+                      </pre>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -4655,6 +4997,12 @@ const handleCancelEditExampleResource = () => {
                 className={`subfield-input ${currentRole.roleType === '' ? '' : 'form-input-valid'}`}
               >
                 <option value="">Select a role type...</option>
+                <option value="creator">creator</option>
+                <option value="author">author</option>
+                <option value="publisher">publisher</option>
+                <option value="contributor">contributor</option>
+                <option value="editor">editor</option>
+                <option value="funder">funder</option>
                 <option value="resourceProvider">resourceProvider</option>
                 <option value="custodian">custodian</option>
                 <option value="owner">owner</option>
@@ -4664,51 +5012,95 @@ const handleCancelEditExampleResource = () => {
                 <option value="pointOfContact">pointOfContact</option>
                 <option value="principalInvestigator">principalInvestigator</option>
                 <option value="processor">processor</option>
-                <option value="publisher">publisher</option>
-                <option value="author">author</option>
                 <option value="sponsor">sponsor</option>
                 <option value="coAuthor">coAuthor</option>
                 <option value="collaborator">collaborator</option>
-                <option value="editor">editor</option>
                 <option value="mediator">mediator</option>
                 <option value="rightsHolder">rightsHolder</option>
-                <option value="contributor">contributor</option>
-                <option value="funder">funder</option>
                 <option value="stakeholder">stakeholder</option>
               </select>
             </div>
 
-            {/* Toggle between Agent IRI and Name + Email */}
-            <div className="toggle-container">
-              <div className="toggle-switch-container">
-                <label className={`toggle-option ${currentRole.inputMode === 'agentIRI' ? 'active' : 'inactive'}`}>
-                  Agent IRI available
-                </label>
-                <label className="toggle-switch">
+            {/* Radio buttons for Agent input mode selection */}
+            <div className="agent-input-mode-container" style={{ 
+              marginTop: '12px', 
+              marginBottom: '16px',
+              padding: '12px',
+              backgroundColor: 'rgba(255, 255, 255, 0.02)',
+              borderRadius: '6px',
+              border: '1px solid var(--dark-border)'
+            }}>
+              <div style={{ 
+                marginBottom: '10px', 
+                color: 'var(--dark-text-secondary)', 
+                fontSize: '0.9rem',
+                fontWeight: '500'
+              }}>
+                Please select one:
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label className="radio-option" style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  cursor: 'pointer',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  backgroundColor: currentRole.inputMode === 'nameEmail' ? 'rgba(65, 105, 225, 0.1)' : 'transparent',
+                  transition: 'background-color 0.2s'
+                }}>
                   <input
-                    type="checkbox"
+                    type="radio"
+                    name="agentInputMode"
+                    value="nameEmail"
                     checked={currentRole.inputMode === 'nameEmail'}
                     onChange={(e) => {
-                      const newMode = e.target.checked ? 'nameEmail' : 'agentIRI';
-                      handleCurrentRoleChange('inputMode', newMode);
-                      
-                      // Clear fields when switching
-                      if (newMode === 'agentIRI') {
-                        handleCurrentRoleChange('givenName', '');
-                        handleCurrentRoleChange('email', '');
-                        setCurrentRoleEmailError('');
-                        setCurrentRoleEmailValid(false);
-                      } else {
-                        handleCurrentRoleChange('agent', '');
-                        setCurrentRoleAgentError('');
-                        setCurrentRoleAgentValid(false);
-                      }
+                      handleCurrentRoleChange('inputMode', 'nameEmail');
+                      // Clear Agent IRI field
+                      handleCurrentRoleChange('agent', '');
+                      setCurrentRoleAgentError('');
+                      setCurrentRoleAgentValid(false);
+                    }}
+                    style={{ 
+                      marginRight: '8px', 
+                      width: '16px', 
+                      height: '16px',
+                      cursor: 'pointer',
+                      accentColor: 'var(--primary-blue)'
                     }}
                   />
-                  <span className={`slider ${currentRole.inputMode === 'nameEmail' ? 'active' : ''}`}></span>
+                  <span style={{ color: 'var(--dark-text)' }}>Add agent via name + email</span>
                 </label>
-                <label className={`toggle-option ${currentRole.inputMode === 'nameEmail' ? 'active' : 'inactive'}`}>
-                  Name + Email
+                <label className="radio-option" style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  cursor: 'pointer',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  backgroundColor: currentRole.inputMode === 'agentIRI' ? 'rgba(65, 105, 225, 0.1)' : 'transparent',
+                  transition: 'background-color 0.2s'
+                }}>
+                  <input
+                    type="radio"
+                    name="agentInputMode"
+                    value="agentIRI"
+                    checked={currentRole.inputMode === 'agentIRI'}
+                    onChange={(e) => {
+                      handleCurrentRoleChange('inputMode', 'agentIRI');
+                      // Clear Name + Email fields
+                      handleCurrentRoleChange('givenName', '');
+                      handleCurrentRoleChange('email', '');
+                      setCurrentRoleEmailError('');
+                      setCurrentRoleEmailValid(false);
+                    }}
+                    style={{ 
+                      marginRight: '8px', 
+                      width: '16px', 
+                      height: '16px',
+                      cursor: 'pointer',
+                      accentColor: 'var(--primary-blue)'
+                    }}
+                  />
+                  <span style={{ color: 'var(--dark-text)' }}>Add agent via IRI</span>
                 </label>
               </div>
             </div>
@@ -4718,7 +5110,7 @@ const handleCancelEditExampleResource = () => {
               {currentRole.inputMode === 'agentIRI' ? (
                 <div className="form-group">
                   <label htmlFor="roleAgent" className="subfield-label">
-                    Agent <span className="field-indicator optional-indicator">optional (IRI)</span>
+                    Agent <span className={`field-indicator ${currentRoleAgentValid ? 'valid-indicator' : 'optional-indicator'}`}>{currentRoleAgentValid ? 'valid (IRI)' : 'optional (IRI)'}</span>
                   </label>
                   <input
                     onBlur={validateIriInput}
@@ -4754,7 +5146,7 @@ const handleCancelEditExampleResource = () => {
                 <>
                   <div className="form-group">
                     <label htmlFor="roleGivenName" className="subfield-label">
-                      Given Name <span className="field-indicator optional-indicator">optional</span>
+                      Given Name <span className={`field-indicator ${currentRole.givenName.trim().length > 0 ? 'valid-indicator' : 'optional-indicator'}`}>{currentRole.givenName.trim().length > 0 ? 'valid' : 'optional'}</span>
                     </label>
                     <input
                       type="text"
@@ -4767,7 +5159,7 @@ const handleCancelEditExampleResource = () => {
                   </div>
                   <div className="form-group">
                     <label htmlFor="roleEmail" className="subfield-label">
-                      Email <span className="field-indicator optional-indicator">optional</span>
+                      Email <span className={`field-indicator ${currentRoleEmailValid ? 'valid-indicator' : 'optional-indicator'}`}>{currentRoleEmailValid ? 'valid' : 'optional'}</span>
                     </label>
                     <input
                       onBlur={validateEmailInput}
@@ -7066,17 +7458,27 @@ const handleCancelEditExampleResource = () => {
           </div>
           
           {showAISuggestions && (
-            <div className="ai-suggestions-panel">
+            <div className={`ai-suggestions-panel ${aiPanelExpanded ? 'expanded' : ''}`}>
               <div className="ai-panel-header">
-                <h3>AI Explanation</h3>
-                {activeField && (
-                  <div className="active-field-indicator">
-                    Field: <strong>{activeField}</strong>
-                  </div>
-                )}
+                <div className="ai-panel-header-left">
+                  <h3>AI Suggestions</h3>
+                  {activeField && (
+                    <div className="active-field-indicator">
+                      Field: <strong>{activeField}</strong>
+                    </div>
+                  )}
+                </div>
+                <button 
+                  className="ai-panel-expand-button"
+                  onClick={() => setAiPanelExpanded(!aiPanelExpanded)}
+                  type="button"
+                  title={aiPanelExpanded ? "Collapse panel" : "Expand panel"}
+                >
+                  {aiPanelExpanded ? '◀ Collapse' : '▶ Expand'}
+                </button>
               </div>
               
-              <div className="ai-panel-content">
+              <div className="ai-panel-content" ref={aiPanelContentRef}>
                 {activeField && activeField !== 'waiting-for-narrative' && bulkSuggestionsReady && (
                   <div className="ai-suggestions-list">
                     {(() => {
@@ -7143,17 +7545,60 @@ const handleCancelEditExampleResource = () => {
                             </div>
                           )}
                           
-                          {suggestions.map((suggestion, index) => (
-                            <div key={index} className="suggestion-card">
-                              <button
-                                className="suggestion-value"
-                                onClick={() => populateFieldWithSuggestion(activeField, suggestion.value, index)}
-                                type="button"
-                              >
-                                {renderJsonValue(suggestion.value)}
-                              </button>
-                            </div>
-                          ))}
+                          {suggestions.map((suggestion, index) => {
+                            // Special rendering for roles to highlight role type
+                            if (activeField === 'roles') {
+                              const roleMatch = suggestion.value.match(/^([^:]+):\s*(.+)$/);
+                              if (roleMatch) {
+                                const [, roleType, details] = roleMatch;
+                                return (
+                                  <div key={index} className="suggestion-card">
+                                    <button
+                                      className="suggestion-value"
+                                      onClick={() => populateFieldWithSuggestion(activeField, suggestion.value, index)}
+                                      type="button"
+                                      style={{ textAlign: 'left' }}
+                                    >
+                                      <div style={{ 
+                                        display: 'flex', 
+                                        flexDirection: 'column', 
+                                        gap: '4px'
+                                      }}>
+                                        <div style={{ 
+                                          fontSize: '0.85rem', 
+                                          fontWeight: '700',
+                                          color: 'var(--primary-blue)',
+                                          textTransform: 'uppercase',
+                                          letterSpacing: '0.5px'
+                                        }}>
+                                          {roleType.trim()}
+                                        </div>
+                                        <div style={{ 
+                                          fontSize: '1rem',
+                                          color: 'var(--dark-text)'
+                                        }}>
+                                          {details.trim()}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  </div>
+                                );
+                              }
+                            }
+                            
+                            // Default rendering for other fields
+                            return (
+                              <div key={index} className="suggestion-card">
+                                <button
+                                  className="suggestion-value"
+                                  onClick={() => populateFieldWithSuggestion(activeField, suggestion.value, index)}
+                                  type="button"
+                                >
+                                  {renderJsonValue(suggestion.value)}
+                                </button>
+                              </div>
+                            );
+                          })}
                         </>
                       );
                     })()}
@@ -7176,6 +7621,13 @@ const handleCancelEditExampleResource = () => {
                   </div>
                 )}
               </div>
+              
+              {/* Scroll indicator */}
+              {showScrollIndicator && (
+                <div className="ai-scroll-indicator">
+                  <div className="ai-scroll-indicator-icon">↓</div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -7222,12 +7674,183 @@ const handleCancelEditExampleResource = () => {
       </>
     )}
       
+      {/* Expanded AI Panel Overlay */}
+      {aiPanelExpanded && showAISuggestions && (
+        <div className="ai-panel-overlay" onClick={() => setAiPanelExpanded(false)}>
+          <div className="ai-panel-expanded-container" onClick={(e) => e.stopPropagation()}>
+            <div className="ai-panel-header">
+              <div className="ai-panel-header-left">
+                <h3>AI Suggestions (Expanded View)</h3>
+                {activeField && (
+                  <div className="active-field-indicator">
+                    Field: <strong>{activeField}</strong>
+                  </div>
+                )}
+              </div>
+              <button 
+                className="ai-panel-close-button"
+                onClick={() => setAiPanelExpanded(false)}
+                type="button"
+                title="Close expanded view"
+              >
+                ✕ Close
+              </button>
+            </div>
+            
+            <div className="ai-panel-content" ref={aiPanelContentRef}>
+              {activeField && activeField !== 'waiting-for-narrative' && bulkSuggestionsReady && (
+                <div className="ai-suggestions-list">
+                  {(() => {
+                    const suggestionText = aiSuggestions[activeField];
+                    
+                    if (!suggestionText) {
+                      return (
+                        <div className="no-answers-found">
+                          <div className="no-answers-title">No answers found for this field</div>
+                          <div className="no-answers-explanation">No suggestions were generated for this field from the KG document.</div>
+                        </div>
+                      );
+                    }
+                    
+                    if (!suggestionText.includes('•')) {
+                      return (
+                        <div className="no-answers-found">
+                          <div className="no-answers-title">No answers found for this field</div>
+                          <div className="no-answers-explanation">{suggestionText}</div>
+                        </div>
+                      );
+                    }
+                    
+                    const suggestions = suggestionText
+                      .split('\n')
+                      .filter(line => line.trim().startsWith('•'))
+                      .map(line => ({
+                        value: line.replace('•', '').trim()
+                      }));
+                    
+                    const multiValueFields = [
+                      'vocabulariesUsed', 'keywords', 'category', 'language', 'otherPages', 
+                      'statistics', 'source', 'alternativeTitle', 'acronym', 'homepageURL',
+                      'modifiedDate', 'primaryReferenceDocument', 'metaGraph', 'kgSchema',
+                      'restAPI', 'exampleQueries', 'publicationReferences', 'iriTemplate',
+                      'nameSpace', 'identifier'
+                    ];
+                    const isMultiValueField = multiValueFields.includes(activeField);
+                    
+                    return (
+                      <>
+                        {(isMultiValueField || activeField === 'roles') && suggestions.length > 1 && (
+                          <div className="add-all-container">
+                            <button
+                              className="add-all-button"
+                              onClick={() => {
+                                if (activeField === 'roles') {
+                                  populateFieldWithSuggestion(activeField, suggestions.map(s => s.value));
+                                } else {
+                                  const allValues = suggestions.map(s => s.value);
+                                  populateFieldWithSuggestion(activeField, allValues);
+                                }
+                                setAiPanelExpanded(false); // Close after adding
+                              }}
+                              type="button"
+                            >
+                              ➕ Add All {suggestions.length} Suggestions
+                            </button>
+                          </div>
+                        )}
+                        
+                        {suggestions.map((suggestion, index) => {
+                          // Special rendering for roles to highlight role type
+                          if (activeField === 'roles') {
+                            const roleMatch = suggestion.value.match(/^([^:]+):\s*(.+)$/);
+                            if (roleMatch) {
+                              const [, roleType, details] = roleMatch;
+                              return (
+                                <div key={index} className="suggestion-card">
+                                  <button
+                                    className="suggestion-value"
+                                    onClick={() => {
+                                      populateFieldWithSuggestion(activeField, suggestion.value, index);
+                                      setAiPanelExpanded(false); // Close after adding
+                                    }}
+                                    type="button"
+                                    style={{ textAlign: 'left' }}
+                                  >
+                                    <div style={{ 
+                                      display: 'flex', 
+                                      flexDirection: 'column', 
+                                      gap: '4px'
+                                    }}>
+                                      <div style={{ 
+                                        fontSize: '0.85rem', 
+                                        fontWeight: '700',
+                                        color: 'var(--primary-blue)',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px'
+                                      }}>
+                                        {roleType.trim()}
+                                      </div>
+                                      <div style={{ 
+                                        fontSize: '1rem',
+                                        color: 'var(--dark-text)'
+                                      }}>
+                                        {details.trim()}
+                                      </div>
+                                    </div>
+                                  </button>
+                                </div>
+                              );
+                            }
+                          }
+                          
+                          // Default rendering for other fields
+                          return (
+                            <div key={index} className="suggestion-card">
+                              <button
+                                className="suggestion-value"
+                                onClick={() => {
+                                  populateFieldWithSuggestion(activeField, suggestion.value, index);
+                                  setAiPanelExpanded(false); // Close after adding
+                                }}
+                                type="button"
+                              >
+                                {renderJsonValue(suggestion.value)}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+              
+              {(!bulkSuggestionsReady || activeField === 'waiting-for-narrative') && (
+                <div className="waiting-for-narrative-message">
+                  <div className="waiting-icon">📋</div>
+                  <div className="waiting-text">
+                    <strong>Waiting for KG document</strong>
+                    <p>Please upload a KG document file (.txt or .docx) to get AI suggestions for your fields.</p>
+                  </div>
+                </div>
+              )}
+              
+              {bulkSuggestionsReady && !activeField && (
+                <div className="ai-panel-placeholder">
+                  Click the 🤖 icon next to any field to get AI explanations
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Processing Overlay */}
       {loadingSuggestions && (
         <div className="processing-overlay">
           <div className="processing-content">
             <div className="processing-spinner"></div>
-            <h3>Processing Ontology Description</h3>
+            <h3>processing knowledge graph document</h3>
             <p>openAI's API is analyzing your description file and generating suggestions...</p>
             <div className="processing-timer">
               {processingStartTime && (

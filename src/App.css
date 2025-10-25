@@ -544,22 +544,78 @@ select {
 }
 
 .ai-suggestions-panel {
-  width: 350px;
+  width: 355px;
   background-color: var(--dark-bg);
   border-left: 1px solid var(--dark-border);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  position: sticky;
+  position: sticky; /* Sticky keeps panel aligned with viewport while scrolling */
   top: 0;
   max-height: 100vh;
   align-self: flex-start;
+}
+
+/* Expanded AI panel as overlay modal */
+.ai-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ai-panel-expanded-container {
+  background-color: var(--dark-surface);
+  border: 1px solid var(--dark-border);
+  border-radius: 8px;
+  width: 800px;
+  max-width: 90vw;
+  height: 80vh;
+  max-height: 800px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .ai-panel-header {
   padding: 16px;
   border-bottom: 1px solid var(--dark-border);
   background-color: var(--dark-surface);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.ai-panel-header-left {
+  flex: 1;
 }
 
 .ai-panel-header h3 {
@@ -573,52 +629,158 @@ select {
   font-size: 0.9rem;
 }
 
+.ai-panel-expand-button {
+  background: rgba(65, 105, 225, 0.2);
+  border: 1px solid var(--primary-blue);
+  color: var(--primary-blue);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.ai-panel-expand-button:hover {
+  background: rgba(65, 105, 225, 0.3);
+  transform: scale(1.05);
+}
+
+.ai-panel-expand-button:active {
+  transform: scale(0.95);
+}
+
+/* Expanded modal specific styles */
+.ai-panel-expanded-container .ai-panel-header {
+  border-bottom: 2px solid var(--primary-blue);
+  padding: 20px 24px;
+  background-color: var(--dark-bg);
+  flex-shrink: 0;
+}
+
+.ai-panel-expanded-container .ai-panel-header h3 {
+  font-size: 1.3rem;
+  margin-bottom: 10px;
+}
+
+.ai-panel-expanded-container .ai-panel-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--dark-surface);
+}
+
+.ai-panel-close-button {
+  background: var(--error-red);
+  border: none;
+  color: white;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.ai-panel-close-button:hover {
+  background: #c82333;
+  transform: scale(1.05);
+}
+
+.ai-panel-close-button:active {
+  transform: scale(0.95);
+}
+
 .ai-panel-content {
   flex: 1;
   padding: 16px;
-  padding-left: 20px; /* Make room for wider scrollbar on the left */
-  padding-right: 16px;
   overflow-y: scroll !important; /* Force scrollbar to always show */
   overflow-x: hidden;
-  scrollbar-width: thick; /* For Firefox */
-  scrollbar-color: #4169e1 #2a2a2a; /* For Firefox */
-  scrollbar-gutter: stable; /* Reserve space for scrollbar */
-  direction: rtl; /* Move scrollbar to the left */
+  min-height: 0; /* Important for flex container scrolling */
+  position: relative;
+  /* Scroll shadows for visual indication */
+  background:
+    /* Shadow at top */
+    linear-gradient(var(--dark-bg) 30%, transparent) center top,
+    /* Shadow at bottom */
+    linear-gradient(transparent, var(--dark-bg) 70%) center bottom,
+    /* Shadow covers (actual scrollable area) */
+    radial-gradient(farthest-side at 50% 0, rgba(0,0,0,.5), transparent) center top,
+    radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,.5), transparent) center bottom;
+  background-repeat: no-repeat;
+  background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
+  background-attachment: local, local, scroll, scroll;
+  scrollbar-width: auto; /* For Firefox - use auto to ensure visibility */
+  scrollbar-color: #4169e1 #1a1a1a; /* For Firefox - thumb and track colors */
 }
 
-/* Reset text direction inside AI panel */
-.ai-panel-content > * {
-  direction: ltr;
-}
-
-/* Custom scrollbar for AI panel - ALWAYS VISIBLE AND PROMINENT */
+/* Custom scrollbar for AI panel - SIMPLIFIED AND ALWAYS VISIBLE */
 .ai-panel-content::-webkit-scrollbar {
-  width: 16px !important; /* Even wider scrollbar for maximum visibility */
-  -webkit-appearance: none !important;
+  width: 14px; /* Visible scrollbar width */
+  height: 14px;
 }
 
 .ai-panel-content::-webkit-scrollbar-track {
-  background: #1a1a1a !important; /* Very dark background */
-  border-right: 2px solid #4169e1 !important; /* Bright blue border for visibility */
+  background: #1a1a1a; /* Dark track */
+  border-left: 1px solid #333; /* Subtle border */
 }
 
 .ai-panel-content::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #5a89ff 0%, #4169e1 50%, #3153c9 100%) !important; /* Gradient for depth */
-  border-radius: 8px !important;
-  border: 3px solid #1a1a1a !important;
-  min-height: 80px !important; /* Even taller for better grab target */
-  box-shadow: 0 0 6px rgba(65, 105, 225, 0.5) !important; /* Glow effect */
+  background: #4169e1; /* Bright blue thumb */
+  border-radius: 7px;
+  border: 2px solid #1a1a1a; /* Border for contrast */
+  min-height: 50px; /* Minimum thumb size */
 }
 
 .ai-panel-content::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #7aa3ff 0%, #5a89ff 50%, #4169e1 100%) !important;
-  box-shadow: 0 0 10px rgba(65, 105, 225, 0.8) !important; /* Stronger glow on hover */
-  cursor: pointer !important;
+  background: #5a89ff; /* Lighter blue on hover */
 }
 
 .ai-panel-content::-webkit-scrollbar-thumb:active {
-  background: #2a4db3 !important; /* Solid darker blue when clicking */
-  box-shadow: 0 0 4px rgba(65, 105, 225, 0.6) !important;
+  background: #3153c9; /* Darker blue when dragging */
+}
+
+/* Ensure scrollbar corner is styled */
+.ai-panel-content::-webkit-scrollbar-corner {
+  background: #1a1a1a;
+}
+
+/* Scroll indicator at bottom of AI panel */
+.ai-scroll-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background: linear-gradient(to top, rgba(18, 18, 18, 0.95) 0%, transparent 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.3s ease;
+}
+
+.ai-scroll-indicator-icon {
+  color: #4169e1;
+  font-size: 24px;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
 }
 
 .ai-waiting-message {
