@@ -291,16 +291,8 @@ SPECIAL HANDLING FOR NUMBER OF TRIPLES FIELD (statistics):
 - The "Number of Triples" field (key: statistics) requires SEMANTIC SPLITTING - each distinct fact or piece of information should be a separate suggestion
 - Split based on MEANING, not just delimiters - identify individual statistical facts
 - Remove conjunction words like "and", "also", but preserve the complete fact text
-- IMPORTANT: Number of Triples entries can be text descriptions OR IRIs - both are valid
-  * Text descriptions: "900,000 entities", "5 million facts", "subClassOf: 126792 facts"
-  * IRIs: "http://stats.example.org/classCount" (if provided in narrative)
-- Examples:
-  * "subClassOf: 126792 facts, type: 2011072 facts, context: 40000000 facts" → 3 suggestions: ["subClassOf: 126792 facts", "type: 2011072 facts", "context: 40000000 facts"]
-  * "describes: 997061 facts, bornInYear: 189950 facts, diedInYear: 93827 facts" → 3 suggestions: ["describes: 997061 facts", "bornInYear: 189950 facts", "diedInYear: 93827 facts"]
-  * "The dataset contains 900,000 entities and 5 million facts" → 2 suggestions: ["900,000 entities", "5 million facts"]
-- Each suggestion should be a complete, standalone statistical statement
-- Do NOT rewrite or paraphrase - use the exact text from the narrative, only removing conjunctions
-- Do NOT try to force text descriptions into IRI format
+- IMPORTANT: only sugesst Number of Triples entries e.g. "5 million facts" , "7000 triples"
+  
 
 SPECIAL HANDLING FOR ROLES FIELD:
 - Look for role-related fields in narrative and map them to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder
@@ -418,7 +410,7 @@ SPECIAL HANDLING FOR EXAMPLE RESOURCE FIELD:
   * "accessURL" - URL to access or view this specific example resource
   * "status" - Whether the example is stable, available, or demonstrative
 - INFER from phrases like: "for example, ...", "such as ...", "e.g., entity ...", "sample resource: ...", "instance of ...", "example entity: ..."
-- Look for specific URIs or entity mentions that could serve as examples (e.g., "http://yago-knowledge.org/resource/Albert_Einstein")
+- Look for specific URIs or entity mentions that could serve as examples (e.g., "http://ROBOKOP-knowledge.org/resource/michael_faraday")
 - Example format:
   {
     "value": "{\"title\": \"michael faraday\", \"description\": \"Example person entity in ROBOKOP\", \"accessURL\": \"http://ROBOKOP-knowledge.org/resource/michael_faraday\"}",
