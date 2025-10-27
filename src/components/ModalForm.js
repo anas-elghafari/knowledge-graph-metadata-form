@@ -9,11 +9,12 @@ import { turtle } from '@codemirror/legacy-modes/mode/turtle';
 import mammoth from 'mammoth';
 
 
-function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null, aiEnabledByDefault = false, turtleModeEnabled = false }) {
+function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = null, aiEnabledByDefault = false, turtleModeEnabled = false, isDevMode = true }) {
   console.log('ModalForm initialized with props:', { 
     aiEnabledByDefault, 
     turtleModeEnabled, 
-    hasInitialFormData: !!initialFormData 
+    hasInitialFormData: !!initialFormData,
+    isDevMode
   });
   
   // Initial form state
@@ -83,8 +84,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
   const [aiPanelExpanded, setAiPanelExpanded] = useState(false);
   const aiPanelContentRef = useRef(null);
   
-  // Countdown timer state (20 minutes = 1200 seconds)
-  const [timeRemaining, setTimeRemaining] = useState(1200);
+  // Countdown timer state (12 minutes = 720 seconds)
+  const [timeRemaining, setTimeRemaining] = useState(720);
   const [timerActive, setTimerActive] = useState(true);
   const [formOpenedAt] = useState(new Date().toISOString());
   const [autoSubmittedByTimer, setAutoSubmittedByTimer] = useState(false);
@@ -4216,13 +4217,15 @@ const handleCancelEditExampleResource = () => {
             Cancel
           </button>
           
-          <button 
-            className="save-draft-button"
-            onClick={handleTurtleSaveDraft}
-            disabled={!turtleContent.trim()}
-          >
-            Save Draft
-          </button>
+          {isDevMode && (
+            <button 
+              className="save-draft-button"
+              onClick={handleTurtleSaveDraft}
+              disabled={!turtleContent.trim()}
+            >
+              Save Draft
+            </button>
+          )}
           
           <button 
             className="submit-button"
@@ -4239,8 +4242,8 @@ const handleCancelEditExampleResource = () => {
         <div className={`modal-header`}>
           <h2>Knowledge Graph Metadata</h2>
           
-          {/* Prompt Preview - Only visible in LLM mode */}
-          {isLlmMode && (
+          {/* Prompt Preview - Only visible in LLM mode and dev mode */}
+          {isLlmMode && isDevMode && (
             <div className="prompt-preview-section">
               <button 
                 className="prompt-preview-toggle"
@@ -7750,12 +7753,14 @@ const handleCancelEditExampleResource = () => {
          Cancel
        </button>
     
-       <button 
-        className="save-draft-button"
-      onClick={handleSaveDraft}
-      >
-        Save Draft
-      </button>
+       {isDevMode && (
+         <button 
+          className="save-draft-button"
+        onClick={handleSaveDraft}
+        >
+          Save Draft
+        </button>
+       )}
     
        <button 
          className="submit-button"
@@ -7765,17 +7770,19 @@ const handleCancelEditExampleResource = () => {
          {isSubmitting ? 'Submitting...' : 'Submit'}
        </button>
        
-       <div className="bypass-validation-container">
-         <label className="checkbox-wrapper">
-           <input 
-             type="checkbox"
-             checked={bypassValidation}
-             onChange={(e) => setBypassValidation(e.target.checked)}
-             disabled={isSubmitting}
-           />
-           <span className="checkbox-label">Allow submission to bypass validation rules</span>
-         </label>
-       </div>
+       {isDevMode && (
+         <div className="bypass-validation-container">
+           <label className="checkbox-wrapper">
+             <input 
+               type="checkbox"
+               checked={bypassValidation}
+               onChange={(e) => setBypassValidation(e.target.checked)}
+               disabled={isSubmitting}
+             />
+             <span className="checkbox-label">Allow submission to bypass validation rules</span>
+           </label>
+         </div>
+       )}
       </div>
       </>
     )}

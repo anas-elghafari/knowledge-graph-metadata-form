@@ -11,6 +11,7 @@ function App() {
   const [draftToLoad, setDraftToLoad] = useState(null);
   const [aiEnabledByDefault, setAiEnabledByDefault] = useState(false);
   const [turtleModeEnabled, setTurtleModeEnabled] = useState(false);
+  const [isDevMode, setIsDevMode] = useState(false); // Toggle between 'dev' and 'user test' - default to user test
   
   // Get the current view mode from URL parameters
   const getViewMode = () => {
@@ -239,6 +240,42 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>Knowledge Graph Metadata</h1>
+        
+        {/* Dev/User Test toggle - only visible on main page (all forms) */}
+        {!viewMode && (
+          <div style={{ 
+            position: 'absolute', 
+            top: '20px', 
+            right: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            padding: '8px 16px',
+            borderRadius: '20px',
+            border: '2px solid rgba(255, 255, 255, 0.3)'
+          }}>
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>Mode:</span>
+            <button
+              onClick={() => setIsDevMode(!isDevMode)}
+              style={{
+                padding: '6px 16px',
+                fontSize: '13px',
+                fontWeight: '600',
+                backgroundColor: isDevMode ? '#4169e1' : '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                minWidth: '90px',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {isDevMode ? '🔧 DEV' : '👤 USER TEST'}
+            </button>
+          </div>
+        )}
+        
         {/* Add navigation links */}
         <div className="view-mode-links">
           <a 
@@ -271,15 +308,17 @@ function App() {
         <div className="form-container">
           {renderButtons()}
         </div>
-        <DataTable submissions={submissions} />
+        <DataTable submissions={submissions} isDevMode={isDevMode} />
         
-        {/* Add SavedDrafts component below DataTable */}
-        <div className="saved-drafts-section">
-          <SavedDrafts 
-            ref={savedDraftsRef}
-            onLoadDraft={handleLoadDraft} 
-          />
-        </div>
+        {/* Add SavedDrafts component below DataTable - only in dev mode */}
+        {isDevMode && (
+          <div className="saved-drafts-section">
+            <SavedDrafts 
+              ref={savedDraftsRef}
+              onLoadDraft={handleLoadDraft} 
+            />
+          </div>
+        )}
         
         {showModal && (
           <ModalForm 
@@ -289,6 +328,7 @@ function App() {
             onDraftSaved={handleDraftSaved}
             aiEnabledByDefault={aiEnabledByDefault}
             turtleModeEnabled={turtleModeEnabled}
+            isDevMode={isDevMode}
           />
         )}
       </main>

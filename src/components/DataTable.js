@@ -3,7 +3,7 @@ import React from 'react';
 import JSZip from 'jszip';
 import fieldSemanticMapping from '../fieldSemanticMapping.json';
 
-function DataTable({ submissions }) {
+function DataTable({ submissions, isDevMode = true }) {
   
   // Function to convert field names to semantic names
   const convertToSemanticNames = (obj, parentKey = '') => {
@@ -174,13 +174,15 @@ function DataTable({ submissions }) {
       <div className="table-header">
         <h2>Metadata Submissions ({submissions.length})</h2>
         <div className="table-actions">
-          <button 
-            onClick={downloadJSON}
-            disabled={submissions.length === 0}
-            className="download-button"
-          >
-            Export JSON
-          </button>
+          {isDevMode && (
+            <button 
+              onClick={downloadJSON}
+              disabled={submissions.length === 0}
+              className="download-button"
+            >
+              Export JSON
+            </button>
+          )}
           <button 
             onClick={downloadSemanticJSON}
             disabled={submissions.length === 0}
