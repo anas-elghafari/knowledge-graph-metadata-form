@@ -270,6 +270,12 @@ Multi-Value Fields
 
 SPECIAL HANDLING FOR ROLES FIELD:
 - Look for role-related fields in narrative and map them to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder
+- Common mappings:
+  * "publishedBy", "publisher", "published by" → "publisher"
+  * "fundedBy", "funder", "funded by", "funding" → "funder" 
+  * "createdBy", "creator", "created by", "author" → "author"
+  * "maintainedBy", "maintainer" → "custodian"
+  * "ownedBy", "owner" → "owner"
 - IMPORTANT: Create separate suggestions for EACH role type found, even if multiple roles exist
 - If you find multiple entities for the same role (e.g., "Published by: Org A, Org B, Org C"), create separate roleData for EACH entity
 - Split on commas, semicolons, "and", or other delimiters to identify individual entities
@@ -303,34 +309,83 @@ SPECIAL HANDLING FOR ROLES FIELD:
 - Use "name_mbox" mode when you have name and/or email; use "iri" mode only if you find a clear IRI/URL for the entity
 - If multiple entities for same role type, create separate roleData entries for each (don't combine them)
 
-
-SPECIAL HANDLING FOR DISTRIBUTIONS FIELD:
-- Distributions are complex subsections with multiple subfields (title, description, mediaType, downloadURL, accessURL, byteSize, license, rights, spatialResolution, temporalResolution, releaseDate, modificationDate, issued, accessService, compressionFormat, packagingFormat, hasPolicy)
-- CRITICAL: The "value" field MUST be a valid JSON string containing the distribution object
-- IMPORTANT: Escape quotes in the JSON string properly
-
-SPECIAL HANDLING FOR SPARQL ENDPOINT FIELD:
-- SPARQL endpoints are complex subsections with subfields (endpointURL, identifier, title, endpointDescription, status)
-- CRITICAL: The "value" field MUST be a valid JSON string containing the endpoint object
-- Provide multiple suggestions if multiple endpoints are found or can be inferred
-
-SPECIAL HANDLING FOR EXAMPLE RESOURCE FIELD:
-- Example resources are complex subsections with subfields (title, description, status, accessURL)
-- CRITICAL: The "value" field MUST be a valid JSON string containing the resource object
-- Provide multiple suggestions if multiple example resources are found or mentioned
-
-SPECIAL HANDLING FOR LINKED RESOURCES FIELD:
-- Linked resources are complex subsections with subfields (target, triples)
-- CRITICAL: The "value" field MUST be a valid JSON string containing the linked resource object
-- Provide multiple suggestions if multiple linked resources are found or mentioned
-
-
 SPECIAL HANDLING FOR LICENSE FIELD:
 - For license field, the available options will be provided in the field instruction
 - Match license names (MIT, Apache, GPL, BSD, Creative Commons, etc.) to the corresponding URLs
 - If the narrative contains a license URL directly, extract and match it exactly to one of the available options
 - Look for URLs in the narrative content even if surrounded by other text (e.g., "Licensed under https://opensource.org/licenses/MIT for open use")
 - Return only URLs that exactly match the available dropdown options
+
+SPECIAL HANDLING FOR DISTRIBUTIONS FIELD:
+- Distributions are complex subsections with multiple subfields (title, description, mediaType, downloadURL, accessURL, byteSize, license, rights, spatialResolution, temporalResolution, releaseDate, modificationDate, issued, accessService, compressionFormat, packagingFormat, hasPolicy)
+- CRITICAL: The "value" field MUST be a valid JSON string containing the distribution object
+- IMPORTANT: Escape quotes in the JSON string properly
+
+SEMANTIC INFERENCE FOR DISTRIBUTIONS:
+- Distribution information may NOT be explicitly labeled - you must INFER it from context
+- Think semantically about what each field means and match narrative content accordingly:
+  * "title" - Any mention of file names, dataset versions, download packages, or distribution names
+  * "description" - Text describing what the distribution contains, how to access it, or what format it's in
+  * "downloadURL" - Any URL for downloading files, data dumps, or accessing downloadable content (look for: "download", "get", "fetch", "files available at")
+  * "accessURL" - Any URL for accessing the dataset, web interfaces, landing pages, or information pages (look for: "access", "visit", "available at", "hosted at", "home page")
+  * "mediaType" - File formats, MIME types, or data formats mentioned (e.g., "RDF", "Turtle", "N-Triples", "JSON", "CSV", "XML", "TSV", "application/ld+json", "text/turtle")
+  * "license" - Any licensing information (MIT, Apache, CC-BY, etc.)
+  * "byteSize" - File sizes mentioned anywhere (e.g., "3.2 GB", "450 MB", "2.1 TB")
+  * "spatialResolution" - Geographic or spatial precision mentioned (in meters)
+  * "temporalResolution" - Time-based precision or update frequency (e.g., "daily", "monthly", "yearly")
+  * "releaseDate", "modificationDate", "issued" - Any dates associated with releases, updates, or publications
+
+SPECIAL HANDLING FOR SPARQL ENDPOINT FIELD:
+- SPARQL endpoints are complex subsections with subfields (endpointURL, identifier, title, endpointDescription, status)
+- CRITICAL: The "value" field MUST be a valid JSON string containing the endpoint object
+- SEMANTIC INFERENCE: Look for any mention of SPARQL, query services, query endpoints, or interactive query interfaces
+  * "endpointURL" - Any URL mentioning "sparql", "query", or providing a query interface
+  * "title" - Name of the query service (e.g., "YAGO Query Service", "Dataset SPARQL Endpoint")
+  * "endpointDescription" - Any text describing the query capabilities or how to use the endpoint
+  * "status" - If mentioned, whether the endpoint is active, stable, beta, etc.
+- INFER from phrases like: "query the data at...", "SPARQL endpoint available at...", "interactive queries via...", "query interface: ..."
+- Example format:
+  {
+    "value": "{\"endpointURL\": \"https://query.yago.org/sparql\", \"title\": \"Yago Query Service\", \"endpointDescription\": \"SPARQL endpoint for querying YAGO knowledge graph\"}",
+    "explanation": "Inferred SPARQL endpoint from narrative"
+  }
+- Include ALL fields you can extract or infer from the narrative
+- Provide multiple suggestions if multiple endpoints are found or can be inferred
+
+SPECIAL HANDLING FOR EXAMPLE RESOURCE FIELD:
+- Example resources are complex subsections with subfields (title, description, status, accessURL)
+- CRITICAL: The "value" field MUST be a valid JSON string containing the resource object
+- SEMANTIC INFERENCE: Look for mentions of specific entities, examples, sample data, or representative resources
+  * "title" - Name of an example entity or resource (e.g., "Albert Einstein", "Paris", "example:Person123")
+  * "description" - Any text describing what the example represents or demonstrates
+  * "accessURL" - URL to access or view this specific example resource
+  * "status" - Whether the example is stable, available, or demonstrative
+- INFER from phrases like: "for example, ...", "such as ...", "e.g., entity ...", "sample resource: ...", "instance of ...", "example entity: ..."
+- Look for specific URIs or entity mentions that could serve as examples (e.g., "http://yago-knowledge.org/resource/Albert_Einstein")
+- Example format:
+  {
+    "value": "{\"title\": \"Albert Einstein\", \"description\": \"Example person entity in YAGO\", \"accessURL\": \"http://yago-knowledge.org/resource/Albert_Einstein\"}",
+    "explanation": "Found example resource mentioned in narrative"
+  }
+- Include ALL fields you can extract or infer from the narrative
+- Provide multiple suggestions if multiple example resources are found or mentioned
+
+SPECIAL HANDLING FOR LINKED RESOURCES FIELD:
+- Linked resources are complex subsections with subfields (target, triples)
+- CRITICAL: The "value" field MUST be a valid JSON string containing the linked resource object
+- SEMANTIC INFERENCE: Look for mentions of connections to other datasets, interlinking, or relationships with external knowledge bases
+  * "target" - Name or URL of another dataset/knowledge base that this dataset links to (e.g., "DBpedia", "Wikidata", "http://dbpedia.org")
+  * "triples" - Number of links/triples connecting to that target (look for numbers associated with links, connections, or triples)
+- INFER from phrases like: "linked to ...", "connects to ...", "interlinked with ...", "... links to DBpedia", "aligned with ...", "mappings to ...", "... triples to Wikidata"
+- Look for dataset names mentioned in context of linking: DBpedia, Wikidata, Schema.org, UMBEL, GeoNames, etc.
+- Example format:
+  {
+    "value": "{\"target\": \"http://dbpedia.org\", \"triples\": \"1523000\"}",
+    "explanation": "Found linkset information to DBpedia in narrative"
+  }
+- Include ALL fields you can extract or infer from the narrative
+- Provide multiple suggestions if multiple linked resources are found or mentioned
+
 
 
 Response Format
