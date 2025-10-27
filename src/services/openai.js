@@ -199,74 +199,108 @@ ${narrativeContent}
 
 Please find all potential answers for each field from the narrative description above.
 
-Important Instructions
-Semantic Matching and Inference
+IMPORTANT INSTRUCTIONS:
 
-Match fields to narrative content semantically, not just by keywords.
+SEMANTIC MATCHING AND INFERENCE:
+- Matching fields to narrative content should happen at a SEMANTIC LEVEL, not just surface-level keyword matching
+- Think deeply about the MEANING of both:
+  1. What the field is asking for (its conceptual purpose)
+  2. What information the narrative text is conveying (its semantic content)
+- If direct keyword matching fails, use semantic reasoning to find relevant information:
+  * Example: A field asking for "publisher" might match narrative text about "released by", "made available by", "maintained by"
+  * Example: A field asking for "Number of Triples" (statistics) might match phrases about "contains X entities", "includes Y triples", "covers Z domains"
+  * Example: A field asking for "temporal coverage" might match text about "spans from 2010 to 2020", "historical data", "time period"
+- Consider synonyms, related concepts, and implied meanings
+- Use domain knowledge about knowledge graphs, ontologies, and metadata to make intelligent connections
 
-Understand both:
+PARTIAL COMPLETION IS ACCEPTABLE:
+- For complex sections with many subfields (distributions, SPARQL endpoints, example resources, linked resources, roles):
+  * You do NOT need to find values for ALL subfields
+  * Provide suggestions for AS MANY subfields as you can reasonably extract from the narrative
+  * It is perfectly acceptable to suggest a distribution with only title and downloadURL if other fields are not mentioned
+  * It is acceptable to suggest a role with only roleType and givenName if an agent IRI is not available
+  * LOOSEN your criteria as needed - partial information is better than no suggestion
+- Quality over completeness: A suggestion with 2-3 accurate subfields is more valuable than no suggestion at all
+- If you can infer even ONE relevant subfield value with confidence, create a suggestion for that section
 
-What the field requests (its conceptual purpose).
+FORMAT CONSTRAINTS AND VALIDATION REQUIREMENTS:
+- Many fields have specific format requirements that MUST be respected
+- IRI/URL FIELDS: The following fields require valid IRI (Internationalized Resource Identifier) values:
+  * homepageURL, otherPages, vocabulariesUsed, primaryReferenceDocument, category, publicationReferences, source, kgSchema, metaGraph, nameSpace
+  * NOTE: The following fields do NOT require IRI validation:
+    - iriTemplate: contains patterns/variables (e.g., "http://example.org/{id}")
+    - statistics (Number of Triples): can be text descriptions (e.g., "900,000 entities", "5 million facts", "subClassOf: 126792 facts")
+    - restAPI: can be endpoint descriptions or non-URI identifiers
+  * Distribution subfields: downloadURL, accessURL, accessService, hasPolicy, license (when not from dropdown)
+  * SPARQL endpoint: endpointURL
+  * Example resource: accessURL
+  * Role: agent (when using Agent IRI mode)
+- IRI FORMAT RULES:
+  * IRIs must be complete, valid URLs with proper scheme (http://, https://, ftp://, etc.)
+  * If you find a partial identifier or name that should be an IRI, try to construct a valid IRI if you know the proper format
+  * Examples of converting to IRIs:
+    - "DBpedia" → "http://dbpedia.org" or "http://dbpedia.org/resource/"
+    - "schema.org" → "http://schema.org/" or "https://schema.org/"
+    - "YAGO" → "http://yago-knowledge.org" or the full resource URI if known
+  * If the narrative provides a domain/base URI, use it to construct full IRIs for entities
+  * If you cannot determine a valid IRI format, provide the value as-is (the user can fix it later)
+  * CRITICAL: Hierarchical URI schemes (http, https, ftp, ftps, sftp, file, ws, wss, git, ssh) MUST use :// format (not just :/)
 
-What the narrative conveys (its meaning).
+- DATE FIELDS: Dates must be formatted as YYYY-MM-DD (ISO 8601 format):
+  * createdDate, publishedDate, modifiedDate (array of dates)
+  * Distribution subfields: releaseDate, modificationDate, issued
+  * Examples: "2023-05-15", "2022-01-01", "2024-12-31"
+  * If you find dates in other formats (e.g., "May 15, 2023", "15/05/2023"), convert them to YYYY-MM-DD
+  * If only year is provided (e.g., "2023"), use "2023-01-01" or indicate year-only format appropriately
+  * If only month and year (e.g., "May 2023"), use "2023-05-01"
 
-If direct keyword matches fail, infer semantically:
+- LANGUAGE CODES: Language field values MUST follow BCP-47 (IETF language tag) format:
+  * Use lowercase 2-letter ISO 639-1 codes: "en", "fr", "de", "es", "it", "ja", "zh", "ar", "ru", "pt"
+  * Convert language names to codes: "English" → "en", "French" → "fr", "German" → "de", "Spanish" → "es"
+  * Regional variants: "en-US", "en-GB", "zh-CN", "zh-TW", "pt-BR", "pt-PT"
+  * If you find language names in the narrative, always convert them to BCP-47 codes
 
-Example: “publisher” might match “released by,” “maintained by.”
+- EMAIL ADDRESSES: Email fields must be valid email format (name@domain.com)
+  * Role subfield: email (when using Name + Email mode)
 
-Example: “Number of Triples” might match “contains X entities,” “includes Y triples.”
+- NUMERIC FIELDS: Some fields expect numeric values:
+  * byteSize - file size in bytes (numeric string, e.g., "3200000000" for 3.2 GB)
+  * spatialResolution - value in meters (numeric)
+  * triples - number of RDF triples (numeric string)
 
-Example: “temporal coverage” might match “spans 2010–2020,” “historical data.”
+PRIORITY OF FORMAT ADHERENCE:
+1. ALWAYS try to provide values in the correct format first
+2. If you can infer or construct the correct format, do so
+3. Only as a last resort, provide the value in its original format with a note in the explanation that it may need formatting
 
-Consider synonyms, related terms, and implied meanings.
-
-Use domain knowledge of KGs, ontologies, and metadata to infer connections.
-
-Partial Completion
-
-For complex sections (distributions, SPARQL endpoints, example resources, linked resources, roles):
-
-You don’t need to fill all subfields.
-
-Suggest as many as can be confidently inferred.
-
-Partial data is better than none.
-
-Quality over completeness: 2–3 accurate subfields are better than none.
-
-Even one confident inference should be included.
-
-Format Constraints and Validation
-
-IRI/URL fields: Must be valid IRIs for:
-homepageURL, otherPages, vocabulariesUsed, primaryReferenceDocument, category, publicationReferences, source, kgSchema, metaGraph, nameSpace.
-
-The following fields don’t require strict IRIs:* iriTemplate, statistics (Number of Triples), restAPI.
-
-IRI Format Rules:
-
-Must use proper schemes (http://, https://, ftp://, etc.)
-
-Convert partial identifiers if possible (e.g., “DBpedia” → “http://dbpedia.org/”
-).
-
-If unknown, provide the value as-is.
-
-Date fields: Use ISO 8601 (YYYY-MM-DD). Convert other date formats when needed.
-
-Language codes: Follow BCP-47 format (e.g., “en”, “fr”, “de”). Convert names to codes.
-
-Email fields: Must be valid (name@domain.com
-).
-
-Numeric fields: Use numeric strings for byteSize, spatialResolution, triples, etc.
-
-Multi-Value Fields
-
-- Fields like vocabulariesUsed, keywords, category, language, otherPages, statistics (Number of Triples), source, alternativeTitle, acronym, homepageURL, modifiedDate, primaryReferenceDocument, metaGraph, kgSchema, restAPI, exampleQueries, publicationReferences, iriTemplate, nameSpace, may have multiple values.
+MULTI-VALUE FIELDS HANDLING:
+- The following fields accept multiple values: vocabulariesUsed, keywords, category, language, otherPages, statistics (Number of Triples), source, alternativeTitle, acronym, homepageURL, modifiedDate, primaryReferenceDocument, metaGraph, kgSchema, restAPI, exampleQueries, publicationReferences, iriTemplate, nameSpace
 - If the narrative contains multiple values for these fields, you MUST split them into separate suggestions
-- Split values by commas, semicolons, “and,” or “|”.
-- Each atomic value should appear as a separate suggestion.
+- Split on ANY of these delimiters: commas (,), semicolons (;), the word "and", pipe symbols (|), or line breaks
+- Each atomic value should be a separate suggestion
+- IMPORTANT: For multi-value fields, provide ALL relevant values as a LIST of separate suggestions so users can select and add them all at once
+- Examples:
+  * "English, French, German" → 3 separate suggestions: ["en", "fr", "de"] (for language field, use BCP-47 codes)
+  * "keyword1; keyword2 and keyword3" → 3 separate suggestions: ["keyword1", "keyword2", "keyword3"]
+  * "http://vocab1.org | http://vocab2.org" → 2 separate suggestions
+- Trim whitespace from each value
+- Return each atomic value as a separate item in the suggestions array
+- The UI will display an "Add All" button for multi-value fields so users can populate all values in one click
+
+SPECIAL HANDLING FOR NUMBER OF TRIPLES FIELD (statistics):
+- The "Number of Triples" field (key: statistics) requires SEMANTIC SPLITTING - each distinct fact or piece of information should be a separate suggestion
+- Split based on MEANING, not just delimiters - identify individual statistical facts
+- Remove conjunction words like "and", "also", but preserve the complete fact text
+- IMPORTANT: Number of Triples entries can be text descriptions OR IRIs - both are valid
+  * Text descriptions: "900,000 entities", "5 million facts", "subClassOf: 126792 facts"
+  * IRIs: "http://stats.example.org/classCount" (if provided in narrative)
+- Examples:
+  * "subClassOf: 126792 facts, type: 2011072 facts, context: 40000000 facts" → 3 suggestions: ["subClassOf: 126792 facts", "type: 2011072 facts", "context: 40000000 facts"]
+  * "describes: 997061 facts, bornInYear: 189950 facts, diedInYear: 93827 facts" → 3 suggestions: ["describes: 997061 facts", "bornInYear: 189950 facts", "diedInYear: 93827 facts"]
+  * "The dataset contains 900,000 entities and 5 million facts" → 2 suggestions: ["900,000 entities", "5 million facts"]
+- Each suggestion should be a complete, standalone statistical statement
+- Do NOT rewrite or paraphrase - use the exact text from the narrative, only removing conjunctions
+- Do NOT try to force text descriptions into IRI format
 
 SPECIAL HANDLING FOR ROLES FIELD:
 - Look for role-related fields in narrative and map them to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder
@@ -335,6 +369,29 @@ SEMANTIC INFERENCE FOR DISTRIBUTIONS:
   * "temporalResolution" - Time-based precision or update frequency (e.g., "daily", "monthly", "yearly")
   * "releaseDate", "modificationDate", "issued" - Any dates associated with releases, updates, or publications
 
+INFERENCE STRATEGIES:
+- If the narrative mentions URLs, web pages, or online resources → likely downloadURL or accessURL
+- If file formats or data formats are mentioned → use as mediaType and create a distribution around it
+- If the narrative describes "where to get the data" → create a distribution with that information
+- If dates are mentioned in relation to data releases → use as releaseDate or issued
+- If file sizes are mentioned → use as byteSize
+- Even if only partial information is available, create a distribution suggestion with the fields you can infer
+- Look for implicit distribution info like: "The dataset is available in RDF format", "Data can be downloaded from...", "Access the knowledge graph at...", "Files are hosted at..."
+
+EXAMPLE INFERENCES:
+- "YAGO is available at http://yago-knowledge.org" → {"accessURL": "http://yago-knowledge.org", "title": "YAGO Dataset", "description": "Access point for YAGO dataset"}
+- "Download the Turtle files from ftp://example.org/data" → {"downloadURL": "ftp://example.org/data", "mediaType": "text/turtle", "title": "Turtle Format Download"}
+- "The RDF dump is 3.2 GB" → {"mediaType": "application/rdf+xml", "byteSize": "3200000000", "description": "RDF dump"}
+- "Data is provided under CC-BY 4.0 license" → {"license": "https://creativecommons.org/licenses/by/4.0/"}
+
+- Example format for the value field:
+  {
+    "value": "{\"title\": \"YAGO files\", \"description\": \"YAGO download page\", \"mediaType\": \"link\", \"downloadURL\": \"http://yago-knowledge.org\", \"accessURL\": \"http://yago-knowledge.org\"}",
+    "explanation": "Found distribution data in narrative"
+  }
+- Include ALL fields you can extract or infer from the narrative (title, description, mediaType, downloadURL, accessURL, byteSize, etc.)
+- Provide multiple suggestions if multiple distributions are found or can be inferred from the narrative
+
 SPECIAL HANDLING FOR SPARQL ENDPOINT FIELD:
 - SPARQL endpoints are complex subsections with subfields (endpointURL, identifier, title, endpointDescription, status)
 - CRITICAL: The "value" field MUST be a valid JSON string containing the endpoint object
@@ -386,19 +443,12 @@ SPECIAL HANDLING FOR LINKED RESOURCES FIELD:
 - Include ALL fields you can extract or infer from the narrative
 - Provide multiple suggestions if multiple linked resources are found or mentioned
 
-
-
-Response Format
-
-Return a JSON object with "fieldSuggestions" for each field.
-Each should include either:
-
-A "suggestions" array (each with "value" and "explanation"), or
-
-A "noSuggestionsReason" if none found.
+RESPONSE FORMAT:
+You must return a JSON object with "fieldSuggestions" containing each field. For each field, provide either:
+1. An object with "suggestions" array (each item has "value" and "explanation")
+2. An object with "noSuggestionsReason" string if no suggestions found. In the case of no suggestions, provide a short explanation of why (e.g. "Field name from form has no match, even fuzzy matching failed")
 
 Example:
-
 {
   "fieldSuggestions": {
     "title": {
@@ -407,13 +457,12 @@ Example:
       ]
     },
     "someField": {
-      "noSuggestionsReason": "Field name not found in narrative"
+      "noSuggestionsReason": "Field name does not appear in the narrative"
     }
   }
 }
 
-
-Ensure all candidate values are listed and, if possible, ordered by likelihood.
+Important! Please make sure to identify all possible candidate values for each field and subfield. If possible, order those suggestions by descending likelihood of being the right value for the field.
 
 `;
 };
