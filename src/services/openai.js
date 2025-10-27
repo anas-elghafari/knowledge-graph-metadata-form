@@ -263,27 +263,75 @@ Numeric fields: Use numeric strings for byteSize, spatialResolution, triples, et
 
 Multi-Value Fields
 
-Fields like vocabulariesUsed, keywords, category, language, etc., may have multiple values.
+- Fields like vocabulariesUsed, keywords, category, language, otherPages, statistics (Number of Triples), source, alternativeTitle, acronym, homepageURL, modifiedDate, primaryReferenceDocument, metaGraph, kgSchema, restAPI, exampleQueries, publicationReferences, iriTemplate, nameSpace, may have multiple values.
+- If the narrative contains multiple values for these fields, you MUST split them into separate suggestions
+- Split values by commas, semicolons, “and,” or “|”.
+- Each atomic value should appear as a separate suggestion.
 
-Split values by commas, semicolons, “and,” or “|”.
+SPECIAL HANDLING FOR ROLES FIELD:
+- Look for role-related fields in narrative and map them to these role types: resourceProvider, custodian, owner, user, distributor, originator, pointOfContact, principalInvestigator, processor, publisher, author, sponsor, coAuthor, collaborator, editor, mediator, rightsHolder, contributor, funder, stakeholder
+- IMPORTANT: Create separate suggestions for EACH role type found, even if multiple roles exist
+- If you find multiple entities for the same role (e.g., "Published by: Org A, Org B, Org C"), create separate roleData for EACH entity
+- Split on commas, semicolons, "and", or other delimiters to identify individual entities
+- EMAIL HANDLING: The "email" field refers to email addresses
+  * If you find an email address (e.g., "contact@example.org", "john.doe@university.edu"), put it in the "email" field of roleData
+- For roles field, return multiple suggestions with roleData:
+  {
+    "suggestions": [
+      {
+        "value": "publisher: XYZ Organization (contact@xyz.org)",
+        "explanation": "Found 'published by XYZ Organization' with email in narrative",
+        "roleData": {
+          "roleType": "publisher",
+          "mode": "name_mbox",
+          "name": "XYZ Organization",
+          "email": "contact@xyz.org"
+        }
+      },
+      {
+        "value": "funder: ABC Foundation", 
+        "explanation": "Found 'funded by ABC Foundation' in narrative",
+        "roleData": {
+          "roleType": "funder",
+          "mode": "name_mbox", 
+          "name": "ABC Foundation"
+        }
+      }
+    ]
+  }
+- Extract actual names/organizations from the narrative, don't use generic placeholders
+- Use "name_mbox" mode when you have name and/or email; use "iri" mode only if you find a clear IRI/URL for the entity
+- If multiple entities for same role type, create separate roleData entries for each (don't combine them)
 
-Each atomic value should appear as a separate suggestion.
 
-Special Handling
+SPECIAL HANDLING FOR DISTRIBUTIONS FIELD:
+- Distributions are complex subsections with multiple subfields (title, description, mediaType, downloadURL, accessURL, byteSize, license, rights, spatialResolution, temporalResolution, releaseDate, modificationDate, issued, accessService, compressionFormat, packagingFormat, hasPolicy)
+- CRITICAL: The "value" field MUST be a valid JSON string containing the distribution object
+- IMPORTANT: Escape quotes in the JSON string properly
 
-Number of Triples: Split into separate factual statements. Don’t paraphrase.
+SPECIAL HANDLING FOR SPARQL ENDPOINT FIELD:
+- SPARQL endpoints are complex subsections with subfields (endpointURL, identifier, title, endpointDescription, status)
+- CRITICAL: The "value" field MUST be a valid JSON string containing the endpoint object
+- Provide multiple suggestions if multiple endpoints are found or can be inferred
 
-Roles: Map role expressions (e.g., “funded by,” “published by”) to role types. Extract names and emails when available.
+SPECIAL HANDLING FOR EXAMPLE RESOURCE FIELD:
+- Example resources are complex subsections with subfields (title, description, status, accessURL)
+- CRITICAL: The "value" field MUST be a valid JSON string containing the resource object
+- Provide multiple suggestions if multiple example resources are found or mentioned
 
-License: Match exact URLs or names from the approved list.
+SPECIAL HANDLING FOR LINKED RESOURCES FIELD:
+- Linked resources are complex subsections with subfields (target, triples)
+- CRITICAL: The "value" field MUST be a valid JSON string containing the linked resource object
+- Provide multiple suggestions if multiple linked resources are found or mentioned
 
-Distributions: Infer from URLs, formats, file sizes, and release info.
 
-SPARQL Endpoint: Identify query-related URLs or descriptions.
+SPECIAL HANDLING FOR LICENSE FIELD:
+- For license field, the available options will be provided in the field instruction
+- Match license names (MIT, Apache, GPL, BSD, Creative Commons, etc.) to the corresponding URLs
+- If the narrative contains a license URL directly, extract and match it exactly to one of the available options
+- Look for URLs in the narrative content even if surrounded by other text (e.g., "Licensed under https://opensource.org/licenses/MIT for open use")
+- Return only URLs that exactly match the available dropdown options
 
-Example Resource: Find example entities or sample resources.
-
-Linked Resources: Detect interlinks to other datasets (e.g., DBpedia, Wikidata).
 
 Response Format
 
