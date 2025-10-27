@@ -28,7 +28,7 @@ const fieldInstructions = {
     // Documentation
     "primaryReferenceDocument": "Provide a reference to a document, preprint or data paper describing the KG.",
     "metaGraph": "Provide an illustration of the graph connectivity through its types and relations between instances.",
-    "statistics": "Number of Triples: Provide a computational representation of the summary statistics of the knowledge graph, such as the number of triples for different properties. See HCLS: https://www.w3.org/TR/hcls-dataset/#s6.",
+    "statistics": "provide the number of triples in the KG.",
     
     // Distribution related - not in the reference spreadsheet
     "distTitle": "Required title for this distribution",
@@ -48,7 +48,7 @@ const fieldInstructions = {
     "category": "A main category of the resource. A resource can have multiple themes.",
     "publicationReferences": "Provide references for the KG.",
     "language": "Languages represented in the knowledge graph.",
-    "iriTemplate": "Provide a 'J' IRI Templates, following RFC 6570, that individuals are typically identified by.",
+    "iriTemplate": "Provide an IRI Templates, following RFC 6570, that individuals are typically identified by.",
     "linkedResources": "Specify linkable resources to the knowledge graph.Link to a description of a relationship with another resource.",
     "exampleResource": "Provide an example instance in the KG.",
     "accessStatement": "Specify any restrictions on the access to the resource, and how to gain legitimate access.",
