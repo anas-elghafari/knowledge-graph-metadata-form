@@ -450,6 +450,87 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     }
   };
 
+  // Helper function to render complex objects in card format
+  const renderComplexFieldCard = (fieldType, data) => {
+    const entries = [];
+    
+    // Define which fields to show for each type and in what order
+    const fieldConfigs = {
+      distributions: [
+        { key: 'title', label: 'Title' },
+        { key: 'description', label: 'Description' },
+        { key: 'mediaType', label: 'Media Type' },
+        { key: 'downloadURL', label: 'Download URL' },
+        { key: 'accessURL', label: 'Access URL' },
+        { key: 'byteSize', label: 'Size' },
+        { key: 'license', label: 'License' }
+      ],
+      sparqlEndpoint: [
+        { key: 'title', label: 'Title' },
+        { key: 'endpointURL', label: 'Endpoint URL' },
+        { key: 'endpointDescription', label: 'Description' },
+        { key: 'status', label: 'Status' },
+        { key: 'identifier', label: 'Identifier' }
+      ],
+      exampleResource: [
+        { key: 'title', label: 'Title' },
+        { key: 'description', label: 'Description' },
+        { key: 'accessURL', label: 'Access URL' },
+        { key: 'status', label: 'Status' }
+      ],
+      linkedResources: [
+        { key: 'target', label: 'Target' },
+        { key: 'triples', label: 'Number of Triples' }
+      ]
+    };
+    
+    const config = fieldConfigs[fieldType];
+    if (!config) return null;
+    
+    // Extract and format fields
+    config.forEach(({ key, label }) => {
+      if (data[key]) {
+        entries.push({ label, value: data[key] });
+      }
+    });
+    
+    if (entries.length === 0) return null;
+    
+    return (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '8px',
+        width: '100%'
+      }}>
+        {entries.map((entry, idx) => (
+          <div key={idx} style={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px'
+          }}>
+            <div style={{ 
+              fontSize: '0.75rem', 
+              fontWeight: '600',
+              color: 'var(--primary-blue)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              {entry.label}
+            </div>
+            <div style={{ 
+              fontSize: '0.95rem',
+              color: 'var(--dark-text)',
+              wordBreak: 'break-word'
+            }}>
+              {entry.value}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // Helper function to render JSON with syntax highlighting
   const renderJsonValue = (value) => {
     try {
@@ -7586,6 +7667,31 @@ const handleCancelEditExampleResource = () => {
                               }
                             }
                             
+                            // Special rendering for complex JSON fields
+                            const complexFields = ['distributions', 'sparqlEndpoint', 'exampleResource', 'linkedResources'];
+                            if (complexFields.includes(activeField)) {
+                              try {
+                                const parsed = JSON.parse(suggestion.value);
+                                const cardContent = renderComplexFieldCard(activeField, parsed);
+                                if (cardContent) {
+                                  return (
+                                    <div key={index} className="suggestion-card">
+                                      <button
+                                        className="suggestion-value"
+                                        onClick={() => populateFieldWithSuggestion(activeField, suggestion.value, index)}
+                                        type="button"
+                                        style={{ textAlign: 'left', width: '100%' }}
+                                      >
+                                        {cardContent}
+                                      </button>
+                                    </div>
+                                  );
+                                }
+                              } catch (e) {
+                                // Fall through to default rendering if parsing fails
+                              }
+                            }
+                            
                             // Default rendering for other fields
                             return (
                               <div key={index} className="suggestion-card">
@@ -7800,6 +7906,34 @@ const handleCancelEditExampleResource = () => {
                                   </button>
                                 </div>
                               );
+                            }
+                          }
+                          
+                          // Special rendering for complex JSON fields
+                          const complexFields = ['distributions', 'sparqlEndpoint', 'exampleResource', 'linkedResources'];
+                          if (complexFields.includes(activeField)) {
+                            try {
+                              const parsed = JSON.parse(suggestion.value);
+                              const cardContent = renderComplexFieldCard(activeField, parsed);
+                              if (cardContent) {
+                                return (
+                                  <div key={index} className="suggestion-card">
+                                    <button
+                                      className="suggestion-value"
+                                      onClick={() => {
+                                        populateFieldWithSuggestion(activeField, suggestion.value, index);
+                                        setAiPanelExpanded(false); // Close after adding
+                                      }}
+                                      type="button"
+                                      style={{ textAlign: 'left', width: '100%' }}
+                                    >
+                                      {cardContent}
+                                    </button>
+                                  </div>
+                                );
+                              }
+                            } catch (e) {
+                              // Fall through to default rendering if parsing fails
                             }
                           }
                           
