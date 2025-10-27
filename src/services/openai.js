@@ -379,14 +379,14 @@ INFERENCE STRATEGIES:
 - Look for implicit distribution info like: "The dataset is available in RDF format", "Data can be downloaded from...", "Access the knowledge graph at...", "Files are hosted at..."
 
 EXAMPLE INFERENCES:
-- "YAGO is available at http://yago-knowledge.org" → {"accessURL": "http://yago-knowledge.org", "title": "YAGO Dataset", "description": "Access point for YAGO dataset"}
+- "ROBOKOP is available at http://ROBOKOP-knowledge.org" → {"accessURL": "http://ROBOKOP-knowledge.org", "title": "ROBOKOP Dataset", "description": "Access point for ROBOKOP dataset"}
 - "Download the Turtle files from ftp://example.org/data" → {"downloadURL": "ftp://example.org/data", "mediaType": "text/turtle", "title": "Turtle Format Download"}
 - "The RDF dump is 3.2 GB" → {"mediaType": "application/rdf+xml", "byteSize": "3200000000", "description": "RDF dump"}
 - "Data is provided under CC-BY 4.0 license" → {"license": "https://creativecommons.org/licenses/by/4.0/"}
 
 - Example format for the value field:
   {
-    "value": "{\"title\": \"YAGO files\", \"description\": \"YAGO download page\", \"mediaType\": \"link\", \"downloadURL\": \"http://yago-knowledge.org\", \"accessURL\": \"http://yago-knowledge.org\"}",
+    "value": "{\"title\": \"ROBOKOP files\", \"description\": \"ROBOKOP download page\", \"mediaType\": \"link\", \"downloadURL\": \"http://ROBOKOP-knowledge.org\", \"accessURL\": \"http://ROBOKOP-knowledge.org\"}",
     "explanation": "Found distribution data in narrative"
   }
 - Include ALL fields you can extract or infer from the narrative (title, description, mediaType, downloadURL, accessURL, byteSize, etc.)
@@ -397,13 +397,13 @@ SPECIAL HANDLING FOR SPARQL ENDPOINT FIELD:
 - CRITICAL: The "value" field MUST be a valid JSON string containing the endpoint object
 - SEMANTIC INFERENCE: Look for any mention of SPARQL, query services, query endpoints, or interactive query interfaces
   * "endpointURL" - Any URL mentioning "sparql", "query", or providing a query interface
-  * "title" - Name of the query service (e.g., "YAGO Query Service", "Dataset SPARQL Endpoint")
+  * "title" - Name of the query service (e.g., "ROBOKOP Query Service", "Dataset SPARQL Endpoint")
   * "endpointDescription" - Any text describing the query capabilities or how to use the endpoint
   * "status" - If mentioned, whether the endpoint is active, stable, beta, etc.
 - INFER from phrases like: "query the data at...", "SPARQL endpoint available at...", "interactive queries via...", "query interface: ..."
 - Example format:
   {
-    "value": "{\"endpointURL\": \"https://query.yago.org/sparql\", \"title\": \"Yago Query Service\", \"endpointDescription\": \"SPARQL endpoint for querying YAGO knowledge graph\"}",
+    "value": "{\"endpointURL\": \"https://query.ROBOKOP.org/sparql\", \"title\": \"ROBOKOP Query Service\", \"endpointDescription\": \"SPARQL endpoint for querying ROBOKOP knowledge graph\"}",
     "explanation": "Inferred SPARQL endpoint from narrative"
   }
 - Include ALL fields you can extract or infer from the narrative
@@ -421,7 +421,7 @@ SPECIAL HANDLING FOR EXAMPLE RESOURCE FIELD:
 - Look for specific URIs or entity mentions that could serve as examples (e.g., "http://yago-knowledge.org/resource/Albert_Einstein")
 - Example format:
   {
-    "value": "{\"title\": \"Albert Einstein\", \"description\": \"Example person entity in YAGO\", \"accessURL\": \"http://yago-knowledge.org/resource/Albert_Einstein\"}",
+    "value": "{\"title\": \"michael faraday\", \"description\": \"Example person entity in ROBOKOP\", \"accessURL\": \"http://ROBOKOP-knowledge.org/resource/michael_faraday\"}",
     "explanation": "Found example resource mentioned in narrative"
   }
 - Include ALL fields you can extract or infer from the narrative
