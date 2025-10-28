@@ -598,10 +598,18 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
           // Single suggestion - populate form fields for review/editing
           const suggestion = rawData.suggestions[suggestionIndex];
           console.log('Role suggestion clicked:', { suggestionIndex, suggestion, rawData });
+          console.log('Full suggestion object:', JSON.stringify(suggestion, null, 2));
           
           if (suggestion && suggestion.roleData) {
             const roleData = suggestion.roleData;
             console.log('Setting currentRole with roleData:', roleData);
+            console.log('roleData details:', {
+              roleType: roleData.roleType,
+              mode: roleData.mode,
+              iri: roleData.iri,
+              name: roleData.name,
+              email: roleData.email
+            });
             
             const newInputMode = roleData.mode === 'iri' ? 'agentIRI' : 'nameEmail';
             
@@ -648,6 +656,17 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                 setCurrentRoleEmailError('');
                 setCurrentRoleEmailValid(false);
               }
+              
+              // Validate givenName if present
+              const givenNameValue = roleData.name || '';
+              if (givenNameValue && givenNameValue.trim()) {
+                setCurrentRoleGivenNameError('');
+                setCurrentRoleGivenNameValid(true);
+              } else {
+                setCurrentRoleGivenNameError('');
+                setCurrentRoleGivenNameValid(false);
+              }
+              
               // Clear agent IRI validation for name/email mode
               setCurrentRoleAgentError('');
               setCurrentRoleAgentValid(false);
