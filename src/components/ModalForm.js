@@ -657,15 +657,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
                 setCurrentRoleEmailValid(false);
               }
               
-              // Validate givenName if present
-              const givenNameValue = roleData.name || '';
-              if (givenNameValue && givenNameValue.trim()) {
-                setCurrentRoleGivenNameError('');
-                setCurrentRoleGivenNameValid(true);
-              } else {
-                setCurrentRoleGivenNameError('');
-                setCurrentRoleGivenNameValid(false);
-              }
+              // Note: givenName validation not needed as it's just a text field
               
               // Clear agent IRI validation for name/email mode
               setCurrentRoleAgentError('');
@@ -765,11 +757,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
             if (distData.downloadURL) {
               const downloadUrlError = isValidIriString(distData.downloadURL);
               if (downloadUrlError) {
-                setCurrentDistDownloadURLError(downloadUrlError);
-                setCurrentDistDownloadURLValid(false);
+                setDistDownloadURLError(downloadUrlError);
+                setDistDownloadURLValid(false);
               } else {
-                setCurrentDistDownloadURLError('');
-                setCurrentDistDownloadURLValid(true);
+                setDistDownloadURLError('');
+                setDistDownloadURLValid(true);
               }
             }
             
@@ -777,11 +769,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
             if (distData.accessURL) {
               const accessUrlError = isValidIriString(distData.accessURL);
               if (accessUrlError) {
-                setCurrentDistAccessURLError(accessUrlError);
-                setCurrentDistAccessURLValid(false);
+                setDistAccessURLError(accessUrlError);
+                setDistAccessURLValid(false);
               } else {
-                setCurrentDistAccessURLError('');
-                setCurrentDistAccessURLValid(true);
+                setDistAccessURLError('');
+                setDistAccessURLValid(true);
               }
             }
             
@@ -846,11 +838,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
             if (endpointData.endpointURL) {
               const urlError = isValidIriString(endpointData.endpointURL);
               if (urlError) {
-                setCurrentSparqlEndpointURLError(urlError);
-                setCurrentSparqlEndpointURLValid(false);
+                setSparqlEndpointURLError(urlError);
+                setSparqlEndpointURLValid(false);
               } else {
-                setCurrentSparqlEndpointURLError('');
-                setCurrentSparqlEndpointURLValid(true);
+                setSparqlEndpointURLError('');
+                setSparqlEndpointURLValid(true);
               }
             }
             
@@ -913,11 +905,11 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
             if (resourceData.accessURL) {
               const urlError = isValidIriString(resourceData.accessURL);
               if (urlError) {
-                setCurrentExampleResourceAccessURLError(urlError);
-                setCurrentExampleResourceAccessURLValid(false);
+                setExampleResourceAccessURLError(urlError);
+                setExampleResourceAccessURLValid(false);
               } else {
-                setCurrentExampleResourceAccessURLError('');
-                setCurrentExampleResourceAccessURLValid(true);
+                setExampleResourceAccessURLError('');
+                setExampleResourceAccessURLValid(true);
               }
             }
             
