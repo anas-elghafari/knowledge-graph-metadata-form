@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Parser } from 'n3';
 import fieldInstructions from '../fieldInstructions';
@@ -260,7 +260,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     return () => clearInterval(intervalId);
   }, [timerActive, timeRemaining, showTurtleMode]);
   
-  // Debounced turtle validation
+  // Debounced turtle validation - optimized to prevent flashing
+  const lastValidationRef = useRef(null);
   useEffect(() => {
     if (!showTurtleMode) return;
     
@@ -268,7 +269,17 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       console.log('Running validation on content:', turtleContent.substring(0, 50) + '...');
       const validation = validateTurtleContent(turtleContent);
       console.log('Validation result:', validation);
-      setTurtleValidation(validation);
+      
+      // Only update state if validation actually changed
+      const validationChanged = 
+        !lastValidationRef.current ||
+        lastValidationRef.current.isValid !== validation.isValid ||
+        lastValidationRef.current.errors?.length !== validation.errors?.length;
+      
+      if (validationChanged) {
+        lastValidationRef.current = validation;
+        setTurtleValidation(validation);
+      }
     }, 500); // 500ms debounce
     
     return () => clearTimeout(timeoutId);
@@ -3970,6 +3981,8 @@ const handleCancelEditExampleResource = () => {
     }, 2000); 
   };
 
+  // Memoize CodeMirror extensions to prevent flashing
+  const turtleExtensions = useMemo(() => [StreamLanguage.define(turtle)], []);
 
   return (
     <div className="modal-overlay">
@@ -4105,7 +4118,7 @@ const handleCancelEditExampleResource = () => {
               <CodeMirror
                 value={turtleContent}
                 height="100%"
-                extensions={[StreamLanguage.define(turtle)]}
+                extensions={turtleExtensions}
                 onChange={(value) => setTurtleContent(value)}
                 theme="dark"
                 basicSetup={{
