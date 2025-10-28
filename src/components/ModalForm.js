@@ -260,8 +260,7 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     return () => clearInterval(intervalId);
   }, [timerActive, timeRemaining, showTurtleMode]);
   
-  // Debounced turtle validation - optimized to prevent flashing
-  const lastValidationRef = useRef(null);
+  // Debounced turtle validation - updates every 1 second
   useEffect(() => {
     if (!showTurtleMode) return;
     
@@ -269,18 +268,8 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
       console.log('Running validation on content:', turtleContent.substring(0, 50) + '...');
       const validation = validateTurtleContent(turtleContent);
       console.log('Validation result:', validation);
-      
-      // Only update state if validation actually changed
-      const validationChanged = 
-        !lastValidationRef.current ||
-        lastValidationRef.current.isValid !== validation.isValid ||
-        lastValidationRef.current.errors?.length !== validation.errors?.length;
-      
-      if (validationChanged) {
-        lastValidationRef.current = validation;
-        setTurtleValidation(validation);
-      }
-    }, 500); // 500ms debounce
+      setTurtleValidation(validation);
+    }, 1000); // 1 second debounce for responsive validation
     
     return () => clearTimeout(timeoutId);
   }, [turtleContent, showTurtleMode]);
