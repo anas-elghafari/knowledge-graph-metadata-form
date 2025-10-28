@@ -741,6 +741,31 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
               modificationDate: distData.modificationDate || '',
               issued: distData.issued || ''
             });
+            
+            // Validate download URL if present
+            if (distData.downloadURL) {
+              const downloadUrlError = isValidIriString(distData.downloadURL);
+              if (downloadUrlError) {
+                setCurrentDistDownloadURLError(downloadUrlError);
+                setCurrentDistDownloadURLValid(false);
+              } else {
+                setCurrentDistDownloadURLError('');
+                setCurrentDistDownloadURLValid(true);
+              }
+            }
+            
+            // Validate access URL if present
+            if (distData.accessURL) {
+              const accessUrlError = isValidIriString(distData.accessURL);
+              if (accessUrlError) {
+                setCurrentDistAccessURLError(accessUrlError);
+                setCurrentDistAccessURLValid(false);
+              } else {
+                setCurrentDistAccessURLError('');
+                setCurrentDistAccessURLValid(true);
+              }
+            }
+            
             // Scroll to the distribution form
             setTimeout(() => {
               const distForm = document.querySelector('.distribution-form');
@@ -797,6 +822,19 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
               endpointDescription: endpointData.endpointDescription || endpointData.description || '',
               status: endpointData.status || ''
             });
+            
+            // Validate endpoint URL if present
+            if (endpointData.endpointURL) {
+              const urlError = isValidIriString(endpointData.endpointURL);
+              if (urlError) {
+                setCurrentSparqlEndpointURLError(urlError);
+                setCurrentSparqlEndpointURLValid(false);
+              } else {
+                setCurrentSparqlEndpointURLError('');
+                setCurrentSparqlEndpointURLValid(true);
+              }
+            }
+            
             // Scroll to the SPARQL endpoint form
             setTimeout(() => {
               const sparqlForm = document.querySelector('.sparql-endpoint-form');
@@ -851,6 +889,19 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
               status: resourceData.status || '',
               accessURL: resourceData.accessURL || ''
             });
+            
+            // Validate access URL if present
+            if (resourceData.accessURL) {
+              const urlError = isValidIriString(resourceData.accessURL);
+              if (urlError) {
+                setCurrentExampleResourceAccessURLError(urlError);
+                setCurrentExampleResourceAccessURLValid(false);
+              } else {
+                setCurrentExampleResourceAccessURLError('');
+                setCurrentExampleResourceAccessURLValid(true);
+              }
+            }
+            
             // Scroll to the example resource form
             setTimeout(() => {
               const exampleForm = document.querySelector('.example-resource-form');
