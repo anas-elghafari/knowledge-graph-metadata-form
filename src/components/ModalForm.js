@@ -125,10 +125,10 @@ function ModalForm({ onSubmit, onClose, initialFormData = null, onDraftSaved = n
     console.log('showTurtleMode changed to:', showTurtleMode);
   }, [showTurtleMode]);
   
-  // Modal resize state - default to 85% width and 90% height of viewport
+  // Modal resize state - default to 85% width and 95% height of viewport
   const [modalSize, setModalSize] = useState({ 
     width: Math.floor(window.innerWidth * 0.85), 
-    height: Math.floor(window.innerHeight * 0.90) 
+    height: Math.floor(window.innerHeight * 0.95) 
   });
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef({ startX: 0, startY: 0, startWidth: 0, startHeight: 0 });
@@ -4068,7 +4068,7 @@ const handleCancelEditExampleResource = () => {
           <h2>Turtle Entry</h2>
         </div>
         
-        <div className="modal-body turtle-mode" style={{ display: 'flex', flexDirection: 'column', height: 'calc(90vh - 180px)', padding: '20px 16px 20px 20px' }}>
+        <div className="modal-body turtle-mode" style={{ display: 'flex', flexDirection: 'column', height: 'calc(95vh - 180px)', padding: '16px 16px 20px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <label htmlFor="turtleContent" className="field-label" style={{ margin: 0 }}>
               Turtle Content <span className="field-indicator required-indicator">required</span>
